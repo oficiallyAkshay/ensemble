@@ -51,6 +51,11 @@ async function camera() {
       say(`UI frame rate while tracking: ${fps.toFixed(0)} fps (headless Chrome)`);
       check('UI stays smooth while tracking (>= 30 fps)', fps >= 30, fps.toFixed(0));
       check('sees panel readouts are live', (await p.eval("document.getElementById('r-speed').textContent")) !== '-');
+      check('the centring step is up first: dot, line, countdown, Skip; coach and outline wait', await p.eval("(() => { const c = document.getElementById('centre'); return !c.hidden && document.getElementById('coach').hidden && !document.getElementById('hl').classList.contains('on') && !!c.querySelector('.bead') && document.getElementById('centre-skip').offsetParent !== null; })()"));
+      check('with no face it says "Find the camera"', (await p.eval("document.getElementById('centre-line').textContent")) === 'Find the camera');
+      await p.eval("document.getElementById('centre-skip').click()");
+      await sleep(700);
+      check('Skip ends the step and the coach starts', await p.eval("document.getElementById('centre').hidden && !document.getElementById('coach').hidden"));
       check('coach shows a first suggestion', (await p.eval("document.getElementById('prompt').textContent")).includes('Look at one'));
 
       say('camera stays on; now bytes downloaded after the button');
@@ -135,6 +140,7 @@ async function mouse() {
     await p.eval("document.getElementById('go-mouse').click()");
     await sleep(300);
     check('mouse mode on', (await p.eval('window.__live.mode')) === 'mouse');
+    check('mouse mode never shows the centring step', await p.eval("document.getElementById('centre').hidden && getComputedStyle(document.getElementById('centre')).display === 'none' && !window.__live.centring().active"));
     check('four panes with headers, composers, footers and traffic lights', await p.eval("document.querySelectorAll('.ls-pane').length === 4 && document.querySelectorAll('.ls-ph').length === 4 && document.querySelectorAll('.ls-composer').length === 4 && document.querySelectorAll('.ls-foot').length === 4 && document.querySelectorAll('.ls-lights i').length === 3"));
     check('tables and lists render inside the transcripts', await p.eval("document.querySelectorAll('.ls-line.tablewrap table').length >= 2 && document.querySelectorAll('.ls-line.list li').length >= 4"));
     check('composer placeholder and footer match the real app', await p.eval("getComputedStyle(document.querySelector('.ls-composer .draft'), '::before').content.includes('to queue for later') && document.querySelector('.ls-foot').textContent.includes('Bypass permissions') && /Opus 5\\.5|Sonnet 5\\.5/.test(document.querySelector('.ls-foot').textContent)"));
@@ -191,7 +197,7 @@ async function mouse() {
     await p.eval("document.getElementById('done').click()");
     await sleep(200);
     check('ends on the download screen', await p.eval("!document.getElementById('finish').hidden"));
-    check('download links point at the release', await p.eval("document.getElementById('download').href === 'https://github.com/oficiallyAkshay/ensemble/releases/latest' && document.querySelector('.ls-download-corner').href === 'https://github.com/oficiallyAkshay/ensemble/releases/latest'"));
+    check('download links start the download of the newest release (Ensemble.dmg)', await p.eval("document.getElementById('download').href === 'https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg' && document.querySelector('.ls-download-corner').href === 'https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg'"));
     check('back to the letter link', await p.eval("[...document.querySelectorAll('#finish a')].some(a => a.getAttribute('href') === '../index.html')"));
     check('no request left localhost', offOrigin(w).length === 0, offOrigin(w).join(' '));
     check('mouse mode downloaded no models', !w.requests.some((r) => /models|vendor/.test(r.url)));
@@ -305,7 +311,7 @@ async function letter() {
     await p.send('Page.navigate', { url: LETTER });
     await p.waitFor("document.readyState === 'complete'", 15000, 'letter load');
     check('letter words are all there', await p.eval("['Type to your AI for thirty minutes', 'two weeks', 'I learned that the slow way', 'find the right window, click it, talk', 'Thumbs-up. Next.', 'one click from leaning back', 'Free, open source, for the Mac'].every(t => document.body.textContent.replace(/\\s+/g, ' ').includes(t))"));
-    check('CTA row: See the demo, Download with a logo, star line', await p.eval("(() => { const d = document.getElementById('dl-btn'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href === 'https://github.com/oficiallyAkshay/ensemble/releases/latest' && document.getElementById('stars').href === 'https://github.com/oficiallyAkshay/ensemble'; })()"));
+    check('CTA row: See the demo, Download with a logo, star line', await p.eval("(() => { const d = document.getElementById('dl-btn'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href.startsWith('https://github.com/oficiallyAkshay/ensemble/releases/latest') && document.getElementById('stars').href === 'https://github.com/oficiallyAkshay/ensemble'; })()"));
     check('no horizontal overflow at 1280', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1'));
     check('island narrates on the page', await p.waitFor("document.getElementById('island').dataset.mode !== 'idle'", 6000, 'island').then(() => true));
     check('popover closed at first', await p.eval("!document.getElementById('cam-pop').classList.contains('open')"));
@@ -491,8 +497,112 @@ async function letterPhone() {
   } finally { p.close(); await c.close(); }
 }
 
+
+async function centre() {
+  say('scenario centre: the centring step, with synthetic head readings (the fake camera shows no face)');
+  const c = await launch({ port: 9361, flags: FAKE });
+  const p = await Page.open(c.port); const w = await p.watch();
+  const feed = (yaw, pitch) => p.eval(`(() => { clearInterval(window.__feed); window.__feed = setInterval(() => window.__live.feedHead(${yaw} + 0.004 * Math.sin(performance.now() / 37), ${pitch}), 33); })()`);
+  const stopFeed = () => p.eval('clearInterval(window.__feed)');
+  const st = () => p.eval('window.__live.centring()');
+  try {
+    await stub(p, 12);
+    await p.send('Page.navigate', { url: URL_ });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await p.eval("document.getElementById('go-camera').click()");
+    await p.waitFor("document.getElementById('app').dataset.state === 'running'", 120000, 'camera running');
+    let s = await st();
+    check('step shows once the trackers run, before anything is interactive', s.active && s.state === 'wait' && s.line === 'Find the camera', JSON.stringify(s));
+    check('the target dot sits at the centre of the Claude window', await p.eval("(() => { const b = document.querySelector('#centre .bead').getBoundingClientRect(), w = document.querySelector('.ls-window').getBoundingClientRect(); return Math.abs((b.left + b.width / 2) - (w.left + w.width / 2)) < 2 && Math.abs((b.top + b.height / 2) - (w.top + w.height / 2)) < 2; })()"));
+    check('line, number, ring and Skip are present; coach and highlight wait', await p.eval("document.getElementById('coach').hidden && !document.getElementById('hl').classList.contains('on') && document.getElementById('centre-skip').offsetParent !== null && document.getElementById('centre-arc').getAttribute('r') === '52'"));
+    await p.send('Page.screenshot'.replace('Page.screenshot', 'Page.bringToFront'));
+    // a face appears, resting at yaw 0.07, pitch 0.03
+    await feed(0.07, 0.03);
+    await sleep(500);
+    s = await st();
+    check('with a face the line says "Point your nose at the dot. Hold still." and the count starts at 3', s.state === 'count' && s.line === 'Point your nose at the dot. Hold still.' && s.count === 3, JSON.stringify(s));
+    await sleep(1100);
+    const mid = await st();
+    check('the ring fills and the number counts down', mid.progress > 0.35 && mid.progress < 0.8 && mid.count === 2, JSON.stringify(mid));
+    await stopFeed();
+    await sleep(900);
+    const lost = await st();
+    check('the face is lost: it pauses and says "Find the camera"', lost.state === 'wait' && lost.line === 'Find the camera' && lost.progress <= mid.progress + 0.25, JSON.stringify(lost));
+    await sleep(800);
+    const frozen = await st();
+    check('the countdown stays frozen while the face is away', Math.abs(frozen.progress - lost.progress) < 0.02, `${lost.progress} -> ${frozen.progress}`);
+    await feed(0.07, 0.03);
+    await p.waitFor("window.__live.centring().state === 'done' || !window.__live.centring().active", 15000, 'countdown to finish');
+    await p.waitFor("document.getElementById('centre').hidden", 5000, 'the step to fade out').catch(() => {});
+    check('the step ends by itself and the coach starts after it', await p.eval("document.getElementById('centre').hidden && !document.getElementById('coach').hidden && document.getElementById('prompt').textContent.includes('Look at one')"));
+    const centreAt = await p.eval('window.__live.centre()');
+    check('the centre is the average resting angle (0.07, 0.03)', centreAt && Math.abs(centreAt.yaw - 0.07) < 0.01 && Math.abs(centreAt.pitch - 0.03) < 1e-6, JSON.stringify(centreAt));
+    const focusAfter = async (yaw) => { await feed(yaw, 0.03); await sleep(1500); return p.eval('window.__live.focus()'); };
+    check('a turn of 0.15 rad one way reaches the first pane', (await focusAfter(0.07 + 0.15)) === 'api');
+    check('a turn of 0.07 rad the same way reaches the second pane', (await focusAfter(0.07 + 0.07)) === 'landing');
+    check('a turn of 0.07 rad the other way reaches the third pane', (await focusAfter(0.07 - 0.07)) === 'triage');
+    check('a turn of 0.15 rad the other way reaches the last pane', (await focusAfter(0.07 - 0.15)) === 'research');
+    check('the nose dot and the blue outline are live after centring', await p.eval("document.getElementById('hl').classList.contains('on')"));
+    await p.send('Page.bringToFront');
+    // the page screenshot of the step is taken in its own run; here: Recentre re-runs it
+    await stopFeed();
+    await p.eval("document.getElementById('recentre').click()");
+    await sleep(300);
+    s = await st();
+    check('Recentre re-runs the 3-second step', s.active && s.state === 'wait' && (await p.eval("document.getElementById('coach').hidden")), JSON.stringify(s));
+    check('while it runs nothing acts: no outline, no focus change', !(await p.eval("document.getElementById('hl').classList.contains('on')")));
+    await feed(0.2, 0.0);
+    await p.waitFor("!window.__live.centring().active", 15000, 'second centring');
+    const c2 = await p.eval('window.__live.centre()');
+    check('the new centre replaces the old one (0.2, 0)', Math.abs(c2.yaw - 0.2) < 0.01 && Math.abs(c2.pitch) < 1e-6, JSON.stringify(c2));
+    await stopFeed();
+    await p.eval("document.getElementById('recentre').click()");
+    await sleep(200);
+    await p.eval("document.getElementById('centre-skip').click()");
+    await sleep(700);
+    check('Skip uses the automatic centre: step gone, centre taken from the next second of readings', await p.eval("document.getElementById('centre').hidden && window.__live.centre() === null"));
+    await feed(-0.1, 0.05);
+    await sleep(1800);
+    const c3 = await p.eval('window.__live.centre()');
+    check('the automatic centre lands on the resting angle (-0.1, 0.05)', c3 && Math.abs(c3.yaw + 0.1) < 0.012 && Math.abs(c3.pitch - 0.05) < 0.01, JSON.stringify(c3));
+    await stopFeed();
+    check('only api.github.com left the site', offOrigin(w, [STARS_URL]).length === 0, offOrigin(w, [STARS_URL]).join(' '));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
+async function pinchDebug() {
+  say('scenario pinch: the pinch value in the panel, ?debug=1 logging, and thresholds that adapt');
+  const c = await launch({ port: 9362, flags: FAKE });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await p.send('Page.navigate', { url: URL_ + '?debug=1' });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await p.eval("document.getElementById('go-camera').click()");
+    await p.waitFor("document.getElementById('app').dataset.state === 'running'", 120000, 'camera running');
+    await p.eval("document.getElementById('centre-skip').click(); window.__live.suppressHand()"); await sleep(700);
+    await p.eval("window.__f = setInterval(() => window.__live.feedHead(0.02, 0.01), 33)"); await sleep(1800);   // a resting head: the automatic centre, and a pane in focus for the dictation below
+    check('the panel has a Pinch row', await p.eval("[...document.querySelectorAll('.ls-readout dt')].some(d => d.textContent === 'Pinch')"));
+    const frames = async (d, n) => { for (let i = 0; i < n; i++) { await p.eval(`window.__live.feedPinch(${d})`); await sleep(34); } };
+    await frames(0.7, 3);
+    check('an open hand reads open', /open/.test(await p.eval("document.getElementById('r-pinch').textContent")) && await p.eval("!!document.querySelector('#r-pinch .pm.open')"));
+    await frames(0.2, 3);
+    check('a touching pinch reads closed, with the closed marker lit', /closed/.test(await p.eval("document.getElementById('r-pinch').textContent")) && await p.eval("!!document.querySelector('#r-pinch .pm.closed')"));
+    await frames(0.7, 3); await sleep(150); await frames(0.2, 3);
+    check('a double pinch measured on the new scale starts dictation', await p.eval('window.__live.talking()'));
+    const pl = w.logs.filter((l) => l.includes('[pinch]'));
+    say(`${pl.length} pinch log lines, e.g. ${pl[0]}`);
+    check('?debug=1 logs the value and the state changes', pl.length >= 3 && pl.some((l) => /STATE CHANGE/.test(l)) && pl.some((l) => /src=test/.test(l)));
+    for (let k = 0; k < 3; k++) { await frames(0.6, 8); await frames(0.12, 4); }
+    await frames(0.6, 8);
+    const th = await p.eval('window.__live.pinch()');
+    check('after three dips the thresholds adapt to this visitor', th.dips >= 3 && th.closed !== 0.3 && th.closed >= 0.2 && th.closed <= 0.36 && th.open > th.closed, JSON.stringify(th));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
 const which = process.argv[2] || 'all';
-const all = { letter, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
+const all = { centre, pinchDebug, letter, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }

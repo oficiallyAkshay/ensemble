@@ -152,25 +152,81 @@ export const classify = (hand) => classifyFeatures(hand)?.gesture ?? null;
  * lengths (wrist to middle knuckle). `modelThumbsUp` is the recognizer's own Thumb_Up verdict, accepted as
  * well as the rule classifier's.
  */
-export function observationFromHand(hand, t, modelThumbsUp = false) {
+export function observationFromHand(hand, t, modelThumbsUp = false, { world = null, aspect = 1 } = {}) {
   if (!hand) return { t, present: false, pose: null, palmCenter: null, pinch: null };
-  const P = hand.points;
-  let pinch = null;
-  const a = P[J.thumbTip], b = P[J.indexTip], w = P[J.wrist], m = P[J.middleMCP];
-  if (a && b && w && m) {
-    const palm = Math.hypot(w.x - m.x, w.y - m.y);
-    if (palm > 0.01) pinch = Math.hypot(a.x - b.x, a.y - b.y) / palm;
-  }
+  const { pinch, source } = pinchMeasure(hand.points, world, aspect);
   let pose = classify(hand);
   if (modelThumbsUp && pose !== 'thumbsUp') pose = 'thumbsUp';
-  return { t, present: true, pose, palmCenter: palmCenter(hand), pinch };
+  return { t, present: true, pose, palmCenter: palmCenter(hand), pinch, pinchSource: source };
+}
+
+/**
+ * The pinch measure: thumb tip (4) to index tip (8), divided by wrist (0) to middle knuckle (9). From MediaPipe's world
+ * landmarks (metric 3D) when present; otherwise from the image points with x scaled by the frame's aspect (width / height),
+ * because normalised x and y are fractions of different lengths. `points` are y-up image points, `world` the raw world landmarks.
+ */
+export function pinchMeasure(points, world = null, aspect = 1) {
+  const ok = (a, b, c, d) => a && b && c && d;
+  if (world && ok(world[J.thumbTip], world[J.indexTip], world[J.wrist], world[J.middleMCP])) {
+    const d3 = (p, q) => Math.hypot(p.x - q.x, p.y - q.y, (p.z ?? 0) - (q.z ?? 0));
+    const palm = d3(world[J.wrist], world[J.middleMCP]);
+    if (palm > 0.01) return { pinch: d3(world[J.thumbTip], world[J.indexTip]) / palm, source: 'world' };
+  }
+  const a = points[J.thumbTip], b = points[J.indexTip], w = points[J.wrist], m = points[J.middleMCP];
+  if (ok(a, b, w, m)) {
+    const d2 = (p, q) => Math.hypot((p.x - q.x) * aspect, p.y - q.y);
+    const palm = d2(w, m);
+    if (palm > 0.01) return { pinch: d2(a, b) / palm, source: 'image' };
+  }
+  return { pinch: null, source: null };
+}
+
+/**
+ * Thresholds for the pinch measure above. Chosen from the hand model's geometry (adult wrist to middle knuckle 8 to 9.5 cm;
+ * the tip landmarks sit at the finger tips, so touching pads leave about 1.5 to 2.5 cm between them: 0.17 to 0.30; a relaxed
+ * open hand leaves 4 to 10 cm: 0.45 to 1.1; a half pinch 2.5 to 3.5 cm: 0.3 to 0.4). Closed below 0.30, open above 0.42.
+ * Not yet checked against a real hand: ?debug=1 on the demo logs the numbers.
+ */
+export const PINCH = { closed: 0.30, open: 0.42, rise: 0.12, minClosed: 0.2, maxClosed: 0.36, hysteresis: 0.12, minOpen: 0.32, maxOpen: 0.5 };
+
+/**
+ * Learns this visitor's own closed and open values over the session. A "dip" is an excursion of the measure below `dipBelow` for
+ * at least two frames; its lowest value is their closed value for that pinch. After `minDips` dips, "closed" sits 40% of the way from
+ * the median dip minimum to their open value (the 90th percentile of all readings), clamped to sane bounds, and "open" a hysteresis above it.
+ */
+export class PinchAdapt {
+  constructor(opts = {}) {
+    this.o = { dipBelow: 0.5, minDips: 3, share: 0.4, keep: 1500, ...PINCH, ...opts };
+    this.reset();
+  }
+
+  reset() { this.samples = []; this.dips = []; this.runMin = null; this.runLen = 0; this.closed = this.o.closed; this.open = this.o.open; this.lowValue = null; this.highValue = null; }
+
+  get ready() { return this.dips.length >= this.o.minDips; }
+
+  push(d) {
+    if (!finite(d)) return;
+    this.samples.push(d); if (this.samples.length > this.o.keep) this.samples.shift();
+    if (d < this.o.dipBelow) { this.runLen += 1; this.runMin = this.runMin === null ? d : Math.min(this.runMin, d); }
+    else { if (this.runLen >= 2) { this.dips.push(this.runMin); if (this.dips.length > 40) this.dips.shift(); } this.runLen = 0; this.runMin = null; }
+    if (this.ready) this.update();
+  }
+
+  update() {
+    const o = this.o, sorted = [...this.samples].sort((a, b) => a - b);
+    this.lowValue = median(this.dips);
+    this.highValue = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))];
+    const span = Math.max(this.highValue - this.lowValue, 0.1);
+    this.closed = Math.min(Math.max(this.lowValue + o.share * span, o.minClosed), o.maxClosed);
+    this.open = Math.min(Math.max(this.closed + o.hysteresis, o.minOpen), o.maxOpen);
+  }
 }
 
 // ---- GestureMachine ------------------------------------------------------------------------------------
 
 export class GestureMachine {
-  static reopenAbove = 0.14;
-  static reopenRise = 0.06;
+  static reopenAbove = 0.42;   // see PINCH: the measure is wrist-to-knuckle in 3D, not Apple Vision's image distance
+  static reopenRise = 0.12;
   static edgeFrames = 2;
   static tapMin = 0.05;
   static tapMax = 2.0;
@@ -193,7 +249,8 @@ export class GestureMachine {
   constructor(mapping = {}) {
     this.mapping = { send: 'thumbsUp', scrollUp: null, scrollDown: null, cancel: 'openPalm', ...mapping };
     this.talking = false;
-    this.pinchClosed = 0.12;
+    this.pinchClosed = 0.30;
+    this.pinchOpen = GestureMachine.reopenAbove;
     this.sendHold = 1.5;
     this.frameAspect = 640 / 480;
     this.isDragging = false;
@@ -379,7 +436,7 @@ export class GestureMachine {
     this.pinchMin = Math.min(this.pinchMin, d);
     // While dragging, opening the fingers even a little ends the drag at once, so the page never follows a hand that let go.
     const opened = this.dragging ? d > Math.max(this.pinchClosed, this.pinchMin + G.reopenRise * 0.6)
-      : d > Math.max(G.reopenAbove, this.pinchMin + G.reopenRise);
+      : d > Math.max(this.pinchOpen, this.pinchMin + G.reopenRise);
     this.edgeCount = opened ? this.edgeCount + 1 : 0;
     if (this.dragging && opened) this.edgeCount = G.edgeFrames;
     if (this.pinchClosedAt !== null && h.t - this.pinchClosedAt > G.tapMax) this.lastTapEnd = null;
@@ -495,10 +552,55 @@ export class AxisSign {
 
 export const HEAD = {
   centreSeconds: 1.0, centreMinSamples: 6,
-  yawRange: 0.2,      // radians of turn from centre that reach the stage edge
+  // Gain: the head turn, from the centre, that reaches the edge of the Claude window. The Mac app's calibration assumes a turn of
+  // 0.5 rad across a screen's width and 0.3 rad across its height (CalibrationAim: assumedYawPerScreenWidth, assumedPitchPerScreenHeight),
+  // so 0.25 and 0.15 rad each way from the centre, which is the 15 degrees an edge costs at laptop distance. A head-only turn
+  // covers about 80% of the angle to a target (the eyes take the rest), hence 0.2 and 0.13. With four panes the outer pane then
+  // starts at a 0.1 rad (6 degree) turn and the window edge is 11.5 degrees: well inside a natural turn.
+  yawRange: 0.2,
   pitchRange: 0.13,
   lostAfter: 1.0,
 };
+
+/** The centring step: "point your nose at the dot", a 3, 2, 1 countdown that runs only while a face is seen. */
+export const CENTRE = { seconds: 3, averageLast: 1.5, minSamples: 6, lostAfter: 0.4 };
+
+export class CentreStep {
+  constructor(opts = {}) { this.opts = { ...CENTRE, ...opts }; this.reset(); }
+
+  reset() {
+    this.elapsed = 0; this.samples = []; this.lastSeen = null; this.lastTick = null; this.centre = null; this.lost = true; this.everSeen = false;
+  }
+
+  get done() { return this.centre !== null; }
+  /** The big number: 3, 2, 1. */
+  get count() { return Math.max(1, Math.ceil(this.opts.seconds - this.elapsed - 1e-9)); }
+  get progress() { return Math.min(this.elapsed / this.opts.seconds, 1); }
+
+  /** A face reading (head angles in radians). Readings in the final `averageLast` seconds make the centre. */
+  push(t, yaw, pitch) {
+    if (this.done || !finite(t) || !finite(yaw) || !finite(pitch)) return;
+    this.lastSeen = t; this.everSeen = true;
+    if (this.lost) { this.lost = false; if (this.elapsed > this.opts.seconds - this.opts.averageLast) this.elapsed = this.opts.seconds - this.opts.averageLast; this.samples = []; }
+    if (this.elapsed >= this.opts.seconds - this.opts.averageLast) this.samples.push([yaw, pitch]);
+  }
+
+  /** Advance the clock; call every display frame. Time only counts while a face was seen within `lostAfter`. */
+  tick(t) {
+    if (this.done) return this;
+    const dt = this.lastTick === null ? 0 : Math.min(Math.max(t - this.lastTick, 0), 0.1);
+    this.lastTick = t;
+    const seen = this.lastSeen !== null && t - this.lastSeen <= this.opts.lostAfter;
+    if (!seen) { this.lost = true; return this; }
+    if (this.lost) return this;   // wait for the next reading to confirm the face is back
+    this.elapsed = Math.min(this.elapsed + dt, this.opts.seconds);
+    if (this.elapsed >= this.opts.seconds && this.samples.length >= this.opts.minSamples) {
+      const n = this.samples.length;
+      this.centre = { yaw: this.samples.reduce((a, q) => a + q[0], 0) / n, pitch: this.samples.reduce((a, q) => a + q[1], 0) / n };
+    }
+    return this;
+  }
+}
 
 /**
  * Head yaw and pitch to a point on the stage, 0...1 each way. The first second of readings sets the centre
@@ -520,6 +622,12 @@ export class HeadPointer {
   }
 
   get centring() { return this.centre === null; }
+
+  /** Use a centre taken elsewhere (the centring step) instead of the automatic first second. */
+  setCentre(yaw, pitch) {
+    this.centre = { yaw, pitch }; this.samples = []; this.startT = null; this.lastT = null;
+    this.fx.reset(); this.fy.reset();
+  }
 
   /** 0...1 through the centring second. */
   get centringProgress() {

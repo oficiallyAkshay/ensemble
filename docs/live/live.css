@@ -30,7 +30,7 @@ button { font-family: inherit; }
 
 /* ---- the Claude desktop window, light theme ---- */
 .ls-main { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
-.ls-window { min-height: 0; display: flex; flex-direction: column; background: var(--c-bg); border-radius: 12px; overflow: hidden;
+.ls-window { position: relative; min-height: 0; display: flex; flex-direction: column; background: var(--c-bg); border-radius: 12px; overflow: hidden;
   box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.12), 0 40px 90px rgba(40, 30, 90, 0.3), 0 8px 24px rgba(10, 10, 10, 0.12); }
 .ls-stage { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); touch-action: none; user-select: none; -webkit-user-select: none; }
 .ls-pane { position: relative; display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--c-line); container-type: inline-size; color: var(--c-text); }
@@ -151,3 +151,27 @@ html[data-go] .gate-intro { display: none; }
   .ens-island:not([data-mode="idle"]) { min-width: 0; width: 92vw; }
   .ls-card { padding: 22px; }
 }
+
+/* ---- the centring step: point your nose at the dot ---- */
+.ls-centre { position: absolute; inset: 0; z-index: 20; background: rgba(250, 249, 245, 0.88); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: block; transition: opacity 0.45s var(--e-ease); }
+.ls-centre.leaving { opacity: 0; pointer-events: none; }
+.ls-centre-line { position: absolute; left: 0; right: 0; top: calc(50% - 150px); margin: 0; text-align: center; font: 650 clamp(20px, 2.2vw, 30px)/1.15 var(--e-display); letter-spacing: -0.03em; color: var(--e-ink); }
+.ls-centre[data-state="wait"] .ls-centre-line { color: var(--e-amber); }
+.ls-centre-target { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; }
+.ls-centre-target svg { position: absolute; inset: 0; width: 100%; height: 100%; rotate: -90deg; overflow: visible; }
+.ls-centre-target circle { fill: none; stroke-width: 5; }
+.ls-centre-target .trk { stroke: rgba(10, 10, 10, 0.1); }
+.ls-centre-target .arc { stroke: var(--e-blue); stroke-linecap: round; stroke-dasharray: 326.7; stroke-dashoffset: 326.7; transition: stroke-dashoffset 0.12s linear, opacity 0.3s ease; filter: drop-shadow(0 0 6px rgba(82, 148, 255, 0.55)); }
+.ls-centre[data-state="wait"] .arc { opacity: 0.35; }
+.ls-centre-target .bead { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), rgba(143, 184, 255, 0.35) 55%, rgba(82, 148, 255, 0.5));
+  -webkit-backdrop-filter: blur(6px) saturate(1.8); backdrop-filter: blur(6px) saturate(1.8);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.9), inset 0 -6px 12px rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(10, 10, 10, 0.18), 0 10px 22px rgba(47, 111, 238, 0.35); animation: ls-breathe 2.4s ease-in-out infinite; }
+.ls-centre-target .bead::after { content: ""; position: absolute; left: 22%; top: 15%; width: 32%; height: 19%; border-radius: 50%; background: rgba(255, 255, 255, 0.95); rotate: -30deg; }
+@keyframes ls-breathe { 50% { transform: scale(1.08); } }
+.ls-centre[data-state="done"] .bead { animation: none; transform: scale(1.25); transition: transform 0.4s var(--e-spring); }
+.ls-centre-count { position: absolute; left: 0; right: 0; top: calc(50% + 78px); text-align: center; font: 700 clamp(44px, 5vw, 72px)/1 var(--e-display); letter-spacing: -0.05em; color: var(--e-ink); font-variant-numeric: tabular-nums; }
+.ls-centre[data-state="wait"] .ls-centre-count { color: rgba(10, 10, 10, 0.25); }
+.ls-centre-skip { position: absolute; left: 50%; translate: -50% 0; top: calc(50% + 170px); font-size: 14px; }
+.ls-readout .pm { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #d4d4d4; }
+.ls-readout .pm.closed { background: var(--e-blue); box-shadow: 0 0 6px rgba(82, 148, 255, 0.7); }

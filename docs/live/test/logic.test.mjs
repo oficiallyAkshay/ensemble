@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   OneEuroFilter, GestureMachine, FocusTracker, sessionAt, FOCUS, observationFromHand, handFromLandmarks, J,
-  HeadPointer, AxisSign, anglesFromMatrix, noseOffset, FrameScheduler, PointerHand, islandMode, wordsTyped, classify,
+  HeadPointer, CentreStep, HEAD, pinchMeasure, PinchAdapt, PINCH, AxisSign, anglesFromMatrix, noseOffset, FrameScheduler, PointerHand, islandMode, wordsTyped, classify,
 } from '../logic.js';
 
 const near = (a, b, e = 1e-9) => assert.ok(Math.abs(a - b) <= e, `${a} vs ${b}`);
@@ -343,4 +343,161 @@ test('dictation types words at a steady rate after a short delay and never past 
 test('classify: an extended-finger fist is not a thumbs up; a curled fist with thumb raised is', () => {
   assert.equal(classify(handWith({ thumbUp: true, curled: true })), 'thumbsUp');
   assert.notEqual(classify(handWith({ curled: true })), 'thumbsUp');
+});
+
+// ---- the centring step ----
+
+const runStep = (step, from, to, yaw, pitch, { fps = 30, face = () => true } = {}) => {
+  for (let t = from; t < to; t += 1 / fps) { if (face(t)) step.push(t, typeof yaw === 'function' ? yaw(t) : yaw, pitch); step.tick(t); }
+};
+
+test('centring step: counts 3, 2, 1 while a face is seen and averages only the final 1.5 s', () => {
+  const s = new CentreStep();
+  // the first 1.5 s the head drifts (0.3); the last 1.5 s it rests at 0.05 and 0.02 with a little noise
+  runStep(s, 0, 3.2, (t) => (t < 1.5 ? 0.3 : 0.05 + 0.01 * Math.sin(t * 40)), 0.02);
+  assert.ok(s.done);
+  near(s.centre.yaw, 0.05, 0.004); near(s.centre.pitch, 0.02, 1e-9);
+  const c = new CentreStep();
+  runStep(c, 0, 0.4, 0, 0); assert.equal(c.count, 3);
+  runStep(c, 0.4, 1.4, 0, 0); assert.equal(c.count, 2);
+  runStep(c, 1.4, 2.4, 0, 0); assert.equal(c.count, 1);
+  assert.ok(c.progress > 0.7 && c.progress < 0.9, `progress ${c.progress}`);
+});
+
+test('centring step: pauses while the face is lost and resumes when it is back', () => {
+  const s = new CentreStep();
+  runStep(s, 0, 1.0, 0, 0);
+  const at = s.elapsed;
+  runStep(s, 1.0, 3.0, 0, 0, { face: () => false });
+  assert.ok(s.lost);
+  near(s.elapsed, at + 0.4, 0.1);           // time counts only for the 0.4 s the last reading still counts as a face
+  assert.ok(!s.done);
+  const frozen = s.elapsed;
+  runStep(s, 3.0, 3.5, 0, 0, { face: () => false });
+  near(s.elapsed, frozen, 1e-9);
+  runStep(s, 3.5, 6.5, 0.04, 0.01);
+  assert.ok(s.done);
+  near(s.centre.yaw, 0.04, 1e-9);
+});
+
+test('centring step: a face lost during the averaging window restarts that window, so the centre is never a mix', () => {
+  const s = new CentreStep();
+  runStep(s, 0, 2.4, 0.4, 0);                   // 0.9 s into the window, resting at 0.4
+  assert.ok(!s.done);
+  runStep(s, 2.4, 3.4, 0.4, 0, { face: () => false });
+  runStep(s, 3.4, 7.0, 0.0, 0);                 // back, now resting at 0.0
+  assert.ok(s.done);
+  near(s.centre.yaw, 0.0, 1e-9);
+});
+
+test('centring step: never finishes without enough readings, ignores non-finite ones', () => {
+  const s = new CentreStep();
+  for (let t = 0; t < 4; t += 0.1) { s.tick(t); }
+  assert.ok(!s.done && s.lost);
+  s.push(4, NaN, 0); assert.ok(s.lastSeen === null);
+});
+
+test('head pointer: a centre from the step replaces the automatic one, and the gain puts natural turns on the panes', () => {
+  const h = new HeadPointer();
+  h.setCentre(0.05, 0.02);
+  assert.equal(h.centring, false);
+  let clock = 10;
+  const at = (dyaw, dpitch = 0) => { let r; for (let i = 0; i < 90; i++) { clock += 1 / 30; r = h.push({ t: clock, yaw: 0.05 + dyaw, pitch: 0.02 + dpitch }); } return r; };
+  near(at(0).x, 0.5, 0.01);
+  const pane = (x) => Math.min(Math.floor(x * 4), 3);
+  // positive yaw moves left (the prior: nose to the visitor's left in the mirror)
+  assert.equal(pane(at(0.15).x), 0);
+  assert.equal(pane(at(0.07).x), 1);
+  assert.equal(pane(at(-0.07).x), 2);
+  assert.equal(pane(at(-0.15).x), 3);
+  // the window edge is reached by 0.2 rad (11.5 degrees); a 6 degree turn already leaves the middle panes
+  assert.ok(at(-0.2).x > 0.99 && at(0.2).x < 0.01);
+  assert.ok(at(0, 0.13).y > 0.99);
+  assert.equal(HEAD.yawRange, 0.2);
+});
+
+// ---- the pinch measure and its thresholds ----
+
+// A MediaPipe world hand in metres: wrist at the origin, middle knuckle 9 cm up, thumb and index tips `gap` metres apart.
+const worldHand = (gap) => {
+  const w = Array.from({ length: 21 }, () => ({ x: 0, y: 0, z: 0 }));
+  w[0] = { x: 0, y: 0, z: 0 }; w[9] = { x: 0, y: -0.09, z: 0 };
+  w[8] = { x: -gap / 2, y: -0.17, z: 0.01 }; w[4] = { x: gap / 2, y: -0.17, z: 0.01 };
+  return w;
+};
+// The same hand in the image: normalised x is a fraction of the width, y of the height, so a 4:3 frame stretches x.
+const imageHand = (gap, aspect = 4 / 3) => {
+  const p = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.5 }));
+  const cm = 1 / 0.3;   // the frame is 0.3 m tall
+  p[0] = { x: 0.5, y: 0.2 }; p[9] = { x: 0.5, y: 0.2 + 0.09 * cm };
+  p[8] = { x: 0.5 - gap / 2 * cm / aspect, y: 0.6 }; p[4] = { x: 0.5 + gap / 2 * cm / aspect, y: 0.6 };
+  return p;
+};
+
+test('pinch measure from world landmarks: open hand, touching pinch, half pinch', () => {
+  const open = pinchMeasure([], worldHand(0.08)), touch = pinchMeasure([], worldHand(0.018)), half = pinchMeasure([], worldHand(0.03));
+  assert.equal(open.source, 'world');
+  near(open.pinch, 0.08 / 0.09, 0.02); near(touch.pinch, 0.018 / 0.09, 0.02); near(half.pinch, 0.03 / 0.09, 0.02);
+  assert.ok(touch.pinch < PINCH.closed, `touching ${touch.pinch}`);
+  assert.ok(half.pinch > PINCH.closed && half.pinch < PINCH.open, `half ${half.pinch}`);
+  assert.ok(open.pinch > PINCH.open, `open ${open.pinch}`);
+  assert.equal(pinchMeasure([], null).pinch, null);
+});
+
+test('pinch measure from image points corrects x for the frame aspect (4:3 frames skew x against y)', () => {
+  for (const gap of [0.018, 0.03, 0.08]) {
+    const right = pinchMeasure(imageHand(gap), null, 4 / 3), naive = pinchMeasure(imageHand(gap), null, 1);
+    assert.equal(right.source, 'image');
+    near(right.pinch, gap / 0.09, 0.02);
+    assert.ok(Math.abs(naive.pinch - gap / 0.09) > 0.01, 'without the aspect the horizontal gap reads too small');
+  }
+});
+
+test('the observation carries the world pinch when the model gives it, and the image one when not', () => {
+  const hand = { points: imageHand(0.018).map((p) => ({ x: p.x, y: 1 - p.y })) };
+  const w = observationFromHand(hand, 1, false, { world: worldHand(0.018), aspect: 4 / 3 });
+  const i = observationFromHand(hand, 1, false, { aspect: 4 / 3 });
+  assert.equal(w.pinchSource, 'world'); assert.equal(i.pinchSource, 'image');
+  assert.ok(w.pinch < PINCH.closed && i.pinch < PINCH.closed);
+});
+
+test('the machine treats a world-measure touching pinch as closed and a relaxed hand as open', () => {
+  const m = new GestureMachine();
+  const out = run(m, [[0, 0.7], [0.03, 0.7], [0.1, 0.22], [0.13, 0.22], [0.2, 0.7], [0.23, 0.7], [0.5, 0.22], [0.53, 0.22]]);
+  assert.deepEqual(out.map((i) => i.type), ['talkBegan']);
+  // a half pinch (0.35) between the thresholds neither closes nor opens
+  const h = new GestureMachine();
+  run(h, [[0, 0.22], [0.03, 0.22], [0.06, 0.35], [0.09, 0.35], [0.12, 0.35]]);
+  assert.equal(h.pinchHeld, true);
+  run(h, [[0.2, 0.5], [0.23, 0.5]]);
+  assert.equal(h.pinchHeld, false);
+});
+
+test('adaptive pinch thresholds: defaults first, then converge on this visitor after three dips', () => {
+  const a = new PinchAdapt();
+  assert.equal(a.closed, PINCH.closed); assert.equal(a.open, PINCH.open);
+  const stream = (low, high, dips, noise = 0.01) => {
+    for (let k = 0; k < dips; k++) {
+      for (let i = 0; i < 30; i++) a.push(high + noise * Math.sin(i * 1.7));          // hand open
+      for (let i = 0; i < 6; i++) a.push(low + noise * Math.cos(i * 2.1) + (i === 3 ? 0 : 0.02)); // a pinch
+    }
+    for (let i = 0; i < 30; i++) a.push(high);
+  };
+  stream(0.15, 0.55, 2);
+  assert.equal(a.closed, PINCH.closed, 'two dips are not enough');
+  stream(0.15, 0.55, 2);
+  assert.ok(a.ready);
+  // 0.15 + 0.4 * (0.55 - 0.15) = 0.31
+  near(a.closed, 0.31, 0.03); assert.ok(a.open > a.closed + 0.1 - 1e-9 && a.open <= PINCH.maxOpen);
+  // a visitor whose landmarks never get close: the bound keeps "closed" sane
+  const b = new PinchAdapt();
+  for (let k = 0; k < 4; k++) { for (let i = 0; i < 20; i++) b.push(0.9); for (let i = 0; i < 4; i++) b.push(0.45); }
+  for (let i = 0; i < 20; i++) b.push(0.9);
+  assert.equal(b.closed, PINCH.maxClosed);
+  // one with a very tight pinch lands low but never under the floor
+  const c = new PinchAdapt();
+  for (let k = 0; k < 4; k++) { for (let i = 0; i < 20; i++) c.push(0.5); for (let i = 0; i < 4; i++) c.push(0.0); }
+  for (let i = 0; i < 20; i++) c.push(0.5);
+  assert.equal(c.closed, PINCH.minClosed);
+  c.push(NaN); assert.ok(Number.isFinite(c.closed));
 });
