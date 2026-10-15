@@ -651,8 +651,53 @@ async function pinchDebug() {
   } finally { p.close(); await c.close(); }
 }
 
+
+async function smooth() {
+  say('scenario smooth: 60 fps camera, hand on every frame, the dot drawn at display rate, quick taps at 20 Hz');
+  for (const fps of [60, 20]) {
+    const c = await launch({ port: 9371 + (fps === 60 ? 0 : 1), flags: ['--use-fake-ui-for-media-stream', `--use-fake-device-for-media-stream=fps=${fps}`] });
+    const p = await Page.open(c.port); const w = await p.watch();
+    try {
+      await stub(p, 12);
+      await p.send('Page.navigate', { url: URL_ + '?go=1' });
+      await p.waitFor("window.__live && window.__live.mode === 'camera'", 120000, 'camera running');
+      const cam = await p.eval('window.__live.camera()');
+      say(`camera at ${fps} fps asked: granted ${JSON.stringify(cam)}`);
+      check(`camera granted ${fps} fps (asked for ideal 60, min 24; fell back when the camera cannot)`, cam && Math.abs(cam.frameRate - fps) < 3 && cam.width === 640 && cam.height === 480, JSON.stringify(cam));
+      check('the granted rate is logged', w.logs.some((l) => /\[camera\] granted 640x480 at \d+/.test(l)));
+      await sleep(10000);
+      const st = await p.eval('window.__live.stats()');
+      const hz = (n) => (n / 10).toFixed(1);
+      say(`hand ${st.hand.n} runs (${hz(st.hand.n)}/s) p50 ${st.hand.p50.toFixed(1)} ms p95 ${st.hand.p95.toFixed(1)} ms; face ${st.face.n} runs (${hz(st.face.n)}/s) p50 ${st.face.p50.toFixed(1)} ms p95 ${st.face.p95.toFixed(1)} ms; camera frames seen ${st.frames.seen}`);
+      check(`hand inference runs on every camera frame at ${fps} fps`, st.hand.n >= st.frames.processed * 0.97 && st.hand.n >= fps * 8, `${st.hand.n} hand runs, ${st.frames.processed} frames`);
+      check('face is decimated only if the budget needs it', st.face.n >= fps * 4 && st.face.n <= st.hand.n, `${st.face.n}`);
+      check('per-frame inference fits the camera interval', st.hand.p50 + st.face.p50 < 1000 / fps * 0.9 || fps === 60 && st.hand.p50 + st.face.p50 < 16.7, `${(st.hand.p50 + st.face.p50).toFixed(1)} ms`);
+      if (fps !== 60) { check('no console errors', real(w).length === 0, real(w).join(' | ')); continue; }
+      // the dot at display rate between 30 Hz samples
+      await p.eval("document.getElementById('centre-skip').click(); window.__live.suppressHand()"); await sleep(600);
+      await p.eval("window.__f = setInterval(() => window.__live.feedHead(0.02 + 0.06 * Math.sin(performance.now() / 400), 0.01), 50)");   // 20 Hz head readings sweeping a good way across
+      await sleep(2500);
+      const m = await p.eval(`new Promise((res) => { const xs = [], t0 = performance.now(); const el = document.getElementById('dot'); (function f() { xs.push(el.style.transform); if (performance.now() - t0 < 1000) requestAnimationFrame(f); else res({ n: xs.length, distinct: new Set(xs).size, on: el.classList.contains('on') }); })(); })`);
+      say(`1 s of display frames: ${m.n} frames drawn, ${m.distinct} distinct dot positions (head readings: 20/s)`);
+      check('the dot is shown and moves at the display rate, not the 20 Hz sample rate', m.on && m.n >= 40 && m.distinct >= m.n * 0.75 && m.distinct > 35, JSON.stringify(m));
+      await p.eval("clearInterval(window.__f)");
+      // quick taps measured at 20 Hz on the synthetic feed
+      await p.eval("window.__f = setInterval(() => window.__live.feedHead(0.02, 0.01), 50)"); await sleep(1600);
+      const taps = (spans) => p.eval(`new Promise((res) => { const t0 = performance.now(); const closed = ${JSON.stringify(spans)}; const iv = setInterval(() => { const t = performance.now() - t0; window.__live.feedPinch(closed.some(([a, b]) => t >= a && t < b) ? 0.15 : 0.7); if (t > ${spans[spans.length - 1][1] + 700}) { clearInterval(iv); res(window.__live.talking()); } }, 50); })`);
+      await p.eval("window.__live.feedPinch(0.7)");
+      const slow = await taps([[200, 1200]]);
+      check('one slow pinch does not start dictation', slow === false);
+      await sleep(1500);
+      const quick = await taps([[200, 300], [550, 650]]);
+      check('a quick double tap (100 ms each, 250 ms apart) at 20 Hz starts dictation', quick === true);
+      await p.eval("clearInterval(window.__f)");
+      check('no console errors', real(w).length === 0, real(w).join(' | '));
+    } finally { p.close(); await c.close(); }
+  }
+}
+
 const which = process.argv[2] || 'all';
-const all = { centre, pinchDebug, letter, letter3d, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
+const all = { smooth, centre, pinchDebug, letter, letter3d, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }

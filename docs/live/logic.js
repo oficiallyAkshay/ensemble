@@ -227,7 +227,11 @@ export class PinchAdapt {
 export class GestureMachine {
   static reopenAbove = 0.42;   // see PINCH: the measure is wrist-to-knuckle in 3D, not Apple Vision's image distance
   static reopenRise = 0.12;
-  static edgeFrames = 2;
+  // A pinch edge (closing or opening) needs the measure to hold for edgeDwell seconds, or for one frame when frames are farther apart
+  // than that, so a quick tap reads the same at 15, 20, 30 or 60 Hz. A frame closer than edgeSlack of the dwell still confirms
+  // (two frames at 30 Hz are 33 ms apart: close enough to 40).
+  static edgeDwell = 0.04;
+  static edgeSlack = 0.75;
   static tapMin = 0.05;
   static tapMax = 2.0;
   static tapGap = 1.2;
@@ -262,7 +266,7 @@ export class GestureMachine {
     this.dragFilter = new OneEuroFilter(1, 2, 1);
     this.dragFilterX = new OneEuroFilter(1, 2, 1);
     this.pinchToggled = false;
-    this.edgeCount = 0;
+    this.closeSince = null; this.openSince = null; this.lastPinchT = null; this.frameDt = Infinity;
     this.pinchSuspect = false;
     this.lastSendPoseT = -Infinity;
     this.lastTapEnd = null;
@@ -303,7 +307,7 @@ export class GestureMachine {
   reset() {
     this.talking = false;
     this.pinchIsClosed = false; this.pinchClosedAt = null; this.lastTapEnd = null;
-    this.pinchToggled = false; this.dragging = false; this.isDragging = false; this.edgeCount = 0;
+    this.pinchToggled = false; this.dragging = false; this.isDragging = false; this.closeSince = null; this.openSince = null; this.lastPinchT = null;
     this.pinchSuspect = false; this.lastSendPoseT = -Infinity;
     this.lastToggleAt = -Infinity;
     this.run = null; this.lastPushT = null; this.lastTalkEndT = null;
@@ -376,16 +380,21 @@ export class GestureMachine {
     const G = GestureMachine;
     if (!h.present || h.pinch === null) {
       if (this.dragging) intents.push({ type: 'dragScrollEnded' });
-      this.pinchIsClosed = false; this.pinchClosedAt = null; this.edgeCount = 0;
+      this.pinchIsClosed = false; this.pinchClosedAt = null; this.closeSince = null; this.openSince = null; this.lastPinchT = null;
       this.dragging = false; this.isDragging = false;
       return;
     }
     const d = h.pinch;
+    // Time, not frame counts: how far apart the frames are decides how long an edge must hold.
+    const gap = this.lastPinchT === null ? Infinity : h.t - this.lastPinchT;
+    if (gap > 0 && gap < 0.25) this.frameDt = this.frameDt === Infinity ? gap : this.frameDt * 0.9 + gap * 0.1;
+    this.lastPinchT = h.t;
+    const held = (since) => h.immediate || gap >= G.edgeDwell || h.t - since >= G.edgeDwell * G.edgeSlack;
     if (!this.pinchIsClosed) {
-      this.edgeCount = d < this.pinchClosed ? this.edgeCount + 1 : 0;
-      if (this.edgeCount < G.edgeFrames) return;
-      this.pinchIsClosed = true; this.edgeCount = 0;
-      this.pinchClosedAt = h.t; this.pinchMin = d;
+      if (d < this.pinchClosed) { if (this.closeSince === null) this.closeSince = h.t; } else { this.closeSince = null; return; }
+      if (!held(this.closeSince)) return;
+      this.pinchIsClosed = true;
+      this.pinchClosedAt = this.closeSince; this.closeSince = null; this.pinchMin = d;
       this.pinchToggled = false;
       this.dragging = false; this.isDragging = false;
       this.dragFilter.reset(); this.dragFilterX.reset();
@@ -408,7 +417,7 @@ export class GestureMachine {
     // Pinch and drag: a held pinch that moves scrolls, with the hand position smoothed.
     // Release first: fingers that have parted while dragging end the drag before any movement counts.
     if (this.dragging && d > Math.max(this.pinchClosed, Math.min(this.pinchMin, d) + G.reopenRise * 0.6)) {
-      this.pinchIsClosed = false; this.edgeCount = 0; this.pinchClosedAt = null;
+      this.pinchIsClosed = false; this.openSince = null; this.pinchClosedAt = null;
       this.dragging = false; this.isDragging = false; this.lastTapEnd = null;
       intents.push({ type: 'dragScrollEnded' });
       return;
@@ -437,19 +446,22 @@ export class GestureMachine {
     // While dragging, opening the fingers even a little ends the drag at once, so the page never follows a hand that let go.
     const opened = this.dragging ? d > Math.max(this.pinchClosed, this.pinchMin + G.reopenRise * 0.6)
       : d > Math.max(this.pinchOpen, this.pinchMin + G.reopenRise);
-    this.edgeCount = opened ? this.edgeCount + 1 : 0;
-    if (this.dragging && opened) this.edgeCount = G.edgeFrames;
+    if (opened) { if (this.openSince === null) this.openSince = h.t; } else this.openSince = null;
     if (this.pinchClosedAt !== null && h.t - this.pinchClosedAt > G.tapMax) this.lastTapEnd = null;
-    if (this.edgeCount < G.edgeFrames) return;
-    this.pinchIsClosed = false; this.edgeCount = 0;
+    if (!opened || !(this.dragging || held(this.openSince))) return;
+    // The tap ended when the fingers first parted, not when that was confirmed.
+    const endT = this.openSince;
+    this.pinchIsClosed = false; this.openSince = null;
     if (this.pinchClosedAt === null) return;
     const start = this.pinchClosedAt;
     this.pinchClosedAt = null;
-    const closedFor = h.t - start;
+    const closedFor = endT - start;
+    // One closed frame is a tap however slowly frames arrive: the minimum never exceeds 80% of the frame spacing.
+    const tapMin = Math.min(G.tapMin, 0.8 * this.frameDt);
     if (this.pinchToggled) { this.pinchToggled = false; this.lastTapEnd = null; return; }
     if (this.dragging) { this.dragging = false; this.isDragging = false; this.lastTapEnd = null; intents.push({ type: 'dragScrollEnded' }); return; }
-    if (!(closedFor >= G.tapMin && closedFor <= G.tapMax) || this.pinchSuspect) { this.lastTapEnd = null; return; }
-    this.lastTapEnd = h.t;
+    if (!(closedFor >= tapMin && closedFor <= G.tapMax) || this.pinchSuspect) { this.lastTapEnd = null; return; }
+    this.lastTapEnd = endT;
   }
 
   endTalk(reason, t, intents) {
@@ -611,8 +623,10 @@ export class HeadPointer {
     this.opts = { ...HEAD, ...opts };
     this.yawSign = new AxisSign(-1);     // +x on the stage = the visitor's right = nose moving right in the mirror
     this.pitchSign = new AxisSign(1);    // +y = down: the nose sinking in the face outline reads as looking down
-    this.fx = new OneEuroFilter(0.6, 3, 1);
-    this.fy = new OneEuroFilter(0.6, 3, 1);
+    // Tuned for 15 to 30 Hz head samples (simulated sweep, 0.5 Hz across 80% of the stage, noise 0.4%): 0.6/3 lags 67 ms, 1/5 lags one sample
+    // (33 ms at 30 Hz) and adds about 1 px of rest jitter on a 1400 px stage. The display-rate glide (NoseGlide) hides the sample steps.
+    this.fx = new OneEuroFilter(1.0, 5, 1);
+    this.fy = new OneEuroFilter(1.0, 5, 1);
     this.recentre();
   }
 
@@ -676,39 +690,84 @@ export function median(values) {
  * take more than `maxBusy` of the main thread, the face slows first, then the hand.
  */
 export class FrameScheduler {
-  constructor({ handHz = 30, faceHz = 15, minHandHz = 15, minFaceHz = 6, maxBusy = 0.5 } = {}) {
-    Object.assign(this, { handHz, faceHz, minHandHz, minFaceHz, maxBusy });
-    this.targetHandHz = handHz; this.targetFaceHz = faceHz;
-    this.lastHand = -Infinity; this.lastFace = -Infinity;
+  /**
+   * The hand runs on every camera frame (gestures matter more than head precision). Only the face is decimated, and only as far as
+   * the time budget needs: the nose dot is smoothed and extrapolated at display rate anyway. If even the slowest face rate does
+   * not fit, the hand drops to every other frame as a last resort.
+   */
+  constructor({ faceHz = 30, minFaceHz = 8, maxBusy = 0.7 } = {}) {
+    Object.assign(this, { faceHz, minFaceHz, maxBusy });
+    this.targetFaceHz = faceHz; this.handEvery = 1; this.frameN = 0;
+    this.lastFace = -Infinity; this.lastFrame = null; this.frameHz = 30;
     this.avgHand = 0; this.avgFace = 0;
   }
+
+  get handHz() { return this.frameHz / this.handEvery; }
 
   record(kind, ms) {
     const k = kind === 'hand' ? 'avgHand' : 'avgFace';
     this[k] = this[k] === 0 ? ms : this[k] * 0.9 + ms * 0.1;
     const busy = (this.avgHand * this.handHz + this.avgFace * this.faceHz) / 1000;
     if (busy > this.maxBusy) {
-      if (this.faceHz > this.minFaceHz) this.faceHz = Math.max(this.minFaceHz, this.faceHz * 0.8);
-      else this.handHz = Math.max(this.minHandHz, this.handHz * 0.9);
+      if (this.faceHz > this.minFaceHz) this.faceHz = Math.max(this.minFaceHz, this.faceHz * 0.85);
+      else if (this.handEvery < 2) this.handEvery = 2;
     } else if (busy < this.maxBusy * 0.6) {
-      this.handHz = Math.min(this.targetHandHz, this.handHz * 1.05);
-      this.faceHz = Math.min(this.targetFaceHz, this.faceHz * 1.05);
+      if (this.handEvery > 1) this.handEvery = 1;
+      else this.faceHz = Math.min(this.targetFaceHz, this.faceHz * 1.05);
     }
   }
 
-  /** What to run on the frame arriving at `now` (seconds). Both only when both are due and fit one frame. */
+  /** What to run on the frame arriving at `now` (seconds). */
   plan(now) {
-    const handOver = (now - this.lastHand) * this.handHz, faceOver = (now - this.lastFace) * this.faceHz;
-    const handDue = handOver >= 0.9, faceDue = faceOver >= 0.9;
-    let hand = false, face = false;
-    if (handDue && faceDue) {
-      if ((this.avgHand + this.avgFace) <= 26) { hand = true; face = true; }
-      else if (handOver >= faceOver) hand = true;
-      else face = true;
-    } else { hand = handDue; face = faceDue; }
-    if (hand) this.lastHand = now;
+    if (this.lastFrame !== null && now > this.lastFrame) { const hz = 1 / (now - this.lastFrame); if (hz < 240) this.frameHz = this.frameHz * 0.9 + hz * 0.1; }
+    this.lastFrame = now; this.frameN += 1;
+    const hand = this.frameN % this.handEvery === 0 || this.handEvery === 1;
+    // The face takes the frames the hand leaves room for: never both when the pair would not fit one frame interval.
+    let face = (now - this.lastFace) * this.faceHz >= 0.9;
+    if (face && hand && (this.avgHand + this.avgFace) > 1000 / this.frameHz * 0.9) face = false;
+    if (face && (now - this.lastFace) * this.faceHz >= 1.8) face = true;   // never starve the face for long
     if (face) this.lastFace = now;
     return { hand, face };
+  }
+}
+
+/**
+ * The nose dot at display rate. Trackers deliver filtered head positions at 15 to 30 Hz; the display runs at 60 to 120. `sample` takes a
+ * tracker position; `frame` is called every display frame and returns where to draw: the latest sample plus its velocity carried
+ * forward for at most one sample interval (so the dot does not wait for the next reading), then a short eased glide toward that.
+ */
+export class NoseGlide {
+  constructor({ tau = 0.035, extrapolate = 1, maxInterval = 0.1, velocityMix = 0.5, staleAfter = 0.5 } = {}) {
+    Object.assign(this, { tau, extrapolate, maxInterval, velocityMix, staleAfter });
+    this.reset();
+  }
+
+  reset() { this.last = null; this.vx = 0; this.vy = 0; this.interval = 0.05; this.pos = null; this.lastFrame = null; }
+
+  sample(t, x, y) {
+    if (!finite(t) || !finite(x) || !finite(y)) return;
+    if (this.last && t > this.last.t) {
+      const dt = t - this.last.t;
+      this.interval = Math.min(Math.max(this.interval * 0.7 + dt * 0.3, 0.008), this.maxInterval);
+      const m = this.velocityMix;
+      this.vx = this.vx * (1 - m) + (x - this.last.x) / dt * m;
+      this.vy = this.vy * (1 - m) + (y - this.last.y) / dt * m;
+    }
+    this.last = { t, x, y };
+  }
+
+  /** Where to draw at `now` (seconds), or null when there is no recent sample. */
+  frame(now) {
+    if (!this.last || now - this.last.t > this.staleAfter) { this.pos = null; this.lastFrame = null; return null; }
+    const ext = Math.min(Math.max(now - this.last.t, 0), this.interval * this.extrapolate);
+    const tx = this.last.x + this.vx * ext, ty = this.last.y + this.vy * ext;
+    if (!this.pos) this.pos = { x: tx, y: ty };
+    else {
+      const dt = Math.min(Math.max(now - (this.lastFrame ?? now - 1 / 60), 0), 0.1), k = 1 - Math.exp(-dt / this.tau);
+      this.pos = { x: this.pos.x + (tx - this.pos.x) * k, y: this.pos.y + (ty - this.pos.y) * k };
+    }
+    this.lastFrame = now;
+    return this.pos;
   }
 }
 
@@ -726,7 +785,8 @@ export class PointerHand {
   }
 
   frameFor(t, pos, pinch, pose) {
-    return { t, present: true, pose, palmCenter: pos ? { x: pos.nx, y: 1 - pos.ny } : null, pinch };
+    // A press or release is an exact event, not a measurement to debounce.
+    return { t, present: true, pose, palmCenter: pos ? { x: pos.nx, y: 1 - pos.ny } : null, pinch, immediate: true };
   }
 
   down(t, pos) {

@@ -2,7 +2,7 @@
 // Wiring only; the rules live in logic.js (ported from the Mac app), the models in tracker.js, the skeleton in sees.js.
 
 import {
-  GestureMachine, FocusTracker, FOCUS, sessionAt, HeadPointer, CentreStep, PinchAdapt, FrameScheduler, PointerHand, islandMode, wordsTyped,
+  GestureMachine, FocusTracker, FOCUS, sessionAt, HeadPointer, CentreStep, PinchAdapt, FrameScheduler, NoseGlide, PointerHand, islandMode, wordsTyped,
   observationFromHand, handFromLandmarks,
 } from './logic.js';
 import { SESSIONS } from './content.js';
@@ -112,7 +112,7 @@ const S = {
   dict: null, banner: null, focusSince: 0, focusId: null,
   faceSeen: null, handSeen: null, headText: 'off', handText: 'off', gestureText: 'none', pointerDot: null,
   frames: { seen: 0, processed: 0, start: 0 },
-  centring: false, centre: null, centreDoneAt: 0, adapt: new PinchAdapt(), pinchLog: { t: 0, closed: false },
+  glide: new NoseGlide(), dotMoves: 0, camera: null, centring: false, centre: null, centreDoneAt: 0, adapt: new PinchAdapt(), pinchLog: { t: 0, closed: false },
   step: -1, scrolled: 0,
   stream: null, video: null, abort: null, vfc: 0, raf: 0, lastVideoTime: -1,
 };
@@ -159,14 +159,25 @@ function cameraErrorMessage(e) {
   return `The camera could not start (${e?.message || n || 'unknown error'}). You can use the mouse instead.`;
 }
 
+/** Asks for a fast small picture: 60 fps if the camera can, never under 24. Falls back step by step, so an odd camera still starts. */
 async function openCamera() {
-  const base = { audio: false };
-  try {
-    return await navigator.mediaDevices.getUserMedia({ ...base, video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 30 }, facingMode: 'user' } });
-  } catch (e) {
-    if (e?.name === 'OverconstrainedError' || e?.name === 'ConstraintNotSatisfiedError') return navigator.mediaDevices.getUserMedia({ ...base, video: true });
-    throw e;
+  const base = { audio: false }, md = navigator.mediaDevices;
+  const size = { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' };
+  const tries = [{ ...size, frameRate: { ideal: 60, min: 24 } }, { ...size, frameRate: { ideal: 60 } }, true];
+  let last;
+  for (const video of tries) {
+    try {
+      const stream = await md.getUserMedia({ ...base, video });
+      const st = stream.getVideoTracks()[0]?.getSettings?.() ?? {};
+      S.camera = { width: st.width, height: st.height, frameRate: st.frameRate, deviceId: undefined, ask: video === true ? 'any' : JSON.stringify(video.frameRate) };
+      console.log(`[camera] granted ${st.width}x${st.height} at ${st.frameRate ?? '?'} fps (asked ${S.camera.ask})`);
+      return stream;
+    } catch (e) {
+      last = e;
+      if (e?.name !== 'OverconstrainedError' && e?.name !== 'ConstraintNotSatisfiedError') throw e;
+    }
   }
+  throw last;
 }
 
 async function startCamera() {
@@ -308,6 +319,7 @@ function readHead(t, yaw, pitch, offset) {
   if (!p) return;
   const r = el.stage.getBoundingClientRect();
   S.nose = { x: r.left + p.x * r.width, y: r.top + p.y * r.height, t };
+  S.glide.sample(t, S.nose.x, S.nose.y);
   focusAt({ x: r.left + p.x * r.width, y: r.top + p.y * r.height }, t);
 }
 
@@ -567,7 +579,7 @@ function render(ms) {
   requestAnimationFrame(render);
 }
 
-let glide = null, lastGlide = 0, frameAt = 0;
+let frameAt = 0;
 function renderOverlays(t, target) {
   if (S.centring) renderCentre(t);
   // the blue outline follows the focused pane with a spring; it breathes while dictating
@@ -579,16 +591,13 @@ function renderOverlays(t, target) {
     el.hl.classList.add('on');
     el.hl.classList.toggle('listening', S.machine.talking);
   } else el.hl.classList.remove('on', 'listening');
-  // the glass-bead dot glides toward the nose point, with the app's own time constant
-  const nose = S.mode === 'camera' && !S.centring && S.nose && t - S.nose.t < 0.5 ? S.nose : null;
-  if (nose) {
-    if (!glide) glide = { x: nose.x, y: nose.y };
-    const dt = Math.min(Math.max(t - (lastGlide || t - 1 / 60), 0), 0.1), k = 1 - Math.exp(-dt / 0.05);
-    glide.x += (nose.x - glide.x) * k; glide.y += (nose.y - glide.y) * k;
-    el.dot.style.transform = `translate3d(${glide.x.toFixed(1)}px, ${glide.y.toFixed(1)}px, 0)`;
-    el.dot.classList.add('on');
-  } else { el.dot.classList.remove('on'); glide = null; }
-  lastGlide = t;
+  // the glass-bead dot is drawn every display frame: the latest tracker sample, its velocity carried forward for at most one sample,
+  // and a short glide (NoseGlide), so it moves continuously instead of stepping at the camera rate
+  const pos = S.mode === 'camera' && !S.centring ? S.glide.frame(t) : null;
+  if (pos) {
+    el.dot.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px, 0)`;
+    el.dot.classList.add('on'); S.dotMoves += 1;
+  } else { el.dot.classList.remove('on'); if (S.mode !== 'camera' || S.centring) S.glide.reset(); }
   document.getElementById('app').classList.toggle('talking', S.machine.talking);
 }
 
@@ -656,6 +665,8 @@ requestAnimationFrame(render);
 
 window.__live = {
   get mode() { return S.mode; }, done: () => ({ ...DONE }), get delegate() { return trackers.delegate; },
+  camera: () => S.camera,
+  dotMoves: () => S.dotMoves,
   stats: () => ({ face: trackers.summary('face'), hand: trackers.summary('hand'), warmed: !trackers.warming, frames: { ...S.frames }, delegate: trackers.delegate, handHz: S.scheduler.handHz, faceHz: S.scheduler.faceHz }),
   focus: () => S.focus.target?.id ?? null,
   draft: (id) => panes.find((p) => p.id === id)?.draft ?? null,
