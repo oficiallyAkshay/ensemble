@@ -51,3 +51,4 @@ macOS delivers a stem press only to the app it treats as Now Playing: a single p
 ## Hidden setting
 
 `detailedTrace` writes a per-frame trace of numbers and states for tuning gestures, never images. It is off by default and rolls over at 20 MB. The command to turn it on is in the [contributing guide](../.github/CONTRIBUTING.md).
+
