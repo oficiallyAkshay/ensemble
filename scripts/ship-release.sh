@@ -34,7 +34,10 @@ trap 'rm -f "$NOTES"' EXIT
 
 git tag -a "$TAG" -m "Ensemble $VERSION"
 git push --quiet origin "$TAG"
-gh release create "$TAG" "$DMG" "$DMG.sha256" --title "Ensemble $VERSION" --notes-file "$NOTES" | tee -a "$LOG"
+# Ensemble.dmg, the same file under a fixed name, is what the website's Download buttons fetch directly:
+# https://github.com/<repo>/releases/latest/download/Ensemble.dmg always resolves to the newest release.
+cp "$DMG" build/Ensemble.dmg
+gh release create "$TAG" "$DMG" "$DMG.sha256" build/Ensemble.dmg --title "Ensemble $VERSION" --notes-file "$NOTES" | tee -a "$LOG"
 
 # The appcast lives on gh-pages; extend the published one so older items stay listed.
 PAGES="$(mktemp -d)"
