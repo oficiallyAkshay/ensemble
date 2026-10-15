@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ensemble hand capture</title>
+<meta name="description" content="Record Ensemble's hand gestures once with your webcam. Nothing is uploaded; you save the file yourself.">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="capture.css">
+</head>
+<body>
+<main class="cp">
+  <header class="cp-head">
+    <h1>Ensemble hand capture</h1>
+    <p class="cp-privacy">Nothing is uploaded: the camera and the recording stay in this tab, and only the file you choose to save leaves it.</p>
+  </header>
+
+  <div class="cp-grid">
+    <section class="cp-stage" aria-label="Camera">
+      <div class="cp-view">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div class="cp-count" id="count" hidden></div>
+        <div class="cp-idle" id="idle">The camera is off.</div>
+      </div>
+      <div class="cp-readout" role="status" aria-live="off">
+        <span>Hand <b id="r-hand">off</b></span>
+        <span>Gesture <b id="r-gesture">none</b></span>
+        <span>Frames per second <b id="r-fps">0</b></span>
+        <span>Tracker <b id="r-tracker">not loaded</b></span>
+      </div>
+      <div class="cp-actions">
+        <button type="button" class="cp-btn primary" id="camera">Turn on camera</button>
+        <button type="button" class="cp-btn" id="stop" hidden>Turn off camera</button>
+      </div>
+      <p class="cp-msg" id="msg" role="status"></p>
+    </section>
+
+    <section class="cp-takes" aria-label="Takes">
+      <ol id="takes" class="cp-list"></ol>
+      <div class="cp-save">
+        <div class="cp-size">Recording size <b id="size">0 B</b> <span id="taken">(0 of 5 takes)</span></div>
+        <div class="cp-actions">
+          <button type="button" class="cp-btn primary" id="save" disabled>Save recording</button>
+          <button type="button" class="cp-btn" id="copy" disabled>Copy JSON</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script type="module" src="capture.js"></script>
+</body>
+</html>
