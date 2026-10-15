@@ -3,6 +3,15 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.15</title>
+            <pubDate>Thu, 15 Oct 2026 12:23:58 -0400</pubDate>
+            <sparkle:version>350</sparkle:version>
+            <sparkle:shortVersionString>0.2.15</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.15/Ensemble-0.2.15.dmg" length="6345818" type="application/octet-stream" sparkle:edSignature="FDFRaqOL9F5fHFbgPOFzGN1PzvyufiVttzXpJDSd6YpQJ0Qfpz/J0OO+Yl7tmbuFCT2uGYJikvgR7lD6DB/yAQ=="/>
+        </item>
+        <item>
             <title>0.2.14</title>
             <pubDate>Thu, 15 Oct 2026 12:12:33 -0400</pubDate>
             <sparkle:version>345</sparkle:version>
@@ -19,15 +28,6 @@
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.13/Ensemble-0.2.13.dmg" length="6317674" type="application/octet-stream" sparkle:edSignature="ScuMx7zW1YN0O9Rjujy+m1VZMtUrWGrbQUlxjJN/JB1swwcLMgSGSYNeuRpm5OUuH3FDFLVPV00EwL0zo1DCAQ=="/>
-        </item>
-        <item>
-            <title>0.2.12</title>
-            <pubDate>Thu, 15 Oct 2026 09:50:54 -0400</pubDate>
-            <sparkle:version>314</sparkle:version>
-            <sparkle:shortVersionString>0.2.12</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.12/Ensemble-0.2.12.dmg" length="6268222" type="application/octet-stream" sparkle:edSignature="ml4RQ4iCu4CClivL0qDlAo5zZR+iqw+zm0+WF838UQ2PS8m3ENBpbGBsO3s5fhdFWsvKtWT4dvb35x9SRyvWBw=="/>
         </item>
     </channel>
 </rss>
