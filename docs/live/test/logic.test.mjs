@@ -1,5 +1,6 @@
 // node --test docs/live/test : the ported pure logic, replayed with explicit clocks.
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import {
   OneEuroFilter, GestureMachine, FocusTracker, sessionAt, FOCUS, observationFromHand, handFromLandmarks, J,
@@ -482,12 +483,14 @@ test('pinch measure from image points corrects x for the frame aspect (4:3 frame
   }
 });
 
-test('the observation carries the world pinch when the model gives it, and the image one when not', () => {
+test('the observation measures the pinch in the image (the world distance is kept alongside but not used to decide)', () => {
   const hand = { points: imageHand(0.018).map((p) => ({ x: p.x, y: 1 - p.y })) };
-  const w = observationFromHand(hand, 1, false, { world: worldHand(0.018), aspect: 4 / 3 });
+  const w = observationFromHand(hand, 1, false, { world: worldHand(0.08), aspect: 4 / 3 });
+  assert.equal(w.pinchSource, 'image');
+  assert.ok(w.pinch < PINCH.closed, 'the picture says touching');
+  near(w.pinchWorld, 0.08 / 0.09, 0.02);   // the world distance disagrees here, and does not win
   const i = observationFromHand(hand, 1, false, { aspect: 4 / 3 });
-  assert.equal(w.pinchSource, 'world'); assert.equal(i.pinchSource, 'image');
-  assert.ok(w.pinch < PINCH.closed && i.pinch < PINCH.closed);
+  assert.equal(i.pinchWorld, null);
 });
 
 test('the machine treats a world-measure touching pinch as closed and a relaxed hand as open', () => {
@@ -585,4 +588,87 @@ test('the time-based debounce still ignores a noisy single reading inside an ope
   const f = tapFrames(60, [], { until: 2 }); f[40][1] = 0.1; f[90][1] = 0.1;
   assert.deepEqual(run(m, f), []);
   assert.equal(m.pinchHeld, false);
+});
+
+// ---- pinch and drag with a noisy measure, and the owner's real hand recordings ----
+
+function dragFrames(hz, { wobble = 0.08, centre = 0.3, lead = 0.25, drag = 2.0, rest = 1.0, seed = 7 } = {}) {
+  let s = seed; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+  const out = [], total = lead + drag + rest;
+  for (let k = 0; ; k++) {
+    const t = k / hz; if (t > total) break;
+    const dragging = t < lead + drag;
+    const pinch = t < lead ? 0.15 : dragging ? centre + wobble * (2 * rnd() - 1) : 0.8;
+    out.push({ t, present: true, pose: null, palmCenter: { x: 0.5, y: 0.7 - 0.12 * Math.max(t - 0.1, 0) }, pinch });
+  }
+  return { frames: out, openAt: lead + drag };
+}
+
+test('pinch and drag with a measure wobbling +-0.08 around 0.3 scrolls continuously and stops on a real open, at 20, 30 and 60 Hz', () => {
+  for (const hz of [20, 30, 60]) for (const seed of [1, 7, 99]) {
+    const { frames, openAt } = dragFrames(hz, { seed });
+    const m = new GestureMachine();
+    const scrolls = [], ended = [];
+    for (const f of frames) for (const i of m.push(f)) { if (i.type === 'dragScroll') scrolls.push(f.t); if (i.type === 'dragScrollEnded') ended.push(f.t); }
+    const during = scrolls.filter((t) => t < openAt);
+    assert.ok(during.length >= (openAt - 0.6) * hz * 0.9, `${hz} Hz seed ${seed}: ${during.length} scroll frames of ${(openAt * hz).toFixed(0)}`);
+    // no gap longer than 3 frames while dragging
+    let worst = 0; for (let i = 1; i < during.length; i++) worst = Math.max(worst, during[i] - during[i - 1]);
+    assert.ok(worst <= 3.5 / hz + 1e-9, `${hz} Hz seed ${seed}: a gap of ${(worst * 1000).toFixed(0)} ms`);
+    assert.equal(ended.length, 1, `${hz} Hz seed ${seed}: ended ${ended.length} times`);
+    assert.ok(ended[0] >= openAt && ended[0] <= openAt + 0.08 + 2 / hz + 1e-9, `ended at ${ended[0]} (open at ${openAt})`);
+    assert.equal(scrolls.filter((t) => t > openAt).length, 0, 'the page stops the moment the pinch opens');
+    assert.equal(m.pinchHeld, false);
+  }
+});
+
+test('noise just above the closed value never ends a drag; only a clear open held for 80 ms does', () => {
+  const m = new GestureMachine();
+  let t = 0; const out = [];
+  const push = (pinch, y) => { for (const i of m.push({ t, present: true, pose: null, palmCenter: { x: 0.5, y }, pinch })) out.push([t, i.type]); t += 1 / 30; };
+  for (let i = 0; i < 8; i++) push(0.15, 0.7);
+  for (let i = 0; i < 60; i++) push(i % 3 === 0 ? 0.4 : 0.32, 0.7 - i * 0.004);     // up to 0.4, still under the open threshold 0.42
+  assert.ok(out.filter(([, ty]) => ty === 'dragScroll').length > 50);
+  assert.equal(out.filter(([, ty]) => ty === 'dragScrollEnded').length, 0);
+  push(0.6, 0.45);                                                          // one open frame: not yet
+  assert.equal(out.filter(([, ty]) => ty === 'dragScrollEnded').length, 0);
+  push(0.3, 0.45); push(0.6, 0.45); push(0.6, 0.45); push(0.6, 0.45); push(0.6, 0.45);
+  assert.equal(out.filter(([, ty]) => ty === 'dragScrollEnded').length, 1);
+});
+
+const REAL = JSON.parse(readFileSync(new URL('./fixtures/real-hand.json', import.meta.url), 'utf8'));
+
+/** Replays a recorded take through the demo's own pipeline at its recorded timestamps. */
+function replayTake(name) {
+  const m = new GestureMachine(); m.sendHold = 0.75; m.frameAspect = REAL.camera.width / REAL.camera.height;
+  const ad = new PinchAdapt(); const out = { intents: [], scrollFrames: [], openScrolls: 0, worstGap: 0 };
+  for (const e of REAL.takes[name]) {
+    const t = e.t / 1000; let obs;
+    if (e.world && e.image) {
+      const hand = handFromLandmarks(e.image.map(([x, y]) => ({ x, y })));
+      obs = observationFromHand(hand, t, e.gesture === 'Thumb_Up' && e.score >= 0.6, { world: e.world.map(([x, y, z]) => ({ x, y, z })), aspect: m.frameAspect });
+      if (obs.pinch !== null) { ad.push(obs.pinch); m.pinchClosed = ad.closed; m.pinchOpen = ad.open; }
+    } else obs = observationFromHand(null, t);
+    for (const i of m.push(obs)) {
+      out.intents.push(i.type);
+      if (i.type === 'dragScroll') { out.scrollFrames.push(t); if (obs.pinch > ad.open) out.openScrolls += 1; }
+    }
+  }
+  for (let i = 1; i < out.scrollFrames.length; i++) if (out.scrollFrames[i] - out.scrollFrames[i - 1] < 0.5) out.worstGap = Math.max(out.worstGap, out.scrollFrames[i] - out.scrollFrames[i - 1]);
+  return out;
+}
+
+test('real hand recordings: dictation, scroll and send register; rest and look do nothing', () => {
+  const has = (r, ty) => r.intents.includes(ty);
+  assert.ok(has(replayTake('b/dictate'), 'talkBegan'), 'the double pinch in the dictate take starts dictation');
+  for (const take of ['a/scroll', 'b/scroll']) {
+    const r = replayTake(take);
+    assert.ok(r.scrollFrames.length >= 120, `${take}: ${r.scrollFrames.length} scroll frames`);
+    assert.ok(r.worstGap < 0.08, `${take}: scrolls continuously (worst gap ${(r.worstGap * 1000).toFixed(0)} ms)`);
+    assert.equal(r.openScrolls, 0, `${take}: an open hand never scrolls`);
+  }
+  assert.ok(has(replayTake('a/send'), 'sendRequested'), 'a/send');
+  assert.ok(has(replayTake('b/send'), 'sendRequested'), 'b/send');
+  for (const take of ['a/rest', 'a/look']) assert.deepEqual(replayTake(take).intents, [], `${take} does nothing`);
+  for (const take of Object.keys(REAL.takes)) assert.equal(replayTake(take).openScrolls, 0, `${take}: no scroll on an open hand`);
 });

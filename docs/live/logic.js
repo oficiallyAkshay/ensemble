@@ -154,38 +154,40 @@ export const classify = (hand) => classifyFeatures(hand)?.gesture ?? null;
  */
 export function observationFromHand(hand, t, modelThumbsUp = false, { world = null, aspect = 1 } = {}) {
   if (!hand) return { t, present: false, pose: null, palmCenter: null, pinch: null };
-  const { pinch, source } = pinchMeasure(hand.points, world, aspect);
+  const { pinch, source, world: pinchWorld } = pinchMeasure(hand.points, world, aspect);
   let pose = classify(hand);
   if (modelThumbsUp && pose !== 'thumbsUp') pose = 'thumbsUp';
-  return { t, present: true, pose, palmCenter: palmCenter(hand), pinch, pinchSource: source };
+  return { t, present: true, pose, palmCenter: palmCenter(hand), pinch, pinchSource: source, pinchWorld };
 }
 
 /**
- * The pinch measure: thumb tip (4) to index tip (8), divided by wrist (0) to middle knuckle (9). From MediaPipe's world
- * landmarks (metric 3D) when present; otherwise from the image points with x scaled by the frame's aspect (width / height),
- * because normalised x and y are fractions of different lengths. `points` are y-up image points, `world` the raw world landmarks.
+ * The pinch measure: thumb tip (4) to index tip (8), divided by wrist (0) to middle knuckle (9), in the image with x scaled by the
+ * frame's aspect (width / height, because normalised x and y are fractions of different lengths). The model's world landmarks are
+ * measured too (`world`, metric 3D) but not used to decide: on the owner's real hand recordings the world distance stays at 0.55 to
+ * 1.3 palms through a clean closed pinch (pads touching in the picture, ratio 0.08 to 0.16 there), so a pinch-and-drag never read as
+ * closed. The image measure is clean on all of them. `points` are y-up image points, `world` the raw world landmarks.
  */
 export function pinchMeasure(points, world = null, aspect = 1) {
   const ok = (a, b, c, d) => a && b && c && d;
+  let worldPinch = null;
   if (world && ok(world[J.thumbTip], world[J.indexTip], world[J.wrist], world[J.middleMCP])) {
     const d3 = (p, q) => Math.hypot(p.x - q.x, p.y - q.y, (p.z ?? 0) - (q.z ?? 0));
     const palm = d3(world[J.wrist], world[J.middleMCP]);
-    if (palm > 0.01) return { pinch: d3(world[J.thumbTip], world[J.indexTip]) / palm, source: 'world' };
+    if (palm > 0.01) worldPinch = d3(world[J.thumbTip], world[J.indexTip]) / palm;
   }
   const a = points[J.thumbTip], b = points[J.indexTip], w = points[J.wrist], m = points[J.middleMCP];
   if (ok(a, b, w, m)) {
     const d2 = (p, q) => Math.hypot((p.x - q.x) * aspect, p.y - q.y);
     const palm = d2(w, m);
-    if (palm > 0.01) return { pinch: d2(a, b) / palm, source: 'image' };
+    if (palm > 0.01) return { pinch: d2(a, b) / palm, source: 'image', world: worldPinch };
   }
-  return { pinch: null, source: null };
+  return worldPinch === null ? { pinch: null, source: null, world: null } : { pinch: worldPinch, source: 'world', world: worldPinch };
 }
 
 /**
- * Thresholds for the pinch measure above. Chosen from the hand model's geometry (adult wrist to middle knuckle 8 to 9.5 cm;
- * the tip landmarks sit at the finger tips, so touching pads leave about 1.5 to 2.5 cm between them: 0.17 to 0.30; a relaxed
- * open hand leaves 4 to 10 cm: 0.45 to 1.1; a half pinch 2.5 to 3.5 cm: 0.3 to 0.4). Closed below 0.30, open above 0.42.
- * Not yet checked against a real hand: ?debug=1 on the demo logs the numbers.
+ * Thresholds for the pinch measure above: closed below 0.30, open above 0.42. On the owner's recorded hand (1280x720, about 75 fps) the
+ * image measure is 0.02 to 0.16 in a pinch and 0.6 to 1.1 in an open hand; between 0.3 and 0.42 lies the half pinch. ?debug=1 on the demo
+ * logs the numbers.
  */
 export const PINCH = { closed: 0.30, open: 0.42, rise: 0.12, minClosed: 0.2, maxClosed: 0.36, hysteresis: 0.12, minOpen: 0.32, maxOpen: 0.5 };
 
@@ -232,12 +234,14 @@ export class GestureMachine {
   // (two frames at 30 Hz are 33 ms apart: close enough to 40).
   static edgeDwell = 0.04;
   static edgeSlack = 0.75;
+  // While a pinch is dragging, only a clear open ends it: above the open threshold for this long. Noise near the closed value never does.
+  static dragReleaseHold = 0.08;
   static tapMin = 0.05;
   static tapMax = 2.0;
   static tapGap = 1.2;
   static quietAfterSendPose = 0.7;
   static toggleCooldown = 0.8;
-  static dragStart = 0.03;
+  static dragStart = 0.02;
   static dragPointsPerFrameHeight = 5000;
   static dragAccel = 3;
   static staleHold = 1.0;
@@ -416,13 +420,18 @@ export class GestureMachine {
     }
     // Pinch and drag: a held pinch that moves scrolls, with the hand position smoothed.
     // Release first: fingers that have parted while dragging end the drag before any movement counts.
-    if (this.dragging && d > Math.max(this.pinchClosed, Math.min(this.pinchMin, d) + G.reopenRise * 0.6)) {
-      this.pinchIsClosed = false; this.openSince = null; this.pinchClosedAt = null;
-      this.dragging = false; this.isDragging = false; this.lastTapEnd = null;
-      intents.push({ type: 'dragScrollEnded' });
-      return;
+    if (this.dragging) {
+      if (d > this.pinchOpen) { if (this.openSince === null) this.openSince = h.t; } else this.openSince = null;
+      if (this.openSince !== null && h.t - this.openSince >= G.dragReleaseHold) {
+        this.pinchIsClosed = false; this.openSince = null; this.pinchClosedAt = null;
+        this.dragging = false; this.isDragging = false; this.lastTapEnd = null;
+        intents.push({ type: 'dragScrollEnded' });
+        return;
+      }
+      // fingers opening: the page stops moving at once, and the release is confirmed once the open has held
+      if (this.openSince !== null) { this.dragLastT = h.t; return; }
     }
-    if (!this.pinchToggled && h.palmCenter && this.dragOriginY !== null && this.dragOriginX !== null) {
+    if (!this.pinchToggled && d <= this.pinchOpen && h.palmCenter && this.dragOriginY !== null && this.dragOriginX !== null) {
       const y = this.dragFilter.filter(h.palmCenter.y, h.t);
       const x = this.dragFilterX.filter(h.palmCenter.x, h.t);
       if (!this.dragging && Math.hypot(x - this.dragOriginX, y - this.dragOriginY) >= G.dragStart) {
@@ -444,11 +453,10 @@ export class GestureMachine {
     }
     this.pinchMin = Math.min(this.pinchMin, d);
     // While dragging, opening the fingers even a little ends the drag at once, so the page never follows a hand that let go.
-    const opened = this.dragging ? d > Math.max(this.pinchClosed, this.pinchMin + G.reopenRise * 0.6)
-      : d > Math.max(this.pinchOpen, this.pinchMin + G.reopenRise);
+    const opened = d > Math.max(this.pinchOpen, this.pinchMin + G.reopenRise);
     if (opened) { if (this.openSince === null) this.openSince = h.t; } else this.openSince = null;
     if (this.pinchClosedAt !== null && h.t - this.pinchClosedAt > G.tapMax) this.lastTapEnd = null;
-    if (!opened || !(this.dragging || held(this.openSince))) return;
+    if (!opened || !held(this.openSince)) return;
     // The tap ended when the fingers first parted, not when that was confirmed.
     const endT = this.openSince;
     this.pinchIsClosed = false; this.openSince = null;
@@ -695,7 +703,7 @@ export class FrameScheduler {
    * the time budget needs: the nose dot is smoothed and extrapolated at display rate anyway. If even the slowest face rate does
    * not fit, the hand drops to every other frame as a last resort.
    */
-  constructor({ faceHz = 30, minFaceHz = 8, maxBusy = 0.7 } = {}) {
+  constructor({ faceHz = 30, minFaceHz = 15, maxBusy = 0.8 } = {}) {
     Object.assign(this, { faceHz, minFaceHz, maxBusy });
     this.targetFaceHz = faceHz; this.handEvery = 1; this.frameN = 0;
     this.lastFace = -Infinity; this.lastFrame = null; this.frameHz = 30;
@@ -725,7 +733,7 @@ export class FrameScheduler {
     // The face takes the frames the hand leaves room for: never both when the pair would not fit one frame interval.
     let face = (now - this.lastFace) * this.faceHz >= 0.9;
     if (face && hand && (this.avgHand + this.avgFace) > 1000 / this.frameHz * 0.9) face = false;
-    if (face && (now - this.lastFace) * this.faceHz >= 1.8) face = true;   // never starve the face for long
+    if (!face && (now - this.lastFace) * this.faceHz >= 1.3) face = true;   // never starve the face for long
     if (face) this.lastFace = now;
     return { hand, face };
   }

@@ -44,6 +44,7 @@ const panes = SESSIONS.map((s, k) => {
       <span class="ls-icons">${ic('terminal', 'x2')}${ic('panel', 'x2')}${ic('globe', 'x1')}${ic('folder')}${ic('more')}${ic('close')}</span>
     </header>
     <div class="ls-transcript" tabindex="-1"><div class="ls-working"><span class="gl"><i></i><i></i><i></i><i></i></span><span class="wl">Running a command</span></div></div>
+    <i class="ls-ind" aria-hidden="true"></i>
     <div class="ls-composer">${ic('plus')}<span class="draft"></span>${ic('rec')}${ic('mic', 'mic')}</div>
     <div class="ls-foot"><span>Bypass permissions</span><span class="sp">${esc(MODES[k])}</span><span>${EFFORT[k]}</span><i class="ring"></i></div>`;
   el.stage.append(root);
@@ -54,6 +55,16 @@ const panes = SESSIONS.map((s, k) => {
     get reply() { return this.prompts[this.promptIdx % this.prompts.length].reply; },
   };
   for (const [who, text] of s.transcript) addLine(pane, who, text);
+  // a thin scroll indicator that shows while the transcript moves, and the top fade says there is more above
+  const ind = root.querySelector('.ls-ind'); let hide = 0;
+  pane.transcript.addEventListener('scroll', () => {
+    const tr = pane.transcript, room = tr.scrollHeight - tr.clientHeight;
+    if (room <= 0) return;
+    const h = Math.max(tr.clientHeight * tr.clientHeight / tr.scrollHeight, 28);
+    ind.style.height = `${h}px`;
+    ind.style.top = `${tr.offsetTop + (tr.scrollTop / room) * (tr.clientHeight - h)}px`;
+    root.classList.add('scrolling'); clearTimeout(hide); hide = setTimeout(() => root.classList.remove('scrolling'), 900);
+  }, { passive: true });
   return pane;
 });
 
@@ -676,6 +687,6 @@ window.__live = {
   feedHead: (yaw, pitch) => readHead(now(), yaw, pitch, null),
   centring: () => ({ active: S.centring, state: el.centre.dataset.state, count: S.centre?.count ?? null, progress: S.centre?.progress ?? null, line: el.centreLine.textContent }),
   centre: () => S.head.centre,
-  feedPinch: (d) => { const t = now(), obs = { t, present: true, pose: null, palmCenter: { x: 0.5, y: 0.5 }, pinch: d, pinchSource: 'test' }; S.adapt.push(d); S.machine.pinchClosed = S.adapt.closed; S.machine.pinchOpen = S.adapt.open; feed(obs); showPinch(obs, t); },
+  feedPinch: (d, y = 0.5) => { const t = now(), obs = { t, present: true, pose: null, palmCenter: { x: 0.5, y }, pinch: d, pinchSource: 'test' }; S.adapt.push(d); S.machine.pinchClosed = S.adapt.closed; S.machine.pinchOpen = S.adapt.open; feed(obs); showPinch(obs, t); },
   pinch: () => ({ closed: S.adapt.closed, open: S.adapt.open, dips: S.adapt.dips.length }),
 };
