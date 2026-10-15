@@ -4,7 +4,8 @@
 
 import { SESSIONS_BASE as SESSIONS } from '../../live/sessions.js';
 import { buildPane, addLine, fmt, esc } from '../../live/pane.js';
-import { wordsTyped } from '../../live/logic.js';
+// the demo's typing pace (docs/live/logic.js wordsTyped), restated here so the mini screens do not pull in the whole gesture engine
+const wordsTyped = (total, elapsed, perSecond = 3.2, startDelay = 0.6) => (elapsed < startDelay ? 0 : Math.min(total, 1 + Math.floor((elapsed - startDelay) * perSecond)));
 
 const LW_DEFAULT = 600;               // the window's width in demo pixels; the page scales the whole thing down
 const byId = Object.fromEntries(SESSIONS.map((s) => [s.id, s]));
