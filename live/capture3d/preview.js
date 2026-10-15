@@ -58,7 +58,7 @@ export function createPreview({ onKeep, onRetake, aspect = () => 16 / 9 }) {
     if (!replaySupported()) { note.hidden = false; note.textContent = 'Preview needs the updated scene module.'; return; }
     note.hidden = true;
     const json = { version: 1, fps: fpsOf(frames), aspect: aspect(), takes: { [id]: frames } };
-    try { window.EnsembleScene.loadCapture(json, { lenient: true, chirality: 'auto' }); } catch (e) { console.error(e); note.hidden = false; note.textContent = 'The preview could not read this take.'; return; }
+    try { window.EnsembleScene.loadCapture(json, { raw: true, chirality: 'auto' }); } catch (e) { console.error(e); note.hidden = false; note.textContent = 'The preview could not read this take.'; return; }
     try {
       handle = window.EnsembleScene.mount(stage, { scene: SCENE_OF[id] || id, capture: json, reducedMotion: false, onFrame() {} });
     } catch (e) { console.error(e); note.hidden = false; note.textContent = 'The 3D preview could not start.'; }
