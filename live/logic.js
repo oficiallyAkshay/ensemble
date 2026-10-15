@@ -73,11 +73,11 @@ export function palmCenter(hand) {
 }
 
 export const CLASSIFIER = {
-  minOpenExtent: 0.19, minClosedExtent: 0.11, maxPalmSpan: 0.6,
+  minOpenExtent: 0.19, minClosedExtent: 0.11, minTwoFingersExtent: 0.15, maxPalmSpan: 0.6,
   extendRatio: 1.15, curlRatio: 0.85, fistTipReach: 0.8,
   gatherMaxSpread: 0.6, gatherMinReach: 1.0,
   closeFistExtent: 0.2, closeFistTipReach: 0.95, closeFistMaxPalmSpan: 0.7,
-  maxOpenTipReach: 2.1, minUpright: 0.3, pointMinRise: 0.5,
+  maxOpenTipReach: 2.1, minUpright: 0.3, pointMinRise: 0.5, twoFingersFoldRatio: 1.0,
 };
 
 /** Rule-based static pose classifier (Sleight, with Ensemble's gather and pointing changes). Null when unreadable. */
@@ -128,7 +128,7 @@ export function classifyFeatures(hand) {
   if (gathered) f.gesture = 'gather';
   else if (n === 4 && tipReach <= C.maxOpenTipReach) f.gesture = 'openPalm';
   else if (f.curled === 4 && !f.thumb && tipReach < (extent >= C.closeFistExtent ? C.closeFistTipReach : C.fistTipReach)) f.gesture = 'fist';
-  else if (ext[0] && ext[1] && curl[2] && curl[3]) f.gesture = 'twoFingers';
+  else if (ext[0] && ext[1] && ring < C.twoFingersFoldRatio && little < C.twoFingersFoldRatio) f.gesture = 'twoFingers';
   else if (f.curled === 4 && f.thumb && f.thumbUp) f.gesture = 'thumbsUp';
   else if (ext[0] && curl[1] && curl[2] && curl[3]) {
     if (f.indexRise > C.pointMinRise) f.gesture = 'pointUp';
@@ -137,7 +137,7 @@ export function classifyFeatures(hand) {
 
   const g = f.gesture;
   if (g) {
-    const floor = (g === 'openPalm' || g === 'twoFingers') ? C.minOpenExtent : C.minClosedExtent;
+    const floor = g === 'openPalm' ? C.minOpenExtent : g === 'twoFingers' ? C.minTwoFingersExtent : C.minClosedExtent;
     if (f.extent < floor) { f.tooSmall = true; f.gesture = null; }
     else if ((g !== 'thumbsUp' && g !== 'gather' && f.span > (g === 'fist' && f.extent >= C.closeFistExtent ? C.closeFistMaxPalmSpan : C.maxPalmSpan))
       || (f.upright < C.minUpright && g !== 'pointUp' && g !== 'pointDown')) { f.angled = true; f.gesture = null; }
