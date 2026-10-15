@@ -8,6 +8,15 @@ public enum DictationRules {
     /// never deletes the safety record, never undoes the safety mute and never counts as a confirmed stop.
     public static func confirmedOff(capture: Bool?) -> Bool { capture == false }
 
+    /// How long Claude's microphone must read off, with no hold, before the safety record is deleted.
+    public static let settleWindow: TimeInterval = 3
+
+    /// Whether the safety record may be deleted. A start press still queued or running can open the microphone after
+    /// an "off" reading, so "off" counts only with no start press in flight; `offFor` is how long it has counted.
+    public static func mayFinishEpisode(capture: Bool?, startInFlight: Bool, offFor: TimeInterval) -> Bool {
+        confirmedOff(capture: capture) && !startInFlight && offFor >= settleWindow
+    }
+
     /// What a start press leads to once it has returned.
     public enum AfterStart: Equatable {
         /// The microphone is on and the pose is still held: keep listening.

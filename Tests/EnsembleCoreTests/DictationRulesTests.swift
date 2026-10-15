@@ -2,6 +2,20 @@ import Testing
 @testable import EnsembleCore
 
 @Suite struct DictationRulesTests {
+    // MARK: Deleting the safety record
+
+    @Test func aStartPressInFlightKeepsTheRecordPastTheSettleWindow() {
+        // The start press came back late: the microphone reads off now but could still open once the press lands.
+        #expect(!DictationRules.mayFinishEpisode(capture: false, startInFlight: true, offFor: 10))
+        #expect(DictationRules.mayFinishEpisode(capture: false, startInFlight: false, offFor: DictationRules.settleWindow))
+    }
+
+    @Test func onlyASettledDefiniteOffDeletesTheRecord() {
+        #expect(!DictationRules.mayFinishEpisode(capture: false, startInFlight: false, offFor: 2.9))
+        #expect(!DictationRules.mayFinishEpisode(capture: true, startInFlight: false, offFor: 10))
+        #expect(!DictationRules.mayFinishEpisode(capture: nil, startInFlight: false, offFor: 10))
+    }
+
     // MARK: Switching off while a start press is in flight
 
     @Test func aStartThatLandsAfterSwitchOffIsStoppedAtOnce() {

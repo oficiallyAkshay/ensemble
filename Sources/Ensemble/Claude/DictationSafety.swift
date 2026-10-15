@@ -54,7 +54,6 @@ final class DictationSafety: @unchecked Sendable {
 
     static let heartbeatTimeout: TimeInterval = 1.0
     static let axStallLimit: TimeInterval = 3.0
-    static let settleWindow: TimeInterval = 3.0
     static let escalateAfter: TimeInterval = 3.0
 
     init(bridge: ClaudeBridge) {
@@ -233,7 +232,8 @@ final class DictationSafety: @unchecked Sendable {
     /// Runs once a second: an episode on disk, Claude capturing, and no hold active means a stop is owed.
     private func standingCheck(_ now: Date) {
         guard episode != nil, !holdActive, now.timeIntervalSince(holdEndedAt) > 1.0 else { return }
-        switch bridge.claudeCaptureActive() {
+        let capture = bridge.claudeCaptureActive()
+        switch capture {
         case .some(true):
             offSince = nil
             unreadableSince = nil
@@ -241,8 +241,13 @@ final class DictationSafety: @unchecked Sendable {
         case .some(false):
             unreadableSince = nil
             if stopStartedAt != nil || escalated { stopConfirmed() }
-            if offSince == nil { offSince = now }
-            if now.timeIntervalSince(offSince!) >= Self.settleWindow { finishEpisode() }
+            // A start press still in flight can open the microphone later: the settle window starts once it has landed.
+            let startInFlight = bridge.startPressInFlight
+            if startInFlight { offSince = nil } else if offSince == nil { offSince = now }
+            if DictationRules.mayFinishEpisode(capture: capture, startInFlight: startInFlight,
+                                               offFor: offSince.map { now.timeIntervalSince($0) } ?? 0) {
+                finishEpisode()
+            }
         case .none:
             // Unreadable is never off. Left alone it could last for ever with nothing stopping or muting, so after a
             // while it is handled as a stop that cannot be confirmed: keep trying to stop, sound the alarm, mute.
@@ -386,7 +391,8 @@ final class DictationSafety: @unchecked Sendable {
 
         switch bridge.claudeCaptureActive() {
         case .some(false):
-            await onQueue { self.finishEpisode() }
+            // After a wake a start press can still be in flight; the standing check then keeps the record until it lands.
+            await onQueue { if !self.bridge.startPressInFlight { self.finishEpisode() } }
         case .some(true):
             await onQueue { if self.stopStartedAt == nil { self.beginStop("recording found at launch from a previous run") } }
             let deadline = Date().addingTimeInterval(6)
