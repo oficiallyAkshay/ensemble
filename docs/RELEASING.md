@@ -90,6 +90,10 @@ Every action in the workflows is pinned to a commit SHA with the version in a tr
 
 The secrets listed under "One-time setup" are the only ones any workflow reads beyond the built-in token. They are recorded as owner opt-ins in `.ossemble/state.json`, with the reason for each.
 
+## The website
+
+GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `release.yml`) and the website. `site.yml` copies `docs/index.html`, `docs/logo.png` and `docs/live/` there whenever they change on main, so the site is edited in `docs/` like any other file. It lives at https://oficiallyakshay.github.io/ensemble/.
+
 ## How updates reach users
 
 - Each installed copy reads the appcast at `UpdateConfig.feedURL` (GitHub Pages, HTTPS), compares the build number, downloads the DMG from the GitHub Release, verifies the EdDSA signature against `SUPublicEDKey` and the Apple code signature, then replaces the app and relaunches.
