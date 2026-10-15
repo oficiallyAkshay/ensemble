@@ -503,7 +503,7 @@ async function saveData() {
 }
 
 async function letter3d() {
-  say('scenario letter-3d: the 3D hands load only when a step scrolls into view, and each mini screen answers its hand');
+  say('scenario letter-3d: the tour\'s scenes load only when a step scrolls into view, and show the Claude window answering the hand');
   const c = await launch({ port: 9359, flags: [...FAKE, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], size: '1280,800' });
   const p = await Page.open(c.port); const w = await p.watch();
   try {
@@ -512,50 +512,53 @@ async function letter3d() {
     await p.send('Page.navigate', { url: LETTER });
     await p.waitFor("document.readyState === 'complete'", 15000);
     await sleep(1500);
-    const files = () => w.requests.filter((r) => /\/(assets\/(3d|mini)|live\/(pane|content|logic))/.test(r.url)).map((r) => r.url.replace(ORIGIN, ''));
-    check('no 3D, mini-screen or pane file requested at first paint', files().length === 0, files().join(' '));
+    const files = () => w.requests.filter((r) => /\/(assets\/(3d|mini)|live\/(pane|sessions|content|history|logic))/.test(r.url)).map((r) => r.url.replace(ORIGIN, ''));
+    check('no 3D, scene or pane file requested at first paint', files().length === 0, files().join(' '));
     await p.eval("document.getElementById('how').scrollIntoView(); 0");
     await p.waitFor("window.__scenes && window.__scenes.length >= 1", 30000, 'a scene to mount');
     await p.waitFor("!!window.EnsembleScene", 30000, 'the scene code');
-    check('three.js, the scene code and the demo pane styles arrive once a step is near', files().some((u) => u.endsWith('three.min.js')) && files().some((u) => u.endsWith('scene3d.js')) && files().some((u) => u.endsWith('live/pane.css')) && files().some((u) => u.endsWith('mini.js')), files().join(' '));
-    // bring every step into view so each hand and screen mounts
-    for (const sel of ['.m1', '.m2', '.m3', '.m4', '.float-hand']) { await p.eval(`document.querySelector('${sel}').scrollIntoView({ block: 'center' }); 0`); await sleep(2500); }
-    await p.waitFor("window.__scenes.length >= 5 && window.__minis.length >= 5", 30000, 'five steps');
-    check('each of the five steps has its mini screen, built from the demo pane markup', await p.eval("[...document.querySelectorAll('.mini-host.live')].length === 5 && [...document.querySelectorAll('.mini-host.live')].every((h) => h.querySelector('.ls-pane .ls-ph') && h.querySelector('.ls-composer') && h.querySelector('.ens-island') && h.querySelector('.ens-highlight'))"));
-    check('the canvases fade in once ready', await p.eval("document.querySelectorAll('.fig3d.ready canvas, .circle.ready canvas').length >= 1"));
-    const seek = async (name, t) => { await p.eval(`window.__scenes.find((s) => s.name === '${name}').inst._seek('${name}', ${t}); 0`); await sleep(350); };
-    const mini = (kind, expr) => p.eval(`(() => { const m = window.__minis.find((m) => m.kind === '${kind}'); const a = m.panes[0]; const i = m.island; const L = (q) => i.querySelector(q).textContent; return ${expr}; })()`);
-    // Look: the head turns, the outline glides to the pane it faces, the island names it
-    await seek('look', 0.8); check('look: facing the second session, the island names landing-page', await mini('look', "L('.l1') === 'Looking at' && L('.l2') === 'landing-page'"));
-    const hl1 = await p.eval("document.querySelector('[data-mini=look] .mini-hl').style.transform");
-    await seek('look', 2.8); check('look: after the turn, the outline has moved to api-refactor', await mini('look', "L('.l2') === 'api-refactor'") && (await p.eval("document.querySelector('[data-mini=look] .mini-hl').style.transform")) !== hl1);
-    // Pinch: the second pinch touches, dictation turns on, the prompt types in
-    await seek('dictate', 0.4); check('pinch: before the pinches, looking and nothing typed', await mini('pinch', "i.dataset.mode === 'look' && a.draft === ''"));
-    await seek('dictate', 0.8); check('pinch: after the first pinch, "Pinch again to dictate"', await mini('pinch', "i.dataset.mode === 'firstPinch'"));
-    await seek('dictate', 3.0); check('pinch: after the second pinch, dictation is on and words have typed in', await mini('pinch', "i.dataset.mode === 'dictating' && L('.l1') === 'Claude dictation on' && a.draft.length > 10 && a.draft.length < 69 && a.el.classList.contains('dictating')"));
-    await seek('dictate', 4.5); check('pinch: the whole prompt is typed by the end', await mini('pinch', "a.draft === a.words.join(' ')"));
-    // Thumbs-up: the edge fills while held, then the draft moves into the transcript and a reply streams in
-    await seek('send', 0.5); check('thumbs-up: before the hold, the prompt waits in the box', await mini('send', "a.draft.length > 20 && i.dataset.mode === 'look'"));
-    await seek('send', 1.4); check('thumbs-up: while held, "Sending in" with the edge part-filled', await mini('send', "i.dataset.mode === 'sendHold' && /Sending in/.test(L('.l1')) && Number(i.style.getPropertyValue('--fill')) > 0.2 && Number(i.style.getPropertyValue('--fill')) < 1"));
-    await seek('send', 1.9); check('thumbs-up: on completion the draft jumps into the transcript and the island says Sent', await mini('send', "a.draft === '' && [...a.transcript.querySelectorAll('.ls-line.you')].pop().textContent.startsWith('Add retry') && /Sent in/.test(L('.l1'))"));
-    await seek('send', 4.6); check('thumbs-up: a reply has streamed in by the end', await mini('send', "[...a.transcript.querySelectorAll('.ls-line.claude')].pop().textContent.length > 30 && a.transcript.querySelectorAll('.ls-line.code').length >= 2"));
-    await seek('send', 0.5); check('thumbs-up: the next loop starts clean (bubble and reply gone, prompt back)', await mini('send', "a.added.length === 0 && a.draft.length > 20"));
-    // Scroll: the transcript follows the hand's travel
-    await seek('scroll', 0.5); const top0 = await mini('scroll', 'a.transcript.scrollTop');
-    await seek('scroll', 2.3); const top1 = await mini('scroll', 'a.transcript.scrollTop');
-    check('scroll: the transcript has scrolled while the hand dragged', top1 > top0 + 40, `${top0} -> ${top1}`);
-    // Talk has no hand: its own clock
+    check('three.js, the recorded motion and the scene code arrive once a step is near, in that order', (() => { const f = files(); const at = (n) => f.findIndex((u) => u.endsWith(n)); return at('three.min.js') >= 0 && at('capture-default.js') >= 0 && at('scene3d.js') > at('capture-default.js'); })(), files().join(' '));
+    check('the long demo history is never fetched for the letter page', !files().some((u) => /history|logic/.test(u)), files().join(' '));
+    const visit = async (sel, name) => { await p.eval(`document.querySelector('${sel}').scrollIntoView({ block: 'center' }); 0`); await p.waitFor(`(() => { const r = window.__scenes.find((s) => s.name === '${name}'); return !!(r && r.inst && r.state); })()`, 30000, `the ${name} scene`); await sleep(800); };
+    const frameOf = (n) => p.eval(`(() => { const r = window.__scenes.find((s) => s.name === '${n}'); const c = r.el.closest('.card3d'); return { own: r.el.querySelectorAll(':scope > canvas').length, hand: r.el.querySelectorAll(':scope > div canvas').length, ready: c.classList.contains('ready') }; })()`);
+    const rec = (name) => `window.__scenes.find((s) => s.name === '${name}')`;
+    const seek = async (name, t) => { await p.eval(`${rec(name)}.inst._seek('${name}', ${t}); 0`); await sleep(500); return p.eval(`(() => { const r = ${rec(name)}; const f = r.el.querySelector(':scope > canvas'); return { st: r.state, shot: f ? f.toDataURL().length : 0 }; })()`); };
+    // Pinch: the Claude window listens and types as the hand pinches twice
+    await visit('.m1', 'look'); const lk = await frameOf('look'); check('look: the desk scene (head and monitors) is one 3D canvas, faded in', lk.own === 1 && lk.hand === 0 && lk.ready, JSON.stringify(lk));
+    const l0 = await seek('look', 0.8), l1 = await seek('look', 2.8);
+    check('look: the desk scene redraws as the head turns', l0.st.t === 0.8 && l1.st.t === 2.8);
+    await visit('.m2', 'dictate'); const df = await frameOf('dictate'); check('dictate: a Claude-window canvas with the hand panel beside it', df.own === 1 && df.hand === 1 && df.ready, JSON.stringify(df));
+    const d0 = await seek('dictate', 0.3), d1 = await seek('dictate', 3.0), d2 = await seek('dictate', 5.6);
+    check('dictate: before the pinches nothing is listening', !d0.st.listening && d0.st.draft === 0, JSON.stringify(d0.st));
+    check('dictate: after the second pinch it listens and the message types in', d1.st.listening && d1.st.draft > 0, JSON.stringify(d1.st));
+    check('dictate: when dictation stops the whole message is in the box', !d2.st.listening && d2.st.draft === 1, JSON.stringify(d2.st));
+    check('dictate: the Claude window looks different while listening than before and after', d1.shot !== d0.shot && d1.shot !== d2.shot, [d0.shot, d1.shot, d2.shot].join(' '));
+    // Thumbs-up: the bar fills, then Sent and the draft moves into the transcript
+    await visit('.m4', 'send');
+    const s0 = await seek('send', 0.4), s1 = await seek('send', 1.4), s2 = await seek('send', 2.6);
+    check('send: before the thumbs-up nothing is held or sent', s0.st.hold === 0 && !s0.st.sent, JSON.stringify(s0.st));
+    check('send: while held the bar is part-filled', s1.st.hold > 0.2 && s1.st.hold < 1 && !s1.st.sent, JSON.stringify(s1.st));
+    check('send: on completion it reads sent', s2.st.sent === true, JSON.stringify(s2.st));
+    check('send: the Claude window drew three different pictures', new Set([s0.shot, s1.shot, s2.shot]).size === 3, [s0.shot, s1.shot, s2.shot].join(' '));
+    // Scroll: the transcript follows the drag
+    await visit('.float-hand', 'scroll');
+    const k0 = await seek('scroll', 0.4), k1 = await seek('scroll', 2.3);
+    check('scroll: the drag moves the transcript and the window redraws', k0.st.scroll < 0.01 && k1.st.scroll > 0.5 && k0.shot !== k1.shot, JSON.stringify([k0.st.scroll, k1.st.scroll]));
+    // Talk has no tour scene: its own screen and clock
+    await p.eval("document.querySelector('.m3').scrollIntoView({ block: 'center' }); 0"); await p.waitFor('window.__minis.length >= 1', 20000, 'the talk screen');
     const talk = await p.eval(`(() => { const m = window.__minis.find((m) => m.kind === 'talk'); m.pause(); const a = m.panes[0]; m.update({ t: 0.2 }); const empty = a.draft; m.update({ t: 6 }); return { empty, full: a.draft === a.words.join(' '), l1: m.island.querySelector('.l1').textContent }; })()`);
     check('talk: words type in on their own timeline and the loop resets', talk.empty === '' && talk.full && talk.l1 === 'Claude dictation on', JSON.stringify(talk));
-    await p.eval("document.documentElement.scrollTop = document.documentElement.scrollHeight; 0"); await sleep(900);
-    check('scenes that scrolled away are paused (no longer drawing)', await p.eval("window.__scenes.some((s) => !s.visible)"));
+    await p.eval("scrollTo(0, document.documentElement.scrollHeight); 0"); await sleep(1800);
+    check('scenes that scrolled away are torn down (nothing keeps drawing offscreen)', await p.eval("window.__scenes.filter((s) => s.name !== 'talk').every((s) => !s.inst)"));
+    await visit('.m1', 'look');
+    check('and they come back when the step returns', await p.eval("!!window.__scenes.find((s) => s.name === 'look').inst"));
     check('no console errors', real(w).length === 0, real(w).join(' | '));
     check('only the two GitHub requests left the site', offOrigin(w, LETTER_ALLOWED).length === 0, offOrigin(w, LETTER_ALLOWED).join(' '));
   } finally { p.close(); await c.close(); }
 }
 
 async function letterReduced() {
-  say('scenario letter-reduced: reduced motion shows still end-state frames');
+  say('scenario letter-reduced: reduced motion shows still frames');
   const c = await launch({ port: 9360, flags: [...FAKE, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], size: '1280,800' });
   const p = await Page.open(c.port); const w = await p.watch();
   try {
@@ -564,14 +567,12 @@ async function letterReduced() {
     await p.send('Page.navigate', { url: LETTER });
     await p.waitFor("document.readyState === 'complete'", 15000);
     for (const sel of ['.m1', '.m2', '.m3', '.m4', '.float-hand']) { await p.eval(`document.querySelector('${sel}').scrollIntoView({ block: 'center' }); 0`); await sleep(2500); }
-    await p.waitFor("window.__minis && window.__minis.length >= 5", 30000, 'five screens');
-    const mini = (kind, expr) => p.eval(`(() => { const m = window.__minis.find((m) => m.kind === '${kind}'); const a = m.panes[0]; const i = m.island; const L = (q) => i.querySelector(q).textContent; return ${expr}; })()`);
-    check('reduced motion: pinch screen rests on its end state (dictation on, prompt typed)', await mini('pinch', "a.draft === a.words.join(' ') && L('.l1') === 'Claude dictation on'"));
-    check('reduced motion: thumbs-up screen rests on its end state (sent, reply shown)', await mini('send', "/Sent in/.test(L('.l1')) && a.transcript.querySelectorAll('.ls-line.code').length >= 2"));
-    check('reduced motion: talk screen rests on a typed sentence, nothing is looping', await mini('talk', "a.draft === a.words.join(' ')"));
-    check('reduced motion: scroll screen is scrolled', await mini('scroll', 'a.transcript.scrollTop > 40'));
-    const before = await mini('pinch', 'a.draft + i.dataset.mode'); await sleep(1500);
-    check('reduced motion: the screens do not change on their own', before === await mini('pinch', 'a.draft + i.dataset.mode'));
+    await p.waitFor("window.__scenes.filter((s) => s.inst).length >= 4 && window.__minis.length >= 1", 30000, 'the scenes');
+    const t0 = await p.eval("window.__scenes.filter((s) => s.inst).map((s) => s.state && s.state.t)");
+    await sleep(1500);
+    const t1 = await p.eval("window.__scenes.filter((s) => s.inst).map((s) => s.state && s.state.t)");
+    check('reduced motion: every scene is a single still frame that does not advance', t0.every((t) => typeof t === 'number') && JSON.stringify(t0) === JSON.stringify(t1), JSON.stringify([t0, t1]));
+    check('reduced motion: the talk screen rests on a typed sentence', await p.eval("(() => { const a = window.__minis[0].panes[0]; return a.draft === a.words.join(' '); })()"));
     check('no console errors', real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
