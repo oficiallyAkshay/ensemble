@@ -9,7 +9,7 @@
 <meta property="og:description" content="Look at a Claude session. Pinch. Talk. Thumbs-up. Try it in your browser.">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#ffffff">
-<link rel="icon" href="logo.png">
+<link rel="icon" href="live/favicon.png">
 <link rel="stylesheet" href="live/ensemble.css">
 <style>
   * { box-sizing: border-box; }
@@ -97,7 +97,7 @@
 
   /* the call to action, on its own big shape */
   .cta-stage { position: relative; margin: clamp(50px, 7vw, 110px) 0 0; padding: clamp(40px, 6vw, 90px) clamp(20px, 8vw, 150px) clamp(60px, 8vw, 120px); }
-  .cta-stage .c1 { width: 70vw; height: 24vw; left: -12vw; top: 6vw; --r: 999px; --rot: -6deg; --g: linear-gradient(95deg, #ff5fa2, #ffa63d 38%, #ffe04d 62%, #5fd9c6 85%); opacity: 0.95; }
+  .cta-stage .c1 { width: 70vw; height: 24vw; left: -12vw; top: 6vw; --r: 999px; --rot: -6deg; --g: linear-gradient(95deg, #ff5fa2, #e9a58c 22%, #ffc35c 45%, #ffe04d 62%, #5fd9c6 85%); opacity: 0.95; }
   .cta-stage .c2 { width: 12vw; height: 12vw; right: 6vw; top: 0; --g: radial-gradient(circle at 35% 30%, #a9c8ff, #5294ff 60%, #7a5cff); --dur: 15s; }
   .cta { position: relative; z-index: 4; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
   .btns { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
@@ -110,11 +110,11 @@
   .mac-only { display: none; }
   .cta .ens-btn.primary { box-shadow: 0 14px 30px rgba(10, 10, 10, 0.3); }
 
-  .pop { position: absolute; left: 0; top: 70px; z-index: 30; width: min(360px, calc(100vw - 40px)); padding: 20px 20px 18px; transform-origin: 50px -10px;
-    opacity: 0; transform: translateY(-6px) scale(0.92); pointer-events: none; visibility: hidden;
+  .pop { position: absolute; left: 0; bottom: calc(100% + 16px); z-index: 30; width: min(360px, calc(100vw - 40px)); padding: 20px 20px 18px; transform-origin: 60px calc(100% + 10px);
+    opacity: 0; transform: translateY(8px) scale(0.92); pointer-events: none; visibility: hidden;
     transition: opacity 0.25s ease, transform 0.5s var(--e-spring), visibility 0s linear 0.5s; }
   .pop.open { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition-delay: 0s; }
-  .pop::before { content: ""; position: absolute; left: 62px; top: -7px; width: 13px; height: 13px; background: #fff; border-left: 1px solid var(--e-line); border-top: 1px solid var(--e-line); border-radius: 3px 0 0 0; transform: rotate(45deg); }
+  .pop::before { content: ""; position: absolute; left: 58px; bottom: -7px; width: 13px; height: 13px; background: #fff; border-right: 1px solid var(--e-line); border-bottom: 1px solid var(--e-line); border-radius: 0 0 3px 0; transform: rotate(45deg); }
   .pop h2 { margin: 0 0 6px; font: 700 17px var(--e-display); letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
   .pop h2 svg { width: 20px; height: 20px; flex: none; stroke: var(--e-blue-ink); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .pop p { margin: 0; font-size: 14.5px; line-height: 1.5; color: #525252; }
@@ -155,7 +155,9 @@
   /* ---- spread 4: download ---- */
   .dl { position: relative; padding: clamp(70px, 10vw, 150px) 0 0; overflow: clip; }
   .dl .giant { position: relative; z-index: 2; margin: 0; white-space: nowrap; font: 700 clamp(70px, 21vw, 340px)/0.82 var(--e-display); letter-spacing: -0.07em; margin-left: -1.6vw; background: linear-gradient(95deg, #ff5fa2 0%, #ff9a4c 22%, #ffe04d 40%, #3fd9c4 62%, #5294ff 82%, #7a5cff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0 0.08em; }
-  .dl .d1 { width: 26vw; height: 26vw; right: -9vw; top: -4vw; --g: radial-gradient(circle at 35% 35%, #8fb8ff, #5294ff 55%, #7a5cff); --dur: 19s; }
+  .dl .d1 { width: 30vw; height: 30vw; right: -7vw; top: -6vw; --g: radial-gradient(circle at 35% 35%, #ffc35c, #e9a58c 45%, #ff5fa2 80%); --dur: 19s; }
+  .app-icon { position: absolute; z-index: 3; right: 4vw; top: 1vw; width: 17vw; min-width: 150px; rotate: 9deg; }
+  .app-icon img { width: 100%; height: auto; display: block; }
   .notes { position: relative; z-index: 3; display: flex; flex-wrap: wrap; gap: 26px; padding: 0 clamp(20px, 8vw, 150px); margin-top: clamp(-20px, -2vw, 0px); align-items: flex-start; }
   .note-card { width: min(300px, 100%); background: #fff; border-radius: 14px; padding: 20px 22px 24px; box-shadow: 0 24px 40px -12px rgba(40, 30, 90, 0.28), 0 2px 6px rgba(10, 10, 10, 0.08); font-size: 16px; line-height: 1.5; color: #262626; position: relative; }
   .note-card .n { display: block; font: 500 12px var(--e-mono); letter-spacing: 0.1em; color: #737373; margin-bottom: 16px; }
@@ -208,6 +210,7 @@
     .dl .giant { font-size: 22vw; margin-bottom: 18px; }
     .notes { margin-top: 8px; }
     .dl .d1 { width: 60vw; height: 60vw; right: -26vw; top: -10vw; }
+    .app-icon { width: 30vw; right: 8vw; top: 12vw; }
     .note-card:nth-child(n) { width: min(320px, 90%); }
   }
 </style>
@@ -311,7 +314,7 @@
         <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="acts" id="pop-acts" hidden>
           <button type="button" class="ens-btn small" id="pop-mouse">Use your mouse instead</button>
-          <button type="button" class="ens-btn small" id="pop-retry">Try the camera again</button>
+          <button type="button" class="ens-btn small" id="pop-retry">Try again</button>
         </div>
       </div>
     </div>
@@ -359,6 +362,7 @@
 
 <section class="dl" id="download" aria-labelledby="dl">
   <i class="blob d1" aria-hidden="true"></i>
+  <div class="app-icon shadowed" aria-hidden="true"><img src="live/icon.png" alt="" width="320" height="320" loading="lazy" decoding="async"></div>
   <h2 class="giant" id="dl">Download</h2>
   <div class="notes">
     <div class="note-card reveal"><span class="n">01</span>Open the download and drag Ensemble to Applications.</div>

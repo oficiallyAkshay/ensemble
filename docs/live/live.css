@@ -108,6 +108,7 @@ button { font-family: inherit; }
 /* ---- overlays ---- */
 .ls-gate, .ls-finish { position: fixed; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(255, 255, 255, 0.5); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); z-index: 50; overflow-y: auto; }
 .ls-card { position: relative; width: min(520px, 100%); padding: 32px; border-radius: 28px; background: #fff; border: 1px solid var(--e-line); box-shadow: 0 40px 100px rgba(40, 30, 90, 0.28), 0 4px 16px rgba(10, 10, 10, 0.06); animation: ens-pop 0.6s var(--e-spring) both; }
+.ls-app-icon { width: 72px; height: 72px; display: block; margin: -4px 0 12px; rotate: -6deg; filter: drop-shadow(0 10px 14px rgba(40, 30, 90, 0.3)); }
 .ls-card-mark { width: 26px; height: 26px; color: var(--e-ink); margin-bottom: 16px; }
 .ls-card h1 { margin: 0 0 10px; font: 700 30px/1.08 var(--e-display); letter-spacing: -0.035em; }
 .ls-lede { margin: 0 0 22px; color: #525252; }
@@ -121,6 +122,10 @@ button { font-family: inherit; }
 .ls-after { margin: 0; font-size: 14px; color: var(--e-muted); }
 .ls-sink { position: fixed; left: -10000px; top: 0; width: 320px; height: 240px; overflow: hidden; pointer-events: none; }
 
+.ls-card::before, .ls-card::after { content: ""; position: absolute; z-index: -1; pointer-events: none; }
+.ls-card::before { width: 210px; height: 190px; right: -70px; top: -64px; border-radius: 55% 45% 60% 40% / 48% 56% 44% 52%; rotate: 14deg; background: conic-gradient(from 200deg at 50% 52%, #ff5fa2, #ff8a4c, #ffd84d, #ff7ab8 70%, #ff5fa2); box-shadow: 0 20px 40px rgba(40, 30, 90, 0.2); }
+.ls-card::after { width: 230px; height: 84px; left: -64px; bottom: -34px; border-radius: 999px; rotate: -8deg; background: linear-gradient(95deg, #2fd3c0, #5294ff 55%, #7a5cff); box-shadow: 0 20px 40px rgba(40, 30, 90, 0.2); }
+.ls-finish .ls-card::before { background: radial-gradient(circle at 35% 30%, #ffe04d, #ff9a4c 55%, #ff5fa2); }
 /* arriving from the letter with the camera already allowed: no second ask, just the progress */
 html[data-go] .gate-intro { display: none; }
 
