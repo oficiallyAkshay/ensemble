@@ -9,13 +9,17 @@ const ORIGIN = `http://127.0.0.1:${srv.port}`;
 const URL_ = `${ORIGIN}/live/index.html`;
 const LETTER = `${ORIGIN}/index.html`;
 const STARS_URL = 'https://api.github.com/repos/oficiallyAkshay/ensemble';
+const CLONES_URL = 'https://raw.githubusercontent.com/oficiallyAkshay/ensemble/badges/clones.json';
+const LETTER_ALLOWED = [STARS_URL, CLONES_URL];   // the only two off-origin requests the letter page may make
+const DMG = 'https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg';
 const FAKE = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'];
 const HEAVY = ['/live/vendor/vision_bundle.js', '/live/vendor/wasm/vision_wasm_internal.js', '/live/vendor/wasm/vision_wasm_internal.wasm.gz', '/live/models/face_landmarker.task.gz', '/live/models/gesture_recognizer.task.gz'];
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); say(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ' :: ' + detail : ''}`); };
 
 // MediaPipe reports its own INFO lines (the TensorFlow Lite delegate notice) through console.error; those are not errors.
-const real = (w) => w.errors.filter((e) => !/INFO:/.test(e));
+// The letter asks for the clonometer ledger, which does not exist until the counter is installed; the browser logs that 404 by itself, and the page leaves the clones out.
+const real = (w) => w.errors.filter((e) => !/INFO:/.test(e) && !/badges\/clones\.json/.test(e));
 function offOrigin(w, allow = []) { return w.requests.filter((r) => !r.url.startsWith(ORIGIN) && !/^(blob:|data:|about:)/.test(r.url) && !allow.includes(r.url)).map((r) => r.url); }
 
 async function camera() {
@@ -291,15 +295,20 @@ async function phone() {
 
 // ---- the letter page: the popover flow, the prefetch, the star count ----
 
-const stub = async (p, stars) => {
-  await p.send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.github.com/*' }] });
+const stub = async (p, stars, clones = 'missing') => {
+  await p.send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.github.com/*' }, { urlPattern: 'https://raw.githubusercontent.com/*' }] });
+  const CORS = { name: 'Access-Control-Allow-Origin', value: '*' };
   p.on('Fetch.requestPaused', (e) => {
-    if (stars === 'fail') p.send('Fetch.failRequest', { requestId: e.requestId, errorReason: 'Failed' });
-    else if (stars === 'limit') p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 403, responseHeaders: [{ name: 'Access-Control-Allow-Origin', value: '*' }], body: btoa('{"message":"rate limit"}') });
-    else p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, { name: 'Access-Control-Allow-Origin', value: '*' }], body: btoa(JSON.stringify({ stargazers_count: stars })) });
+    const isClones = e.request.url.startsWith('https://raw.githubusercontent.com/');
+    const mode = isClones ? clones : stars;
+    if (mode === 'fail') p.send('Fetch.failRequest', { requestId: e.requestId, errorReason: 'Failed' });
+    else if (mode === 'limit') p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 403, responseHeaders: [CORS], body: btoa('{"message":"rate limit"}') });
+    else if (mode === 'missing') p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 404, responseHeaders: [CORS], body: btoa('404: Not Found') });
+    else if (isClones) p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, CORS], body: btoa(JSON.stringify(clones)) });
+    else p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, CORS], body: btoa(JSON.stringify({ stargazers_count: stars })) });
   });
 };
-const starsText = (p) => p.eval("document.getElementById('stars').textContent");
+const starsText = (p) => p.eval("(() => { const c = document.getElementById('counts'); return c.hidden ? '' : c.textContent; })()");
 const hitsOf = () => HEAVY.map((u) => srv.hits.get(u) || 0);
 
 async function letter() {
@@ -311,7 +320,9 @@ async function letter() {
     await p.send('Page.navigate', { url: LETTER });
     await p.waitFor("document.readyState === 'complete'", 15000, 'letter load');
     check('letter words are all there', await p.eval("['Type to your AI for thirty minutes', 'two weeks', 'I learned that the slow way', 'find the right window, click it, talk', 'Thumbs-up. Next.', 'one click from leaning back', 'Free, open source, for the Mac'].every(t => document.body.textContent.replace(/\\s+/g, ' ').includes(t))"));
-    check('CTA row: See the demo, Download with a logo, star line', await p.eval("(() => { const d = document.getElementById('dl-btn'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href.startsWith('https://github.com/oficiallyAkshay/ensemble/releases/latest') && document.getElementById('stars').href === 'https://github.com/oficiallyAkshay/ensemble'; })()"));
+    check('CTA row in the hero: See the demo, Download with a logo that starts the .dmg, GitHub logo and source link', await p.eval(`(() => { const d = document.getElementById('dl-btn'), a = document.getElementById('src'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href === '${DMG}' && a.textContent.trim() === 'See the source code on GitHub' && !!a.querySelector('svg') && a.href === 'https://github.com/oficiallyAkshay/ensemble'; })()`));
+    check('the whole action row sits above the fold at 1280x800', await p.eval("(() => { const f = (id) => document.getElementById(id).getBoundingClientRect(); return ['try', 'dl-btn', 'src'].every((id) => f(id).top >= 0 && f(id).bottom <= innerHeight); })()"));
+    check('every Download link on the letter page starts the .dmg', await p.eval(`[...document.querySelectorAll('a')].filter((a) => /download/i.test(a.textContent)).every((a) => a.href === '${DMG}')`));
     check('no horizontal overflow at 1280', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1'));
     check('island narrates on the page', await p.waitFor("document.getElementById('island').dataset.mode !== 'idle'", 6000, 'island').then(() => true));
     check('popover closed at first', await p.eval("!document.getElementById('cam-pop').classList.contains('open')"));
@@ -335,26 +346,38 @@ async function letter() {
     check('demo is running on the camera with no second prompt', (await p.eval('window.__live.mode')) === 'camera', await p.eval("document.getElementById('gate-message').textContent"));
     check('the demo shows no video, only the skeleton panel', await p.eval("[...document.querySelectorAll('video')].every(v => v.closest('#sink'))"));
     const st = await p.eval("document.documentElement.dataset.go");
-    check('only api.github.com left the site, once', JSON.stringify(offOrigin(w, [STARS_URL])) === '[]' && w.requests.filter((r) => r.url === STARS_URL).length === 1, offOrigin(w, [STARS_URL]).join(' '));
+    check('only the two GitHub requests left the site, once each', JSON.stringify(offOrigin(w, LETTER_ALLOWED)) === '[]' && w.requests.filter((r) => r.url === STARS_URL).length === 1 && w.requests.filter((r) => r.url === CLONES_URL).length === 1, offOrigin(w, LETTER_ALLOWED).join(' '));
     check('no console errors', real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
 
 async function lettersStars() {
-  say('scenario stars: 12 stars, 3 stars, a failure and a rate limit');
-  for (const [name, stars, want] of [['12 stars', 12, /^★ 12 stars on GitHub$/], ['3 stars', 3, /^Open source on GitHub$/], ['0 stars', 0, /^Open source on GitHub$/], ['network failure', 'fail', /^Open source on GitHub$/], ['rate limit', 'limit', /^Open source on GitHub$/]]) {
+  say('scenario stars: stars and clones, each shown, hidden under 5, absent or failing');
+  const LEDGER = { total: 1342, total_short: '1.3k' };
+  for (const [name, stars, clones, want] of [
+    ['12 stars, no ledger yet', 12, 'missing', /^12 stars$/],
+    ['12 stars, 1.3k clones', 12, LEDGER, /^1\.3k clones · 12 stars$/],
+    ['clones without total_short', 12, { total: 1342 }, /^1,342 clones · 12 stars$/],
+    ['3 stars, 1.3k clones', 3, LEDGER, /^1\.3k clones$/],
+    ['12 stars, 4 clones', 12, { total: 4, total_short: '4' }, /^12 stars$/],
+    ['0 stars, no ledger', 0, 'missing', /^$/],
+    ['stars fail, 1.3k clones', 'fail', LEDGER, /^1\.3k clones$/],
+    ['stars rate limit, ledger fails', 'limit', 'fail', /^$/],
+    ['12 stars, ledger is not JSON', 12, 'limit', /^12 stars$/],
+  ]) {
     const c = await launch({ port: 9352, flags: FAKE });
     const p = await Page.open(c.port); const w = await p.watch();
     try {
-      await stub(p, stars);
+      await stub(p, stars, clones);
       await p.send('Page.navigate', { url: LETTER });
       await p.waitFor("document.readyState === 'complete'", 15000);
       await sleep(3500);
       const t = await starsText(p);
-      check(`star line with ${name}: "${t}"`, want.test(t));
-      check(`star line ${name} links to the repo`, (await p.eval("document.getElementById('stars').href")) === 'https://github.com/oficiallyAkshay/ensemble');
-      check(`star request was low priority, after load (${name})`, w.requests.filter((r) => r.url === STARS_URL).every((r) => /Low/i.test(r.priority || '')));
-      check(`no other off-origin request (${name})`, offOrigin(w, [STARS_URL]).length === 0, offOrigin(w, [STARS_URL]).join(' '));
+      check(`counts with ${name}: "${t}"`, want.test(t));
+      check(`counts are plain text, not links (${name})`, await p.eval("!document.getElementById('counts').closest('a') && !document.getElementById('counts').querySelector('a')"));
+      check(`source line links to the repo (${name})`, (await p.eval("document.getElementById('src').href")) === 'https://github.com/oficiallyAkshay/ensemble');
+      check(`both requests were low priority, after load (${name})`, w.requests.filter((r) => LETTER_ALLOWED.includes(r.url)).every((r) => /Low/i.test(r.priority || '')));
+      check(`no other off-origin request (${name})`, offOrigin(w, LETTER_ALLOWED).length === 0, offOrigin(w, LETTER_ALLOWED).join(' '));
     } finally { p.close(); await c.close(); }
   }
 }
@@ -442,7 +465,7 @@ async function prefetch() {
     check('the demo asked for the same five files', second.length === 5, String(second.length));
     check('every one was served from the browser cache', second.every((r) => r.cached), second.filter((r) => !r.cached).map((r) => r.url).join(' '));
     check('the server saw no second request for any of them', hitsOf().every((n) => n === 1), JSON.stringify(hitsOf()));
-    check('only api.github.com left the site', offOrigin(w, [STARS_URL]).length === 0, offOrigin(w, [STARS_URL]).join(' '));
+    check('only the two GitHub requests left the site', offOrigin(w, LETTER_ALLOWED).length === 0, offOrigin(w, LETTER_ALLOWED).join(' '));
     check('no console errors', real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
@@ -459,8 +482,9 @@ async function saveData() {
     await p.waitFor("document.readyState === 'complete'", 15000);
     await sleep(5000);
     check('no heavy file fetched with Save-Data on', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
-    check('no star request either', !w.requests.some((r) => r.url === STARS_URL));
-    check('letter still shows the fallback star line', /Open source on GitHub/.test(await starsText(p)));
+    check('no GitHub request either', !w.requests.some((r) => LETTER_ALLOWED.includes(r.url)));
+    check('no counts shown', (await starsText(p)) === '');
+    check('no 3D file fetched with Save-Data on', !w.requests.some((r) => /assets\/3d\//.test(r.url)));
   } finally { p.close(); await c.close(); }
   srv.hits.clear();
   const c2 = await launch({ port: 9357, flags: FAKE });
@@ -473,6 +497,31 @@ async function saveData() {
     await sleep(5000);
     check('no heavy file fetched on a 2g connection', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
   } finally { p2.close(); await c2.close(); }
+}
+
+async function letter3d() {
+  say('scenario letter-3d: the 3D hands load only when a step scrolls into view');
+  const c = await launch({ port: 9359, flags: [...FAKE, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], size: '1280,800' });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    await p.send('Page.navigate', { url: LETTER });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await sleep(1500);
+    const three = () => w.requests.filter((r) => /\/assets\/3d\//.test(r.url)).map((r) => r.url.replace(ORIGIN, ''));
+    check('no 3D file requested at first paint', three().length === 0, three().join(' '));
+    await p.eval("document.getElementById('how').scrollIntoView(); 0");
+    await p.waitFor("window.__scenes && window.__scenes.length >= 1", 30000, 'a scene to mount');
+    check('three.js and the scene code arrive once a step is near', three().some((u) => u.endsWith('three.min.js')) && three().some((u) => u.endsWith('scene3d.js')), three().join(' '));
+    await sleep(2500);
+    check('the visible steps drew a canvas each', await p.eval("document.querySelectorAll('.fig3d canvas').length >= 1"));
+    check('the canvases are transparent and fade in once ready', await p.eval("document.querySelector('.fig3d.ready canvas') !== null"));
+    check('the hand model is only fetched for a hand scene', three().some((u) => u.endsWith('hand.glb')) === (await p.eval("window.__scenes.some((s) => s.name !== 'look')")));
+    await p.eval("scrollTo(0, document.documentElement.scrollHeight); 0");
+    await sleep(900);
+    check('scenes that scrolled away are paused (no longer drawing)', await p.eval("window.__scenes.some((s) => !s.visible)"));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
 }
 
 async function letterPhone() {
@@ -490,9 +539,10 @@ async function letterPhone() {
     await p.eval("document.querySelectorAll('.reveal').forEach(n => n.classList.add('in')); 0");
     await sleep(3000);
     check('phone: no horizontal overflow', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1 && document.body.scrollWidth <= innerWidth + 1'), await p.eval('document.documentElement.scrollWidth + " vs " + innerWidth'));
-    check('phone: copy-link button, download button and star line show; camera button hidden', await p.eval("(() => { const v = (id) => document.getElementById(id).offsetParent !== null; return v('copy') && v('dl-btn') && v('stars') && !v('try'); })()"));
+    check('phone: copy-link button, download button and source line show; camera button hidden', await p.eval("(() => { const v = (id) => document.getElementById(id).offsetParent !== null; return v('copy') && v('dl-btn') && v('src') && !v('try'); })()"));
     check('phone: the demo files are not prefetched', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
     check('phone: star count shown', /12 stars/.test(await starsText(p)));
+    check('phone: the action row is above the fold', await p.eval("['copy', 'dl-btn', 'src'].every((id) => document.getElementById(id).getBoundingClientRect().bottom <= innerHeight)"));
     check('no console errors', real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
@@ -602,7 +652,7 @@ async function pinchDebug() {
 }
 
 const which = process.argv[2] || 'all';
-const all = { centre, pinchDebug, letter, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
+const all = { centre, pinchDebug, letter, letter3d, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }
