@@ -1,4 +1,4 @@
-# Publishes the website (docs/index.html, docs/logo.png, docs/live/) to the gh-pages branch, which GitHub Pages serves
+# Publishes the website (docs/index.html, docs/logo.png, docs/live/, docs/assets/) to the gh-pages branch, which GitHub Pages serves
 # next to the update feed (appcast.xml, written by release.yml). Runs only when those files change on main.
 name: Site
 
@@ -9,6 +9,7 @@ on:
       - "docs/index.html"
       - "docs/logo.png"
       - "docs/live/**"
+      - "docs/assets/**"
 
 permissions: {}
 
@@ -44,6 +45,8 @@ jobs:
           rm -rf pages/live
           cp -R src/docs/live pages/live
           rm -rf pages/live/test
+          rm -rf pages/assets
+          cp -R src/docs/assets pages/assets
 
       - name: Push
         env:
@@ -53,7 +56,7 @@ jobs:
           cd pages
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html logo.png live
+          git add index.html logo.png live assets
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit -m "Site: ${SHA}"
           # The checkout keeps no credentials; the push gets the token from gh's credential helper, never from a URL.

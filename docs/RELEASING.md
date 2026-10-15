@@ -92,7 +92,7 @@ The secrets listed under "One-time setup" are the only ones any workflow reads b
 
 ## The website
 
-GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `release.yml`) and the website. `site.yml` copies `docs/index.html`, `docs/logo.png` and `docs/live/` there whenever they change on main, so the site is edited in `docs/` like any other file. It lives at https://oficiallyakshay.github.io/ensemble/.
+GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `release.yml`) and the website. `site.yml` copies `docs/index.html`, `docs/logo.png`, `docs/live/` and `docs/assets/` there whenever they change on main, so the site is edited in `docs/` like any other file. It lives at https://oficiallyakshay.github.io/ensemble/.
 
 ## How updates reach users
 
