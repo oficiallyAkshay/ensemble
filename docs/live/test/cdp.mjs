@@ -70,9 +70,10 @@ export class Page {
   async watch() {
     const w = { requests: [], bytes: new Map(), errors: [], logs: [] };
     await this.send('Network.enable'); await this.send('Runtime.enable'); await this.send('Log.enable'); await this.send('Page.enable');
-    this.on('Network.requestWillBeSent', (p) => w.requests.push({ id: p.requestId, url: p.request.url, type: p.type }));
+    this.on('Network.requestWillBeSent', (p) => w.requests.push({ id: p.requestId, url: p.request.url, type: p.type, priority: p.request.initialPriority, at: Date.now() }));
     this.on('Network.loadingFinished', (p) => { const r = w.requests.find((q) => q.id === p.requestId); if (r) r.bytes = p.encodedDataLength; });
-    this.on('Network.responseReceived', (p) => { const r = w.requests.find((q) => q.id === p.requestId); if (r) { r.status = p.response.status; r.mime = p.response.mimeType; r.enc = p.response.headers['content-encoding'] || ''; } });
+    this.on('Network.responseReceived', (p) => { const r = w.requests.find((q) => q.id === p.requestId); if (r) { r.status = p.response.status; r.mime = p.response.mimeType; r.enc = p.response.headers['content-encoding'] || ''; r.cached = !!(p.response.fromDiskCache || p.response.fromServiceWorker || r.cached); } });
+    this.on('Network.requestServedFromCache', (p) => { const r = w.requests.find((q) => q.id === p.requestId); if (r) r.cached = true; });
     this.on('Runtime.exceptionThrown', (p) => w.errors.push('exception: ' + (p.exceptionDetails.exception?.description || p.exceptionDetails.text)));
     this.on('Runtime.consoleAPICalled', (p) => { const line = p.args.map((a) => a.value ?? a.description).join(' '); (p.type === 'error' ? w.errors : w.logs).push(`${p.type}: ${line}`); });
     this.on('Log.entryAdded', (p) => { if (p.entry.level === 'error') w.errors.push(`log: ${p.entry.text} ${p.entry.url || ''}`); });

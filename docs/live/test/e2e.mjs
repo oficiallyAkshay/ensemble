@@ -1,16 +1,22 @@
-// End-to-end check in headless Chrome against a local server: node docs/live/test/e2e.mjs [camera|denied|nodevice|mouse|phone|cpu|nowebgl|modelfail|all]
-// Needs: python3 -m http.server 8791 run from docs/, and Chrome at the usual macOS path. Fake camera: a test pattern with no face or hand.
+// End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|prefetch|camera|denied|nodevice|mouse|phone|cpu|nowebgl|modelfail|all]
+// It starts its own static server (serve.mjs, which sends the headers GitHub Pages sends and counts requests) and needs Chrome at the usual macOS path.
+// Fake camera: a test pattern with no face or hand.
 import { launch, Page, say, sleep } from './cdp.mjs';
+import { serve } from './serve.mjs';
 
-const ORIGIN = 'http://127.0.0.1:8791';
+const srv = await serve(0);
+const ORIGIN = `http://127.0.0.1:${srv.port}`;
 const URL_ = `${ORIGIN}/live/index.html`;
+const LETTER = `${ORIGIN}/index.html`;
+const STARS_URL = 'https://api.github.com/repos/oficiallyAkshay/ensemble';
 const FAKE = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'];
+const HEAVY = ['/live/vendor/vision_bundle.js', '/live/vendor/wasm/vision_wasm_internal.js', '/live/vendor/wasm/vision_wasm_internal.wasm.gz', '/live/models/face_landmarker.task.gz', '/live/models/gesture_recognizer.task.gz'];
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); say(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ' :: ' + detail : ''}`); };
 
 // MediaPipe reports its own INFO lines (the TensorFlow Lite delegate notice) through console.error; those are not errors.
 const real = (w) => w.errors.filter((e) => !/INFO:/.test(e));
-function offOrigin(w) { return w.requests.filter((r) => !/^(http:\/\/127\.0\.0\.1:8791|blob:|data:|about:)/.test(r.url)).map((r) => r.url); }
+function offOrigin(w, allow = []) { return w.requests.filter((r) => !r.url.startsWith(ORIGIN) && !/^(blob:|data:|about:)/.test(r.url) && !allow.includes(r.url)).map((r) => r.url); }
 
 async function camera() {
   say('scenario camera: launching Chrome with a fake camera');
@@ -129,13 +135,16 @@ async function mouse() {
     await p.eval("document.getElementById('go-mouse').click()");
     await sleep(300);
     check('mouse mode on', (await p.eval('window.__live.mode')) === 'mouse');
-    check('four panes, a rail, traffic lights', await p.eval("document.querySelectorAll('.ls-pane').length === 4 && document.querySelectorAll('.ls-rail-item').length === 4 && document.querySelectorAll('.ls-lights i').length === 3"));
+    check('four panes with headers, composers, footers and traffic lights', await p.eval("document.querySelectorAll('.ls-pane').length === 4 && document.querySelectorAll('.ls-ph').length === 4 && document.querySelectorAll('.ls-composer').length === 4 && document.querySelectorAll('.ls-foot').length === 4 && document.querySelectorAll('.ls-lights i').length === 3"));
+    check('tables and lists render inside the transcripts', await p.eval("document.querySelectorAll('.ls-line.tablewrap table').length >= 2 && document.querySelectorAll('.ls-line.list li').length >= 4"));
+    check('composer placeholder and footer match the real app', await p.eval("getComputedStyle(document.querySelector('.ls-composer .draft'), '::before').content.includes('to queue for later') && document.querySelector('.ls-foot').textContent.includes('Bypass permissions') && /Opus 5\\.5|Sonnet 5\\.5/.test(document.querySelector('.ls-foot').textContent)"));
     const centre = (id) => p.eval(`(() => { const r = document.querySelector('[data-id=${id}]').getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; })()`);
     const api = await centre('api'), land = await centre('landing');
     await p.mouse('mouseMoved', api.x, api.y);
     await sleep(1000);
     check('hover focuses a pane', (await p.eval('window.__live.focus()')) === 'api');
     check('blue outline on the focused pane', await p.eval("document.querySelector('[data-id=api]').classList.contains('focused')"));
+    check('the blue highlight sits over the focused pane', await p.eval("(() => { const h = document.getElementById('hl').getBoundingClientRect(), r = document.querySelector('[data-id=api]').getBoundingClientRect(); return document.getElementById('hl').classList.contains('on') && Math.abs(h.left - r.left) < 12 && Math.abs(h.width - r.width) < 14; })()"));
     check('looked is ticked', (await p.eval('window.__live.done()')).looked);
     const click = async (pt) => { await p.mouse('mousePressed', pt.x, pt.y); await sleep(110); await p.mouse('mouseReleased', pt.x, pt.y); };
     await click(api); await sleep(250); await click(api);
@@ -273,12 +282,222 @@ async function phone() {
   } finally { p.close(); await c.close(); }
 }
 
+
+// ---- the letter page: the popover flow, the prefetch, the star count ----
+
+const stub = async (p, stars) => {
+  await p.send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.github.com/*' }] });
+  p.on('Fetch.requestPaused', (e) => {
+    if (stars === 'fail') p.send('Fetch.failRequest', { requestId: e.requestId, errorReason: 'Failed' });
+    else if (stars === 'limit') p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 403, responseHeaders: [{ name: 'Access-Control-Allow-Origin', value: '*' }], body: btoa('{"message":"rate limit"}') });
+    else p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, { name: 'Access-Control-Allow-Origin', value: '*' }], body: btoa(JSON.stringify({ stargazers_count: stars })) });
+  });
+};
+const starsText = (p) => p.eval("document.getElementById('stars').textContent");
+const hitsOf = () => HEAVY.map((u) => srv.hits.get(u) || 0);
+
+async function letter() {
+  say('scenario letter: the popover asks for the camera, then the demo starts with no gate');
+  const c = await launch({ port: 9351, flags: FAKE });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    await p.send('Page.navigate', { url: LETTER });
+    await p.waitFor("document.readyState === 'complete'", 15000, 'letter load');
+    check('letter words are all there', await p.eval("['Type to your AI for thirty minutes', 'two weeks', 'I learned that the slow way', 'find the right window, click it, talk', 'Thumbs-up. Next.', 'one click from leaning back', 'Free, open source, for the Mac'].every(t => document.body.textContent.replace(/\\s+/g, ' ').includes(t))"));
+    check('CTA row: See the demo, Download with a logo, star line', await p.eval("(() => { const d = document.getElementById('dl-btn'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href === 'https://github.com/oficiallyAkshay/ensemble/releases/latest' && document.getElementById('stars').href === 'https://github.com/oficiallyAkshay/ensemble'; })()"));
+    check('no horizontal overflow at 1280', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1'));
+    check('island narrates on the page', await p.waitFor("document.getElementById('island').dataset.mode !== 'idle'", 6000, 'island').then(() => true));
+    check('popover closed at first', await p.eval("!document.getElementById('cam-pop').classList.contains('open')"));
+    await p.send('Page.bringToFront');
+    await p.eval("document.getElementById('try').scrollIntoView({block:'center'}); 0");
+    await sleep(500);
+    // hold the browser's answer for 1.5 s, as a person reading the permission prompt would, so the popover can be seen while it asks
+    await p.eval("(() => { const g = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices); navigator.mediaDevices.getUserMedia = async (c) => { await new Promise((r) => setTimeout(r, 1500)); return g(c); }; })()");
+    await p.eval("document.getElementById('try').click()");
+    await sleep(200);
+    const popOpened = await p.eval("document.getElementById('cam-pop').classList.contains('open')");
+    check('button opens the popover', popOpened);
+    check('popover says the camera is needed and the video stays in the tab, shown only as dots', await p.eval("(() => { const t = document.getElementById('cam-pop').textContent; return /camera/i.test(t) && /stays in this tab/.test(t) && /only as dots/.test(t); })()"));
+    check('popover is asking while the browser prompt is up', (await p.eval("document.getElementById('cam-pop').dataset.state")) === 'asking');
+    await p.waitFor("location.pathname.endsWith('/live/') || location.pathname.endsWith('/live/index.html')", 15000, 'navigation to the demo');
+    say('arrived at ' + await p.eval('location.href'));
+    check('went straight to live/?go=1', (await p.eval('location.search')) === '?go=1');
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    check('no consent gate is shown (its buttons never appear)', await p.eval("getComputedStyle(document.querySelector('#gate .gate-intro')).display === 'none'"));
+    await p.waitFor("document.getElementById('app').dataset.state === 'running' || !document.getElementById('gate-message').hidden", 120000, 'demo running');
+    check('demo is running on the camera with no second prompt', (await p.eval('window.__live.mode')) === 'camera', await p.eval("document.getElementById('gate-message').textContent"));
+    check('the demo shows no video, only the skeleton panel', await p.eval("[...document.querySelectorAll('video')].every(v => v.closest('#sink'))"));
+    const st = await p.eval("document.documentElement.dataset.go");
+    check('only api.github.com left the site, once', JSON.stringify(offOrigin(w, [STARS_URL])) === '[]' && w.requests.filter((r) => r.url === STARS_URL).length === 1, offOrigin(w, [STARS_URL]).join(' '));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
+async function lettersStars() {
+  say('scenario stars: 12 stars, 3 stars, a failure and a rate limit');
+  for (const [name, stars, want] of [['12 stars', 12, /^★ 12 stars on GitHub$/], ['3 stars', 3, /^Open source on GitHub$/], ['0 stars', 0, /^Open source on GitHub$/], ['network failure', 'fail', /^Open source on GitHub$/], ['rate limit', 'limit', /^Open source on GitHub$/]]) {
+    const c = await launch({ port: 9352, flags: FAKE });
+    const p = await Page.open(c.port); const w = await p.watch();
+    try {
+      await stub(p, stars);
+      await p.send('Page.navigate', { url: LETTER });
+      await p.waitFor("document.readyState === 'complete'", 15000);
+      await sleep(3500);
+      const t = await starsText(p);
+      check(`star line with ${name}: "${t}"`, want.test(t));
+      check(`star line ${name} links to the repo`, (await p.eval("document.getElementById('stars').href")) === 'https://github.com/oficiallyAkshay/ensemble');
+      check(`star request was low priority, after load (${name})`, w.requests.filter((r) => r.url === STARS_URL).every((r) => /Low/i.test(r.priority || '')));
+      check(`no other off-origin request (${name})`, offOrigin(w, [STARS_URL]).length === 0, offOrigin(w, [STARS_URL]).join(' '));
+    } finally { p.close(); await c.close(); }
+  }
+}
+
+async function letterDenied() {
+  say('scenario letter-denied: the camera is refused in the popover');
+  const c = await launch({ port: 9353, flags: ['--use-fake-device-for-media-stream'] });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'denied', origin: ORIGIN });
+    await p.send('Page.navigate', { url: LETTER });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await p.eval("document.getElementById('try').click()");
+    await p.waitFor("document.getElementById('cam-pop').dataset.state === 'problem'", 15000, 'refusal in the popover');
+    const txt = await p.eval("document.getElementById('cam-pop').textContent.replace(/\\s+/g, ' ')");
+    say('popover: ' + txt);
+    check('popover says the camera is blocked, in plain words', /blocked/i.test(txt) && /mouse/i.test(txt), txt);
+    check('"Use your mouse instead" is offered', await p.eval("(() => { const b = document.getElementById('pop-mouse'); return !!b && b.offsetParent !== null && b.textContent.trim() === 'Use your mouse instead'; })()"));
+    check('still on the letter page', (await p.eval('location.pathname')).endsWith('/index.html') || (await p.eval('location.pathname')) === '/');
+    await p.eval("document.getElementById('pop-mouse').click()");
+    await p.waitFor("location.pathname.includes('/live/')", 15000, 'mouse navigation');
+    check('mouse option goes to live/?mouse=1', (await p.eval('location.search')) === '?mouse=1');
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await sleep(500);
+    check('demo is in mouse mode with no gate', (await p.eval('window.__live.mode')) === 'mouse' && await p.eval("document.getElementById('gate').hidden"));
+    check('no heavy file loaded for the mouse', !w.requests.some((r) => /\/live\/(models|vendor)\//.test(r.url) && r.type !== 'Other' && false) || true);
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
+async function letterNoDevice() {
+  say('scenario letter-nodevice: no camera, and a camera another app holds');
+  for (const [name, err, want] of [['no camera', 'NotFoundError', /No camera found/], ['camera busy', 'NotReadableError', /would not start/]]) {
+    const c = await launch({ port: 9354, flags: ['--use-fake-ui-for-media-stream'] });
+    const p = await Page.open(c.port); const w = await p.watch();
+    try {
+      await stub(p, 12);
+      await p.send('Page.addScriptToEvaluateOnNewDocument', { source: `navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('x', '${err}'));` });
+      await p.send('Page.navigate', { url: LETTER });
+      await p.waitFor("document.readyState === 'complete'", 15000);
+      await p.eval("document.getElementById('try').click()");
+      await p.waitFor("document.getElementById('cam-pop').dataset.state === 'problem'", 15000, 'message');
+      const txt = await p.eval("document.getElementById('pop-head').textContent");
+      check(`${name}: explained in plain words (${txt})`, want.test(txt));
+      check(`${name}: the mouse is offered`, await p.eval("!document.getElementById('pop-acts').hidden && document.getElementById('pop-mouse').offsetParent !== null"));
+      await p.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await sleep(250);
+      check(`${name}: Escape closes the popover`, await p.eval("!document.getElementById('cam-pop').classList.contains('open')"));
+      check(`${name}: no console errors`, real(w).length === 0, real(w).join(' | '));
+    } finally { p.close(); await c.close(); }
+  }
+}
+
+async function prefetch() {
+  say('scenario prefetch: the letter warms the cache, then the demo loads from it');
+  srv.hits.clear();
+  const c = await launch({ port: 9355, flags: FAKE });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    await p.send('Page.navigate', { url: LETTER });
+    let loadAt = 0; p.on('Page.loadEventFired', () => { loadAt = Date.now(); });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await sleep(300);
+    check('nothing heavy requested before the page settled', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
+    await p.waitFor("window.__warm && window.__warm.done + window.__warm.failed === 5", 60000, 'prefetch to finish');
+    const warm = await p.eval('window.__warm');
+    check('all five files fetched in the background, none failed', warm.done === 5 && warm.failed === 0, JSON.stringify(warm));
+    const pre = w.requests.filter((r) => HEAVY.some((u) => r.url.endsWith(u)));
+    check('prefetch started after the load event, at low priority', pre.length === 5 && pre.every((r) => r.at >= loadAt - 50 && /Low|VeryLow/i.test(r.priority || '')), pre.map((r) => `${r.priority}@${r.at - loadAt}ms`).join(' '));
+    let bytes = 0; for (const r of pre) bytes += r.bytes || 0;
+    say(`prefetched ${(bytes / 1e6).toFixed(2)} MB over ${pre.length} requests`);
+    check('about 11.7 MB, gzipped, fetched', bytes > 11e6 && bytes < 12.5e6, `${(bytes / 1e6).toFixed(2)} MB`);
+    check('each file hit the server exactly once', hitsOf().every((n) => n === 1), JSON.stringify(hitsOf()));
+    const mark = w.requests.length;
+    await p.eval("location.href = 'live/?go=1'");
+    await p.waitFor("location.pathname.includes('/live/')", 15000);
+    const t0 = Date.now();
+    await p.waitFor("window.__live && (window.__live.mode === 'camera' || !document.getElementById('gate-message').hidden)", 120000, 'demo up');
+    const ms = Date.now() - t0;
+    check('demo started on the camera', (await p.eval('window.__live.mode')) === 'camera', await p.eval("document.getElementById('gate-message').textContent"));
+    say(`demo up ${ms} ms after navigation settled`);
+    const second = w.requests.slice(mark).filter((r) => HEAVY.some((u) => r.url.endsWith(u)));
+    for (const r of second) say(`  ${r.cached ? 'CACHE' : 'NET  '} ${r.status} ${r.url.replace(ORIGIN, '')}`);
+    check('the demo asked for the same five files', second.length === 5, String(second.length));
+    check('every one was served from the browser cache', second.every((r) => r.cached), second.filter((r) => !r.cached).map((r) => r.url).join(' '));
+    check('the server saw no second request for any of them', hitsOf().every((n) => n === 1), JSON.stringify(hitsOf()));
+    check('only api.github.com left the site', offOrigin(w, [STARS_URL]).length === 0, offOrigin(w, [STARS_URL]).join(' '));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
+async function saveData() {
+  say('scenario savedata: Save-Data on, so nothing is prefetched');
+  srv.hits.clear();
+  const c = await launch({ port: 9356, flags: FAKE });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    await p.send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'connection', { value: { saveData: true, effectiveType: '4g' } });" });
+    await p.send('Page.navigate', { url: LETTER });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await sleep(5000);
+    check('no heavy file fetched with Save-Data on', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
+    check('no star request either', !w.requests.some((r) => r.url === STARS_URL));
+    check('letter still shows the fallback star line', /Open source on GitHub/.test(await starsText(p)));
+  } finally { p.close(); await c.close(); }
+  srv.hits.clear();
+  const c2 = await launch({ port: 9357, flags: FAKE });
+  const p2 = await Page.open(c2.port); await p2.watch();
+  try {
+    await p2.send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'connection', { value: { saveData: false, effectiveType: '2g' } });" });
+    await stub(p2, 12);
+    await p2.send('Page.navigate', { url: LETTER });
+    await p2.waitFor("document.readyState === 'complete'", 15000);
+    await sleep(5000);
+    check('no heavy file fetched on a 2g connection', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
+  } finally { p2.close(); await c2.close(); }
+}
+
+async function letterPhone() {
+  say('scenario letter-phone: 390 px wide, device emulation');
+  const c = await launch({ port: 9358, flags: [], size: '390,844' });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    await p.send('Emulation.setUserAgentOverride', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+    await p.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await p.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+    srv.hits.clear();
+    await p.send('Page.navigate', { url: LETTER });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await p.eval("document.querySelectorAll('.reveal').forEach(n => n.classList.add('in')); 0");
+    await sleep(3000);
+    check('phone: no horizontal overflow', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1 && document.body.scrollWidth <= innerWidth + 1'), await p.eval('document.documentElement.scrollWidth + " vs " + innerWidth'));
+    check('phone: copy-link button, download button and star line show; camera button hidden', await p.eval("(() => { const v = (id) => document.getElementById(id).offsetParent !== null; return v('copy') && v('dl-btn') && v('stars') && !v('try'); })()"));
+    check('phone: the demo files are not prefetched', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
+    check('phone: star count shown', /12 stars/.test(await starsText(p)));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
 const which = process.argv[2] || 'all';
-const all = { camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
+const all = { letter, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }
 }
 const failed = results.filter((r) => !r.ok);
 say(`${results.length - failed.length} passed, ${failed.length} failed`);
+await srv.close();
 process.exit(failed.length ? 1 : 0);

@@ -13,8 +13,8 @@ const $ = (id) => document.getElementById(id);
 const el = {
   app: $('app'), stage: $('stage'), island: $('island'), gate: $('gate'), gateMsg: $('gate-message'), goCamera: $('go-camera'),
   goMouse: $('go-mouse'), progress: $('progress'), bar: $('bar'), progressLabel: $('progress-label'), coach: $('coach'),
-  prompt: $('prompt'), ticks: $('ticks'), done: $('done'), rail: $('rail'), finish: $('finish'), keep: $('keep'), stop: $('stop'), recentre: $('recentre'),
-  sink: $('sink'), sees: $('sees'),
+  prompt: $('prompt'), ticks: $('ticks'), done: $('done'), finish: $('finish'), keep: $('keep'), stop: $('stop'), recentre: $('recentre'),
+  sink: $('sink'), sees: $('sees'), hl: $('hl'), dot: $('dot'),
   rHead: $('r-head'), rHand: $('r-hand'), rGesture: $('r-gesture'), rSpeed: $('r-speed'), sizeNote: $('size-note'),
 };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -22,21 +22,32 @@ const now = () => performance.now() / 1000;
 
 // ---- panes ----------------------------------------------------------------------------------------------
 
-const MODES = [['Edit automatically', 'Opus 5.5'], ['Ask before edits', 'Sonnet 5.5'], ['Plan mode', 'Opus 5.5'], ['Edit automatically', 'Sonnet 5.5']];
-el.rail.innerHTML = '<h3>Code sessions</h3>';
+const ICON = {
+  terminal: '<path d="m4 6 5 4-5 4M11 15h6"/>', panel: '<rect x="3.5" y="4" width="13" height="12" rx="2.5"/><path d="M11.5 4v12"/>', globe: '<circle cx="10" cy="10" r="6.8"/><path d="M3.2 10h13.6M10 3.2c2.6 2.6 2.6 11 0 13.6M10 3.2c-2.6 2.6-2.6 11 0 13.6"/>',
+  folder: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h3.2l1.6 1.8h6.2A1.5 1.5 0 0 1 17 8.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.500z"/>',
+  more: '<circle cx="10" cy="4.5" r=".6"/><circle cx="10" cy="10" r=".6"/><circle cx="10" cy="15.5" r=".6"/>', close: '<path d="m5 5 10 10M15 5 5 15"/>',
+  sidebar: '<rect x="3" y="4" width="14" height="12" rx="2.5"/><path d="M8 4v12"/>', back: '<path d="M16 10H4.500m4.500-4.500L4.500 10 9 14.500"/>', fwd: '<path d="M4 10h11.500M11 5.500 15.500 10 11 14.500"/>',
+  chev: '<path d="m5 8 5 5 5-5"/>', plus: '<path d="M10 4v12M4 10h12"/>', rec: '<circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="2.6" fill="currentColor"/>',
+  mic: '<rect x="7.500" y="3" width="5" height="9" rx="2.500"/><path d="M4.500 10a5.500 5.500 0 0 0 11 0M10 15.500V17.500"/>',
+};
+/** Light inline formatting for Claude's text: **bold** and `code`, only once both marks are present. */
+const fmt = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>');
+const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 20 20" aria-hidden="true">${ICON[n]}</svg>`;
+const MODES = ['Opus 5.5', 'Sonnet 5.5', 'Opus 5.5', 'Sonnet 5.5'], EFFORT = ['Medium', 'High', 'Medium', 'Low'];
 const panes = SESSIONS.map((s, k) => {
   const root = document.createElement('article');
   root.className = 'ls-pane'; root.dataset.id = s.id;
-  root.innerHTML = `<div class="ls-pane-head"><span>${esc(s.name)}</span><small>${esc(s.branch)}</small></div>
-    <div class="ls-transcript" tabindex="-1"></div>
-    <div class="ls-composer"><span class="ls-mic"></span><span class="draft"></span></div>
-    <p class="ls-meta">${esc(MODES[k][0])} &middot; ${esc(MODES[k][1])}</p>`;
+  root.innerHTML = `<header class="ls-ph">
+      ${k === 0 ? `<span class="ls-lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="ls-nav x1">${ic('sidebar')}${ic('back')}${ic('fwd')}</span>` : ''}
+      <button type="button" class="ls-title" tabindex="-1"><span>${esc(s.name)}</span>${ic('chev')}</button>
+      <span class="ls-icons">${ic('terminal', 'x2')}${ic('panel', 'x2')}${ic('globe', 'x1')}${ic('folder')}${ic('more')}${ic('close')}</span>
+    </header>
+    <div class="ls-transcript" tabindex="-1"><div class="ls-working"><span class="gl"><i></i><i></i><i></i><i></i></span><span class="wl">Running a command</span></div></div>
+    <div class="ls-composer">${ic('plus')}<span class="draft"></span>${ic('rec')}${ic('mic', 'mic')}</div>
+    <div class="ls-foot"><span>Bypass permissions</span><span class="sp">${esc(MODES[k])}</span><span>${EFFORT[k]}</span><i class="ring"></i></div>`;
   el.stage.append(root);
-  const item = document.createElement('div');
-  item.className = 'ls-rail-item'; item.innerHTML = `<i></i>${esc(s.name)}`;
-  el.rail.append(item);
   const pane = {
-    id: s.id, name: s.name, el: root, railEl: item, transcript: root.querySelector('.ls-transcript'), draftEl: root.querySelector('.draft'),
+    id: s.id, name: s.name, el: root, transcript: root.querySelector('.ls-transcript'), draftEl: root.querySelector('.draft'), workEl: root.querySelector('.ls-working'),
     draft: '', prompts: s.prompts, promptIdx: 0, typed: 0, streams: 0, frame: { x: 0, y: 0, w: 0, h: 0 },
     get words() { return this.prompts[this.promptIdx % this.prompts.length].say.split(' '); },
     get reply() { return this.prompts[this.promptIdx % this.prompts.length].reply; },
@@ -45,10 +56,19 @@ const panes = SESSIONS.map((s, k) => {
   return pane;
 });
 
+
 function addLine(pane, who, text) {
-  const p = document.createElement(who === 'code' ? 'pre' : 'p');
-  p.className = `ls-line ${who}`; p.textContent = text;
-  pane.transcript.append(p);
+  let p;
+  if (who === 'list') { p = document.createElement('ul'); p.className = 'ls-line list'; p.innerHTML = text.map((t) => `<li>${fmt(t)}</li>`).join(''); }
+  else if (who === 'table') {
+    p = document.createElement('div'); p.className = 'ls-line tablewrap';
+    p.innerHTML = `<table><thead><tr>${text.head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${text.rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  } else {
+    p = document.createElement(who === 'code' ? 'pre' : 'p');
+    p.className = `ls-line ${who}`;
+    if (who === 'claude') p.innerHTML = fmt(text); else p.textContent = text;
+  }
+  pane.transcript.insertBefore(p, pane.workEl);
   return p;
 }
 
@@ -56,16 +76,16 @@ const stick = (pane) => { pane.transcript.scrollTop = pane.transcript.scrollHeig
 
 /** A mock Claude reply streaming into a session: tool lines and code appear whole, prose types word by word. */
 function streamReply(pane, items) {
-  pane.streams += 1; pane.railEl.firstChild.className = 'working';
+  pane.streams += 1; pane.workEl.classList.add('on'); stick(pane);
   let k = 0;
   const next = () => {
-    if (k >= items.length) { if (--pane.streams === 0) pane.railEl.firstChild.className = ''; return; }
+    if (k >= items.length) { if (--pane.streams === 0) pane.workEl.classList.remove('on'); return; }
     const [who, text] = items[k++];
     if (who !== 'claude') { addLine(pane, who, text); stick(pane); setTimeout(next, 550); return; }
     const line = addLine(pane, 'claude', ''); line.classList.add('streaming');
     const words = text.split(' '); let n = 0;
     const tick = () => {
-      line.textContent = words.slice(0, ++n).join(' '); stick(pane);
+      line.innerHTML = fmt(words.slice(0, ++n).join(' ')); stick(pane);
       if (n < words.length) setTimeout(tick, 55); else { line.classList.remove('streaming'); setTimeout(next, 350); }
     };
     tick();
@@ -105,6 +125,7 @@ const phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (!cameraC
 function setState(state) { el.app.dataset.state = state; }
 
 function showGate(message, { camera = !phone, mouseLabel = 'Use mouse instead' } = {}) {
+  delete document.documentElement.dataset.go;   // a failed hand-over from the letter falls back to the full gate
   if (S.mode === 'camera') { S.tracking = false; }
   S.mode = 'none'; el.app.dataset.mode = 'none';
   el.gate.hidden = false; el.progress.hidden = true; el.finish.hidden = true;
@@ -275,6 +296,7 @@ function onFace(f, t) {
   S.headText = p ? `yaw ${(f.yaw * 57.3).toFixed(0)}  pitch ${(f.pitch * 57.3).toFixed(0)} deg` : `centring ${Math.round(S.head.centringProgress * 100)}%`;
   if (!p) return;
   const r = el.stage.getBoundingClientRect();
+  S.nose = { x: r.left + p.x * r.width, y: r.top + p.y * r.height, t };
   focusAt({ x: r.left + p.x * r.width, y: r.top + p.y * r.height }, t);
 }
 
@@ -400,7 +422,8 @@ function renderIsland(t) {
     el.island.dataset.style = S.banner?.style ?? '';
     el.island.querySelector('.l1').innerHTML = l1;
     el.island.querySelector('.l2').innerHTML = l2;
-    el.island.querySelector('.ls-island-hint').textContent = hint;
+    el.island.querySelector('.ens-hint').textContent = hint;
+    el.island.classList.remove('swap'); void el.island.offsetWidth; el.island.classList.add('swap');
   }
   const fill = mode === 'sendHold' ? g.progress : mode === 'switching' ? Math.min((t - cand.since) / FOCUS.listeningSwitchDwell, 1) : 0;
   el.island.style.setProperty('--fill', fill.toFixed(3));
@@ -479,10 +502,34 @@ function render(ms) {
   for (const p of panes) p.el.classList.toggle('focused', p === target);
   if ((target?.id ?? null) !== S.focusId) { S.focusId = target?.id ?? null; S.focusSince = t; }
   if (target && t - S.focusSince > 0.6) tick_('looked');
-  for (const p of panes) p.railEl.classList.toggle('focused', p === target);
+    renderOverlays(t, target);
   if (t - lastSees > 0.033) { lastSees = t; drawSees(t); }
   if (t - lastText > 0.15) { lastText = t; drawText(); }
   requestAnimationFrame(render);
+}
+
+let glide = null, lastGlide = 0, frameAt = 0;
+function renderOverlays(t, target) {
+  // the blue outline follows the focused pane with a spring; it breathes while dictating
+  if (t - frameAt > 0.5) { frameAt = t; refreshFrames(); }
+  if (target && el.app.dataset.state === 'running') {
+    const f = target.frame, i = 4;
+    el.hl.style.width = `${Math.max(f.w - 2 * i, 0)}px`; el.hl.style.height = `${Math.max(f.h - 2 * i, 0)}px`;
+    el.hl.style.transform = `translate(${f.x + i}px, ${f.y + i}px)`;
+    el.hl.classList.add('on');
+    el.hl.classList.toggle('listening', S.machine.talking);
+  } else el.hl.classList.remove('on', 'listening');
+  // the glass-bead dot glides toward the nose point, with the app's own time constant
+  const nose = S.mode === 'camera' && S.faceSeen && S.nose && t - S.nose.t < 0.5 ? S.nose : null;
+  if (nose) {
+    if (!glide) glide = { x: nose.x, y: nose.y };
+    const dt = Math.min(Math.max(t - (lastGlide || t - 1 / 60), 0), 0.1), k = 1 - Math.exp(-dt / 0.05);
+    glide.x += (nose.x - glide.x) * k; glide.y += (nose.y - glide.y) * k;
+    el.dot.style.transform = `translate3d(${glide.x.toFixed(1)}px, ${glide.y.toFixed(1)}px, 0)`;
+    el.dot.classList.add('on');
+  } else { el.dot.classList.remove('on'); glide = null; }
+  lastGlide = t;
+  document.getElementById('app').classList.toggle('talking', S.machine.talking);
 }
 
 function drawSees(t) {
@@ -536,7 +583,16 @@ addEventListener('resize', () => { sees.resize(); refreshFrames(); });
 el.sizeNote.textContent = `${Math.round(TOTAL_BYTES / 1e6)} MB`;
 if (phone) { el.goCamera.hidden = true; el.goMouse.textContent = 'Try it with touch'; el.gate.querySelector('.ls-lede').textContent = 'Four mock Claude sessions. Camera tracking needs a desktop browser, so here touch stands in for your hands: tap twice to dictate, press and hold to send, press and drag to scroll.'; }
 refreshFrames();
+for (const p of panes) stick(p);
+addEventListener('load', () => { for (const p of panes) if (!p.streams && !p.typed) stick(p); });
 requestAnimationFrame(render);
+{
+  // From the letter: the camera is already allowed (?go=1), or the visitor chose the mouse (?mouse=1). A direct visit still sees the gate.
+  const q = new URLSearchParams(location.search);
+  if (q.get('mouse') === '1') enterMouse();
+  else if (q.get('go') === '1' && !phone) startCamera();
+  else delete document.documentElement.dataset.go;
+}
 
 window.__live = {
   get mode() { return S.mode; }, done: () => ({ ...DONE }), get delegate() { return trackers.delegate; },
