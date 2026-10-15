@@ -233,7 +233,8 @@ final class DictationSafety: @unchecked Sendable {
     /// Runs once a second: an episode on disk, Claude capturing, and no hold active means a stop is owed.
     private func standingCheck(_ now: Date) {
         guard episode != nil, !holdActive, now.timeIntervalSince(holdEndedAt) > 1.0 else { return }
-        switch bridge.claudeCaptureActive() {
+        let capture = bridge.claudeCaptureActive()
+        switch capture {
         case .some(true):
             offSince = nil
             unreadableSince = nil
@@ -241,8 +242,14 @@ final class DictationSafety: @unchecked Sendable {
         case .some(false):
             unreadableSince = nil
             if stopStartedAt != nil || escalated { stopConfirmed() }
-            if offSince == nil { offSince = now }
-            if now.timeIntervalSince(offSince!) >= Self.settleWindow { finishEpisode() }
+            // The hold can end (an Accessibility stall, the dead-man check) while a start press is still queued or
+            // running, and that press can open the microphone after this reading: off settles only once it has landed.
+            let startInFlight = bridge.startPressInFlight
+            offSince = startInFlight ? nil : offSince ?? now
+            if DictationRules.recordMayGo(capture: capture, startInFlight: startInFlight,
+                                          offFor: now.timeIntervalSince(offSince ?? now), settle: Self.settleWindow) {
+                finishEpisode()
+            }
         case .none:
             // Unreadable is never off. Left alone it could last for ever with nothing stopping or muting, so after a
             // while it is handled as a stop that cannot be confirmed: keep trying to stop, sound the alarm, mute.
@@ -386,7 +393,12 @@ final class DictationSafety: @unchecked Sendable {
 
         switch bridge.claudeCaptureActive() {
         case .some(false):
-            await onQueue { self.finishEpisode() }
+            // After wake a start press may still be in flight; the standing check then clears the record once it lands.
+            await onQueue {
+                if DictationRules.recordMayGo(capture: false, startInFlight: self.bridge.startPressInFlight, offFor: 0, settle: 0) {
+                    self.finishEpisode()
+                }
+            }
         case .some(true):
             await onQueue { if self.stopStartedAt == nil { self.beginStop("recording found at launch from a previous run") } }
             let deadline = Date().addingTimeInterval(6)

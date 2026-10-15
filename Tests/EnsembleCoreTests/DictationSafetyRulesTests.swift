@@ -17,6 +17,22 @@ import Testing
         #expect(!DictationRules.escalateUnreadable(recordOpen: true, holdActive: true, unreadableFor: 30))
     }
 
+    // MARK: Deleting the record while a start press is in flight
+
+    @Test func aStartPressInFlightKeepsTheRecordPastTheSettleWindow() {
+        #expect(!DictationRules.recordMayGo(capture: false, startInFlight: true, offFor: 30, settle: 3))
+        // The launch sweep needs no settle window, and still waits for the press.
+        #expect(!DictationRules.recordMayGo(capture: false, startInFlight: true, offFor: 0, settle: 0))
+    }
+
+    @Test func theRecordGoesOnceThePressHasLandedAndOffHasSettled() {
+        #expect(DictationRules.recordMayGo(capture: false, startInFlight: false, offFor: 3, settle: 3))
+        #expect(DictationRules.recordMayGo(capture: false, startInFlight: false, offFor: 0, settle: 0))
+        #expect(!DictationRules.recordMayGo(capture: false, startInFlight: false, offFor: 2.9, settle: 3))
+        #expect(!DictationRules.recordMayGo(capture: true, startInFlight: false, offFor: 30, settle: 3))
+        #expect(!DictationRules.recordMayGo(capture: nil, startInFlight: false, offFor: 30, settle: 3))
+    }
+
     // MARK: A new dictation during an unconfirmed stop
 
     @Test func aStartIsRefusedWhileAStopIsOwed() {

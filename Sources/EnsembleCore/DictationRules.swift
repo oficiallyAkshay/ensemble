@@ -8,6 +8,13 @@ public enum DictationRules {
     /// never deletes the safety record, never undoes the safety mute and never counts as a confirmed stop.
     public static func confirmedOff(capture: Bool?) -> Bool { capture == false }
 
+    /// Whether the safety record may be deleted: capture has read definitely off for `settle` seconds, and no start
+    /// press is queued or running. A press in flight can open the microphone after an "off" reading, and with the
+    /// record gone nothing would stop it, sound the alarm or mute the input.
+    public static func recordMayGo(capture: Bool?, startInFlight: Bool, offFor: TimeInterval, settle: TimeInterval) -> Bool {
+        confirmedOff(capture: capture) && !startInFlight && offFor >= settle
+    }
+
     /// What a start press leads to once it has returned.
     public enum AfterStart: Equatable {
         /// The microphone is on and the pose is still held: keep listening.
