@@ -3,7 +3,9 @@
 // Transcript items: ['you'|'claude', text] | ['tool', text] | ['code', text] (code keeps its line breaks) | ['list', [text, ...]] | ['table', { head: [...], rows: [[...], ...] }].
 // Claude text may use **bold** and `code`.
 
-export const SESSIONS = [
+import { HISTORY } from './history.js';
+
+const SESSIONS_BASE = [
   {
     id: 'api', name: 'api-refactor', branch: 'main', status: 'working',
     transcript: [
@@ -98,3 +100,6 @@ export const SESSIONS = [
     ],
   },
 ];
+
+// Each session opens scrolled to the bottom, with a long history above it.
+export const SESSIONS = SESSIONS_BASE.map((s) => ({ ...s, transcript: [...(HISTORY[s.id] ?? []), ...s.transcript] }));
