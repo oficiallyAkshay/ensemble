@@ -53,7 +53,7 @@ import Testing
     }
 }
 
-@Suite struct GestureMachineSendCancelTests {
+@Suite struct GestureMachineSendTests {
     @Test func sendNeedsTheFullHoldAndFiresOnce() {
         let s = GestureSim()
         s.hold(.openPalm, for: 0.5)
@@ -97,13 +97,12 @@ import Testing
         #expect(sent - ended >= 1.5 && sent - ended < 2.0)
     }
 
-    @Test func openHandWhileDictatingNeitherStopsNorCancels() {
+    @Test func openHandWhileDictatingNeitherStopsNorSends() {
         let s = GestureSim()
         s.toggleTalk()
         s.hold(.openPalm, for: 4)
         #expect(s.machine.talking)
         #expect(s.count(.talkEnded(.released)) == 0)
-        #expect(s.count(.cancelRequested) == 0)
         #expect(s.count(.sendRequested) == 0)
     }
 
@@ -114,15 +113,6 @@ import Testing
         s.hold(.openPalm, for: 0.5)
         #expect(s.machine.talking)
         #expect(s.count(.sendRequested) == 0)
-    }
-
-    @Test func cancelNeedsPointThreeSecondsAndFiresOnce() {
-        let s = GestureSim()
-        s.hold(.thumbsUp, for: 0.2)
-        s.hold(.openPalm, for: 0.2)
-        #expect(s.count(.cancelRequested) == 0)
-        s.hold(.openPalm, for: 3)
-        #expect(s.count(.cancelRequested) == 1)
     }
 }
 
@@ -305,13 +295,21 @@ import Testing
     @Test func legacyScrollOffTurnsBothDirectionsOff() throws {
         let m = try decode(#"{"talk":"fist","send":"thumbsUp","scroll":null,"cancel":"openPalm"}"#)
         #expect(m.scrollUp == nil && m.scrollDown == nil)
-        #expect(m.talk == .fist && m.send == .thumbsUp && m.cancel == .openPalm)
+        #expect(m.talk == .fist && m.send == .thumbsUp)
     }
 
     @Test func legacyMappingWithoutScrollKeyDecodesWithDefaults() throws {
         let m = try decode(#"{"talk":"openPalm","cancel":"fist"}"#)
-        #expect(m.talk == .openPalm && m.cancel == .fist)
+        #expect(m.talk == .openPalm)
         #expect(m.send == .thumbsUp && m.scrollUp == nil && m.scrollDown == nil)
+    }
+
+    @Test func savedCancelKeyIsIgnored() throws {
+        let m = try decode(#"{"talk":"fist","send":"openPalm","scrollUp":"pointUp","scrollDown":null,"cancel":"twoFingers"}"#)
+        #expect(m.talk == .fist && m.send == .openPalm && m.scrollUp == .pointUp && m.scrollDown == nil)
+        #expect(!m.usesTwoFingers)
+        let saved = try #require(String(data: JSONEncoder().encode(m), encoding: .utf8))
+        #expect(!saved.contains("cancel"))
     }
 
     @Test func legacySendOffStaysOff() throws {

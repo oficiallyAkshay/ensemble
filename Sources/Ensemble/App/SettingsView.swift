@@ -133,13 +133,10 @@ private struct ActionSettings: View {
                     FixedGesture(symbol: "hand.pinch", title: "Pinch and move")
                 }
                 Toggle("Reverse the scroll direction", isOn: $settings.reverseScroll)
-                ActionRow(symbol: GestureSlot.cancel.actionSymbol, title: "Cancel", detail: GestureSlot.cancel.detail) {
-                    FixedGesture(symbol: settings.mapping.cancel.symbolName, title: settings.mapping.cancel.title)
-                }
             } footer: {
                 Text(settings.reverseScroll
-                     ? "Moving your pinch up scrolls toward earlier messages. Cancel takes whichever gesture is left over."
-                     : "Moving your pinch up drags the page up, toward later messages, as your Mac scrolls. Cancel takes whichever gesture is left over.")
+                     ? "Moving your pinch up scrolls toward earlier messages."
+                     : "Moving your pinch up drags the page up, toward later messages, as your Mac scrolls.")
             }
             Section {
                 ActionRow(symbol: "arrow.left.and.right", title: "Maximize session",

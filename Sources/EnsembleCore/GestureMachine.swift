@@ -61,7 +61,6 @@ public final class GestureMachine {
     /// a plain send, and still shorter than `releaseHold`, so it is read before the hold counts as released.
     static let stopAndSendHold = 0.35
     static let sendAfterTalkEnd = 0.5
-    static let cancelHold = 0.3
     /// After a send fires, the send pose must be gone this long before a new hold can count. A thumbs-up still up
     /// after the send that flickers for a frame (a misread pose) otherwise started a second hold: the bar filled
     /// again after the send and a second send was asked for.
@@ -75,7 +74,7 @@ public final class GestureMachine {
     static let scrollRamp = 1.5
     static let scrollMaxGap = 0.2
 
-    /// A continuous stretch of one pose. `startedWhileTalking` taints it for send/cancel so the pose
+    /// A continuous stretch of one pose. `startedWhileTalking` taints it for send and scroll so the pose
     /// that ends a dictation hold can never also trigger an action.
     private struct Run {
         var pose: Pose
@@ -126,8 +125,6 @@ public final class GestureMachine {
         }
         if talking { return nil }
         if r.pose == mapping.send { return make(.send, sendHold, (!r.startedWhileTalking || r.stoppedForSend) && !r.fired && !r.blocked) }
-        // An open hand is just a resting hand: nothing to show (cancel has nothing to cancel since send became a hold).
-        if r.pose == mapping.cancel { return nil }
         if let direction = scrollDirection(r.pose) {
             let p = make(direction < 0 ? .scrollUp : .scrollDown, Self.scrollHold, !r.startedWhileTalking)
             return GestureProgress(pose: p.pose, action: p.action, progress: p.progress, willAct: p.willAct, active: p.willAct && p.progress >= 1)
@@ -203,9 +200,6 @@ public final class GestureMachine {
                r.stoppedForSend || (lastTalkEndT.map({ h.t - $0 >= Self.sendAfterTalkEnd }) ?? true) {
                 r.fired = true
                 intents.append(.sendRequested)
-            } else if pose == mapping.cancel, !r.startedWhileTalking, !r.fired, held >= Self.cancelHold {
-                r.fired = true
-                intents.append(.cancelRequested)
             } else if let direction = scrollDirection(pose), !r.startedWhileTalking, held >= Self.scrollHold {
                 let dt = h.t - r.lastT
                 if dt > 0, dt <= Self.scrollMaxGap {

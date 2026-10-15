@@ -28,7 +28,6 @@ import Testing
 
     @Test func unrelatedIntentsCompleteNothing() {
         let d = TourPracticeDetector()
-        #expect(d.observe(.cancelRequested) == nil)
         #expect(d.observe(.scroll(dy: 5)) == nil)
         #expect(d.observe(.dragScrollEnded) == nil)
     }

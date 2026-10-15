@@ -26,11 +26,9 @@ import Testing
         #expect(!intents.contains(.talkBegan))
     }
 
-    @Test func openPalmHoldCancelsOnly() throws {
+    @Test func openPalmHoldDoesNothing() throws {
         let intents = try gestureIntents("openPalm-hold").map(\.intent)
-        #expect(intents.filter { $0 == .cancelRequested }.count == 5)
-        #expect(!intents.contains(.talkBegan))
-        #expect(!intents.contains(.sendRequested))
+        #expect(intents.isEmpty, "\(intents)")
     }
 
     @Test func twoFingersHoldNeitherScrollsTalksNorSends() throws {

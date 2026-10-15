@@ -180,7 +180,7 @@ final class SettingsStore: ObservableObject {
 }
 
 enum GestureSlot: CaseIterable {
-    case talk, send, scrollUp, scrollDown, cancel
+    case talk, send, scrollUp, scrollDown
 }
 
 extension GestureMapping {
@@ -191,7 +191,6 @@ extension GestureMapping {
             case .send: return send
             case .scrollUp: return scrollUp
             case .scrollDown: return scrollDown
-            case .cancel: return cancel
             }
         }
         set {
@@ -200,7 +199,6 @@ extension GestureMapping {
             case .send: send = newValue
             case .scrollUp: scrollUp = newValue
             case .scrollDown: scrollDown = newValue
-            case .cancel: if let newValue { cancel = newValue }
             }
         }
     }
@@ -255,7 +253,6 @@ extension GestureSlot {
         case .send: return "Send"
         case .scrollUp: return "Scroll up"
         case .scrollDown: return "Scroll down"
-        case .cancel: return "Cancel"
         }
     }
 
@@ -265,7 +262,6 @@ extension GestureSlot {
         case .send: return "Sends the dictated draft once the gesture is held for the time below."
         case .scrollUp: return "Holding the gesture scrolls the session up, faster the longer you hold."
         case .scrollDown: return "Holding the gesture scrolls the session down, faster the longer you hold."
-        case .cancel: return "Stops a pending send before the countdown ends."
         }
     }
 
@@ -276,7 +272,6 @@ extension GestureSlot {
         case .send: return "paperplane"
         case .scrollUp: return "arrow.up"
         case .scrollDown: return "arrow.down"
-        case .cancel: return "xmark"
         }
     }
 

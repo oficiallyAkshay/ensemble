@@ -25,7 +25,7 @@ public final class TourPracticeDetector {
             return .send
         case .dragScroll:
             return .scroll
-        case .cancelRequested, .scroll, .dragScrollEnded, .maximizeSession, .evenOutSessions:
+        case .scroll, .dragScrollEnded, .maximizeSession, .evenOutSessions:
             return nil
         }
     }

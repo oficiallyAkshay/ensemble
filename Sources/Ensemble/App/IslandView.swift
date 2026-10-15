@@ -20,7 +20,7 @@ struct IslandView: View {
         if let g = model.gesture {
             if (g.action == .talk || g.action == .stop) && !g.active { return .firstPinch }
             if g.action == .send, g.willAct { return .sendHold }
-            if g.action == .scrollUp || g.action == .scrollDown || g.action == .cancel { return .otherGesture }
+            if g.action == .scrollUp || g.action == .scrollDown { return .otherGesture }
         }
         if model.listening { return .dictating }
         if model.banner != nil { return .banner }
@@ -216,7 +216,6 @@ extension IslandView {
         case .talk: return "mic.fill"
         case .stop: return "stop.fill"
         case .send: return "paperplane.fill"
-        case .cancel: return "xmark"
         case .scrollUp: return "arrow.up"
         case .scrollDown: return "arrow.down"
         }
@@ -226,7 +225,6 @@ extension IslandView {
         switch g.action {
         case .talk, .stop: return "Pinch again"
         case .send: return "Sending"
-        case .cancel: return "Cancel"
         case .scrollUp, .scrollDown: return "Scrolling"
         }
     }

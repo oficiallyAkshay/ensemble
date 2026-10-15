@@ -69,18 +69,17 @@ public struct GestureMapping: Codable, Equatable, Sendable {
     public var send: Pose? = .thumbsUp          // nil = sending by gesture is off
     public var scrollUp: Pose? = nil            // optional pose scroll (off by default: pinch and drag scrolls)
     public var scrollDown: Pose? = nil
-    public var cancel: Pose = .openPalm         // cancels a pending send
     public init() {}
 
-    private enum CodingKeys: String, CodingKey { case talk, send, scrollUp, scrollDown, cancel, scroll }
+    private enum CodingKeys: String, CodingKey { case talk, send, scrollUp, scrollDown, scroll }
 
     /// Settings saved before pointing scroll have a single `scroll` key (a pose, or null when it was off).
-    /// They get the pointing defaults, or both directions off when scrolling was off.
+    /// They get the pointing defaults, or both directions off when scrolling was off. A `cancel` key from
+    /// settings saved while open hand cancelled is ignored.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = GestureMapping()
         talk = try c.decodeIfPresent(Pose.self, forKey: .talk) ?? d.talk
-        cancel = try c.decodeIfPresent(Pose.self, forKey: .cancel) ?? d.cancel
         send = c.contains(.send) ? try c.decode(Pose?.self, forKey: .send) : d.send
         if c.contains(.scrollUp) || c.contains(.scrollDown) {
             scrollUp = c.contains(.scrollUp) ? try c.decode(Pose?.self, forKey: .scrollUp) : d.scrollUp
@@ -94,9 +93,9 @@ public struct GestureMapping: Codable, Equatable, Sendable {
         }
     }
 
-    /// Two fingers is the pose of send, cancel or a scroll direction. The peace sign and the scissors are that same
+    /// Two fingers is the pose of send or a scroll direction. The peace sign and the scissors are that same
     /// hand shape, so they stand aside meanwhile instead of both acting on one hand. (`talk` is unused: see above.)
-    public var usesTwoFingers: Bool { [send, scrollUp, scrollDown, cancel].contains(.twoFingers) }
+    public var usesTwoFingers: Bool { [send, scrollUp, scrollDown].contains(.twoFingers) }
 
     /// Writes nil as an explicit null so "off" survives a round trip.
     public func encode(to encoder: Encoder) throws {
@@ -105,7 +104,6 @@ public struct GestureMapping: Codable, Equatable, Sendable {
         try c.encode(send, forKey: .send)
         try c.encode(scrollUp, forKey: .scrollUp)
         try c.encode(scrollDown, forKey: .scrollDown)
-        try c.encode(cancel, forKey: .cancel)
     }
 }
 
@@ -114,7 +112,6 @@ public enum GestureIntent: Equatable, Sendable {
     case talkBegan
     case talkEnded(TalkEndReason)
     case sendRequested
-    case cancelRequested
     case scroll(dy: Double)                 // points for this frame; negative = up the transcript, positive = down
     case dragScroll(handDy: Double)         // pinch and drag: points of hand travel this frame, positive = hand moved up
     case dragScrollEnded                    // the pinch opened or the hand left: scrolling stops now
@@ -165,7 +162,7 @@ public enum BridgeResult: Equatable, Sendable {
 }
 
 /// What a held pose will do once its hold completes.
-public enum GestureAction: String, Sendable { case talk, stop, send, cancel, scrollUp, scrollDown }
+public enum GestureAction: String, Sendable { case talk, stop, send, scrollUp, scrollDown }
 
 /// A pose being held right now: `progress` fills from 0 to 1 over the hold; `willAct` is false when this hold
 /// cannot fire (for example a fist that arrived already closed); `active` is true while it is acting (dictating, scrolling).

@@ -617,7 +617,6 @@ final class Coordinator: AppCoordinating {
             if ctx.setup.isPromptShowing { send.dropEarly(); ctx.setup.start(); return }
             if send.earlyArmed { send.earlyHoldCompleted(); return }
             if ctx.listening != nil || ctx.busy { send.sendAfterStop(in: ctx.listening); EnsembleLog.write("send after stop") } else { requestSend() }
-        case .cancelRequested: break
         case .scroll(let dy): scroll.scroll(dy, target: focus.target)
         case .dragScrollEnded: scroll.released()
         case .dragScroll(let handDy): scroll.drag(handDy: handDy, target: focus.target)
