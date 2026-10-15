@@ -59,15 +59,17 @@ It needs an Apple Silicon Mac with macOS 14.2 or later, a webcam that sees your 
 
 ## Security and limits
 
-No credential. Everything runs on your Mac, and Claude's own dictation does the listening, so Ensemble asks for Camera and Accessibility, and for the microphone only if you turn on the optional live sound bars, which also let Ensemble hold a session switch back while you are speaking.
+No credential: everything runs on your Mac, and Ensemble asks only for Camera and Accessibility, plus the microphone if you turn on the optional live sound bars.
 
 - Never stores or sends a camera frame.
-- Never records what you dictate or what is on your screen: it presses Claude's buttons and logs events and numbers only.
-- Never reaches the internet from the face tracker page: every web address is blocked.
-- Never updates itself unless you turn on Update automatically (Settings > General: checks soon after launch and then every hour, shows a new version on the update button, installs only while you are not dictating) or press Check for Updates; updates are signed, and the app installs only an update signed with its own key.
+- Never records your dictation or your screen; it logs events and numbers only.
+- Never reaches the internet from the face tracker page.
+- Never updates itself unless you turn on Update automatically or press Check for Updates, and installs only updates signed with its own key.
 - Never sends telemetry, analytics or crash reports.
-- Never acts on another app: with anything else in front, gestures do nothing. The one exception is the audio pause, which presses the system play/pause key while you dictate, and can be turned off.
+- Never acts on another app, except pausing other audio while you dictate.
 
-**Headphone presses.** With Bluetooth headphones as the output, one press on the stem starts dictation in the session you are looking at and one more press stops it, and two presses send, under the same rules as the thumbs-up. macOS gives apps no "headphone tapped" event, so Ensemble listens the way a music player does: it registers for media remote commands and tells macOS it is the Now Playing app, which routes a single press (play/pause) and a double press (next track) to it. It plays no sound, uses no microphone and asks for no extra permission. It holds Now Playing only while the output is Bluetooth, Claude is running and nothing else is playing audio, so while music plays your presses control the music, and Ensemble takes over again when it stops. Turn it off under Settings, Actions, Headphone presses.
+Headphone presses (Bluetooth only) are explained in [Gestures and settings](docs/gestures.md#headphone-presses).
 
-While a dictation runs in the session you look at, Ensemble's own or one started with Claude's own button, Return stops it and keeps the text, a second Return sends as Claude always does, and two quick Returns stop and send in one go, under the thumbs-up's rules. By default a thumbs-up sends only while Claude is the app in front, only within 30 seconds of your dictation ending, only into the session you dictated into, and only if you have not typed or clicked since. Gesture send can be turned off in Settings, and so can the audio pause. A Claude update that renames its controls can break Ensemble until it is updated, pointing is as precise as a head pose and picks a session, not a line of text (and a screen turned far from the others is only as accurate as one map per screen can be), pointing keeps working when you slide along the desk because Ensemble also reads where your head is, but that correction assumes your camera reports distances in true centimetres and your monitors stand upright, so recalibrate if you change chairs, camera or monitor tilt (switch it off with Settings > Display > Correct for where I sit), and a second face in view pauses every gesture. While you type, click, scroll or move the mouse, Ensemble steps back: no focus moves and no resizing (gestures still work), the dot and highlight fade out, and it picks up again 2 seconds after your hands rest (Settings > General).
+Defaults, each with its way out. A gesture or two quick Returns send only with Claude in front, within 30 seconds of dictation ending, into the session you dictated into, with nothing typed or clicked since; set Send to Off in Settings, Actions. Other audio pauses while you dictate; turn it off in Settings, General. Pointing corrects for where you sit, assuming true distances from the camera and upright monitors; turn it off in Settings, Display, Correct for where I sit. Headphone presses are on; turn them off in Settings, Actions.
+
+Known limits: a Claude update that renames its controls can break Ensemble until it is updated; pointing picks a session, not a line of text, and a screen turned far from the others is less accurate; a second face in view pauses every gesture.
