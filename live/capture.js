@@ -3,7 +3,7 @@
 
 import { Trackers, unsupportedReason } from './tracker.js';
 import { createPreview } from './capture3d/preview.js';
-import { pinchRatio, PINCH_IS_OPEN } from './capture3d/events.js';
+import { PINCH_IS_OPEN } from './capture3d/events.js';
 
 const TAKES = [
   { id: 'dictate', title: 'Dictate', seconds: 6, optional: false, text: 'Double pinch (thumb and index, two quick taps), pause 1 second, double pinch again.' },
@@ -11,6 +11,8 @@ const TAKES = [
   { id: 'scroll', title: 'Scroll', seconds: 6, optional: false, text: 'Pinch and hold, move your hand up about 10 cm, then down, then release.' },
 ];
 const COUNTDOWN = 3;
+// Pinch on the image landmarks: the world landmarks' depth reads a closed pinch as several centimetres apart (see events.js).
+const imagePinch = (lm) => { if (!lm) return null; const ar = state && state.video && state.video.videoHeight ? state.video.videoWidth / state.video.videoHeight : 16 / 9; const d = (a, b) => Math.hypot((a.x - b.x) * ar, a.y - b.y); return d(lm[4], lm[8]) / (d(lm[0], lm[9]) || 1); };
 const $ = (id) => document.getElementById(id);
 const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`);
 const r5 = (n) => Math.round(n * 1e5) / 1e5;
@@ -173,7 +175,7 @@ function coach(res, a) {
   let text = '';
   if (a && res) {
     if (res.landmarks[0].y > 0.8) text = 'Raise your hand to the middle of the frame';
-    else if (a.recording && a.id === 'scroll' && pinchRatio(res.world ? res.world.map((p) => [p.x, p.y, p.z]) : null) > PINCH_IS_OPEN) text = 'Keep thumb and index pinched while you move';
+    else if (a.recording && a.id === 'scroll' && imagePinch(res.landmarks) > PINCH_IS_OPEN) text = 'Keep thumb and index pinched while you move';
   }
   const el = $('coach'); el.hidden = !text; if (el.textContent !== text) el.textContent = text;
 }

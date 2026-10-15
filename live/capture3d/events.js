@@ -27,8 +27,11 @@ export function detectEvents(frames, { aspect = 16 / 9 } = {}) {
   const durationMs = n ? times[n - 1] : 0;
   const handFrames = frames.filter((f) => f.world).length;
 
-  // Pinch distance relative to the palm, so it does not depend on how far the hand is from the camera.
-  const ratio = frames.map((f) => (f.world ? dist(f.world[4], f.world[8]) / (dist(f.world[0], f.world[9]) || 1) : null));
+  // Pinch distance relative to the palm, so it does not depend on how far the hand is from the camera. Measured on the image
+  // landmarks: on the owner's recordings the world landmarks' depth kept thumb and index 7 cm apart through every visible pinch
+  // (palm ratio never under 0.77 in a double-pinch take), while the image showed four clean contacts (ratio down to 0.10).
+  const imgRatio = (im) => Math.hypot((im[4][0] - im[8][0]) * aspect, im[4][1] - im[8][1]) / (Math.hypot((im[0][0] - im[9][0]) * aspect, im[0][1] - im[9][1]) || 1);
+  const ratio = frames.map((f) => (f.image ? imgRatio(f.image) : f.world ? dist(f.world[4], f.world[8]) / (dist(f.world[0], f.world[9]) || 1) : null));
   let closed = false;
   const pinchOn = ratio.map((r) => {
     if (r === null) { closed = false; return false; }
