@@ -1,0 +1,22 @@
+{
+  "outcome": "blocked",
+  "title": "Dictation safety timings are shared rules with tests",
+  "was": "The 1 second dead-man, the 3 second stall limit, the 3 second settle window, the 3 second alarm and the 1 second standing-check grace were plain values inside the app, and no test would fail if one changed.",
+  "changed": "Those values and the decisions that use them moved into the shared, tested rules; the app now asks those rules, and a new rule allows a start press only once the safety record was written.",
+  "now": "Not read back: no Swift toolchain could be installed in this session, so the build and the tests have not run on the change.",
+  "doneWhenEvidence": [
+    "Timing tests: DictationSafetyRulesTests pins 1 s dead-man, 3 s stall, 3 s settle, 3 s alarm, 1 s grace, plus each boundary just under and at it; not yet run.",
+    "App calls rules: git grep finds none of heartbeatTimeout, axStallLimit, settleWindow, escalateAfter or the 1.0 grace in Sources/Ensemble; each use now names DictationRules.",
+    "Fails first: not shown; swift could not be installed here, so no red run was seen.",
+    "Written before pressed: noPressUnlessTheSafetyRecordWasWritten pins that a refusal, including a failed record write, permits no press; the start path calls pressPermitted; not yet run.",
+    "Asserts changed: none; DictationSafetyRulesTests.swift only gains tests.",
+    "Dictation safety: record-before-press, dead-man (greater than 1 s), standing check (grace greater than 1 s, settle at least 3 s), alarm (at least 3 s) and send rules keep the same values and comparisons, now pinned."
+  ],
+  "note": "The change is built and committed, but the checks could not run: this cloud session has no Swift toolchain, the network policy refused the download from swift.org, and apt has no Swift package. The setup scripts named for this session (setup.sh, setup-engine.sh, funnel/) do not exist in the repository. To unblock, run swift build and the full swift test on a Mac with this branch; the change needs nothing else.\n---\nChecks: swift build could not run; swift test --filter DictationSafetyRulesTests could not run; full swift test could not run; scripts/bundle.sh and check-size not needed (no weight added). Review by hand: every comparison kept its strictness (heartbeat and stall greater than, grace greater than, escalate and settle at least); the stall property is now read on every tick, not only during a hold, and it is a cheap in-memory read. Choices made without asking: the once-a-second cadence (every 4th 0.25 s tick) stays in the app because it is how often the timer runs, not a threshold; log text now prints the constants instead of literal 1 s and 3 s, which reads the same. The press rule also takes the called-off flag, since that is the same branch in the start path. No docs or counts needed updating; docs/safety.md wording is unchanged.",
+  "memory": [
+    "Sources/EnsembleCore/DictationRules.swift now owns every dictation safety timing; Sources/Ensemble/Claude/DictationSafety.swift only reads clocks and CoreAudio and passes elapsed seconds in."
+  ],
+  "tryIt": "Hold the talk pose to start dictation, then drop your hand out of view: dictation stops within about a second, as before.",
+  "leftOut": [],
+  "stages": [0, 1, 3, 4, 6, 8, 9, 10]
+}
