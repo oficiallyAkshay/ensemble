@@ -1,6 +1,7 @@
 // The mock Claude Code sessions: names, a transcript long enough to scroll, and per-session canned prompts with
 // the reply that streams in after each send. Pure data; nothing here is real output.
-// Transcript items: ['you'|'claude', text] | ['tool', text] | ['code', text] (code keeps its line breaks).
+// Transcript items: ['you'|'claude', text] | ['tool', text] | ['code', text] (code keeps its line breaks) | ['list', [text, ...]] | ['table', { head: [...], rows: [[...], ...] }].
+// Claude text may use **bold** and `code`.
 
 export const SESSIONS = [
   {
@@ -17,7 +18,8 @@ export const SESSIONS = [
       ['tool', 'Ran 1 command'],
       ['claude', '12 tests pass. One test was slow because it waited on a real timer, so I switched it to a fake clock and it now runs in 40 ms.'],
       ['you', 'Good. What is left on the list?'],
-      ['claude', 'Retries. A failed chunk should be tried again before the whole upload fails, and the request IDs should be logged so we can trace them.'],
+      ['claude', '**Still to do:**'],
+      ['list', ['Retries: a failed chunk is tried again before the whole upload fails', 'Logging: the request ID on every failure, so we can trace it', 'A progress bar that survives a retry']],
     ],
     prompts: [
       { say: 'Add retry with backoff to the upload client and cover it with a test.',
@@ -41,6 +43,8 @@ export const SESSIONS = [
       ['claude', 'I checked it at 375, 414 and 768 px wide. No overflow at any of them.'],
       ['you', 'Nice. The hero button is still too small to tap.'],
       ['claude', 'It is 32 px tall. The guideline is 44 px, so I would raise the padding and keep the label size.'],
+      ['claude', '**Plan:**'],
+      ['list', ['Raise the vertical padding to 14 px', 'Keep the label at 16 px', 'Check it at 375 px wide']],
     ],
     prompts: [
       { say: 'Make the hero button at least 44 pixels tall and check it on a phone width.',
@@ -55,7 +59,7 @@ export const SESSIONS = [
       ['you', 'Which of the open bugs should we fix first?'],
       ['tool', 'Ran 4 commands'],
       ['claude', 'There are 23 open. Five mention data loss, and four of those are the same report: unsaved drafts disappear after a crash.'],
-      ['code', '#412  Draft lost after crash        14 reports\n#398  Export hangs on large files     6 reports\n#377  Dark mode flashes on load       3 reports'],
+      ['table', { head: ['Bug', 'Title', 'Reports'], rows: [['#412', 'Draft lost after crash', '14'], ['#398', 'Export hangs on large files', '6'], ['#377', 'Dark mode flashes on load', '3']] }],
       ['you', 'Start with the drafts. Why does it happen?'],
       ['tool', 'Ran 2 commands'],
       ['claude', 'Drafts are saved only when the window closes. A crash skips that step, so nothing was ever written.'],
@@ -81,8 +85,8 @@ export const SESSIONS = [
       ['you', 'Which one has the better evaluation?'],
       ['claude', 'The second. It uses 1,200 questions written by people, while the others use generated ones, and it reports the spread across five runs.'],
       ['tool', 'Ran 1 command'],
-      ['claude', 'I put the numbers in a table in notes.md so you can compare them side by side.'],
-      ['code', '| paper | split      | overlap | recall@5 |\n| 1     | section    | 0%      | 0.71     |\n| 2     | section    | 10%     | 0.78     |\n| 3     | fixed 512  | 10%     | 0.64     |'],
+      ['claude', 'I put the numbers in a table in `notes.md` so you can compare them side by side.'],
+      ['table', { head: ['Paper', 'Split', 'Overlap', 'Recall@5'], rows: [['1', 'by section', '0%', '0.71'], ['2', 'by section', '10%', '0.78'], ['3', 'fixed 512', '10%', '0.64']] }],
       ['you', 'Good. Are there any caveats I should mention?'],
       ['claude', 'Two. The second paper only tests English, and the third tunes on the same set it reports.'],
     ],

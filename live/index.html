@@ -5,45 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Try Ensemble: drive Claude with your head and hands</title>
 <meta name="description" content="A live demo of Ensemble in your browser. Look to focus, pinch twice to dictate, thumbs-up to send. Your camera video never leaves this tab and is never shown.">
-<meta name="color-scheme" content="dark light">
-<link rel="icon" href="../logo.png">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="favicon.png">
+<script>if (/[?&](go|mouse)=1/.test(location.search)) document.documentElement.dataset.go = '';</script>
+<link rel="stylesheet" href="ensemble.css">
 <link rel="stylesheet" href="live.css">
 </head>
 <body>
 <div class="ls-app" id="app" data-state="gate" data-mode="none">
 
+  <div class="ls-bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+
   <header class="ls-top">
-    <a class="ls-link" href="../index.html">Back to the letter</a>
-    <div class="ls-island" id="island" data-mode="idle" role="status" aria-live="polite">
-      <span class="ls-island-glyph" aria-hidden="true">
+    <div class="ls-brand"><b><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</b><a href="../index.html">Back to the letter</a></div>
+    <div class="ens-island" id="island" data-mode="idle" role="status" aria-live="polite">
+      <svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
+      <span class="ens-glyph" aria-hidden="true">
+        <svg class="g-look" viewBox="0 0 26 18"><circle class="ring" cx="13" cy="9" r="6.5"/><circle class="pip" cx="13" cy="9" r="2.2"/></svg>
         <svg class="g-pinch" viewBox="0 0 26 18"><circle class="tip a" cx="9" cy="9" r="3.2"/><circle class="tip b" cx="17" cy="9" r="3.2"/></svg>
-        <svg class="g-mic" viewBox="0 0 26 16"><rect x="10" y="1" width="6" height="10" rx="3"/><path d="M7 8a6 6 0 0 0 12 0M13 14v2" fill="none"/></svg>
-        <svg class="g-send" viewBox="0 0 26 16"><path d="M5 8 21 2l-4 12-4-5z"/></svg>
-        <svg class="g-switch" viewBox="0 0 26 16"><path d="M4 5h14m-3-3 3 3-3 3M22 11H8m3-3-3 3 3 3" fill="none"/></svg>
-        <svg class="g-check" viewBox="0 0 26 16"><path d="m6 8 4 4 9-9" fill="none"/></svg>
+        <svg class="g-mic" viewBox="0 0 26 18"><rect x="10" y="1.5" width="6" height="10" rx="3"/><path d="M7 8.5a6 6 0 0 0 12 0M13 14.5v2" fill="none"/></svg>
+        <svg class="g-send" viewBox="0 0 26 18"><path d="M5 9 21 3l-4 12-4-5z"/></svg>
+        <svg class="g-switch" viewBox="0 0 26 18"><path d="M4 6h14m-3-3 3 3-3 3M22 12H8m3-3-3 3 3 3" fill="none"/></svg>
+        <svg class="g-check" viewBox="0 0 26 18"><path d="m6 9 4 4 9-9" fill="none"/></svg>
       </span>
-      <span class="ls-island-text"><b class="l1"></b><span class="l2"></span></span>
-      <span class="ls-island-hint"></span>
-      <i class="ls-island-edge" aria-hidden="true"></i>
+      <span class="ens-text"><b class="l1"></b><span class="l2"></span></span>
+      <span class="ens-hint"></span>
+      <i class="ens-edge" aria-hidden="true"></i>
     </div>
     <div class="ls-controls">
-      <button type="button" class="ls-btn small" id="recentre" hidden>Recentre</button>
-      <button type="button" class="ls-btn small" id="stop" hidden>Stop camera</button>
-      <a class="ls-btn small ls-download-corner" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a>
+      <button type="button" class="ens-btn small" id="recentre" hidden>Recentre</button>
+      <button type="button" class="ens-btn small" id="stop" hidden>Stop camera</button>
+      <a class="ens-btn small ls-download-corner" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a>
     </div>
   </header>
 
   <main class="ls-main">
-    <div class="ls-window" aria-label="A mock Claude desktop window with four Code sessions">
-      <div class="ls-titlebar">
-        <span class="ls-lights" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="ls-wintitle">Claude</span>
-        <span class="ls-wintag">Code</span>
-      </div>
-      <div class="ls-body">
-        <nav class="ls-rail" id="rail" aria-label="Sessions"><!-- built by live.js --></nav>
-        <section class="ls-stage" id="stage" aria-label="Four Claude Code sessions"><!-- panes built by live.js --></section>
-      </div>
+    <div class="ls-window" aria-label="A mock Claude desktop window with four Code sessions side by side">
+      <section class="ls-stage" id="stage" aria-label="Four Claude Code sessions"><!-- panes built by live.js --></section>
     </div>
   </main>
 
@@ -64,40 +62,47 @@
       <li data-k="looked">Looked</li><li data-k="dictated">Dictated</li><li data-k="sent">Sent</li><li data-k="scrolled">Scrolled</li>
     </ul>
     <p class="ls-prompt" id="prompt" role="status" aria-live="polite"></p>
-    <button type="button" class="ls-btn small primary" id="done" hidden>See the download</button>
+    <button type="button" class="ens-btn small primary" id="done" hidden>See the download</button>
   </footer>
 
   <section class="ls-gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
     <div class="ls-card">
-      <h1 id="gate-title">Drive Claude with your head and hands</h1>
-      <p class="ls-lede">Four mock Claude sessions. Look at one, pinch twice to dictate, hold a thumbs-up to send. It works the way the Mac app does.</p>
+      <svg class="ens-mark ls-card-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
+      <div class="gate-intro">
+        <h1 id="gate-title">Drive Claude with your head and hands</h1>
+        <p class="ls-lede">Four mock Claude sessions. Look at one, pinch twice to dictate, hold a thumbs-up to send. It works the way the Mac app does.</p>
+      </div>
       <p class="ls-message" id="gate-message" role="alert" hidden></p>
-      <div class="ls-actions" id="gate-actions">
-        <button type="button" class="ls-btn primary" id="go-camera">Turn on camera</button>
-        <button type="button" class="ls-btn" id="go-mouse">Use mouse instead</button>
+      <div class="ls-actions gate-intro" id="gate-actions">
+        <button type="button" class="ens-btn primary" id="go-camera">Turn on camera</button>
+        <button type="button" class="ens-btn" id="go-mouse">Use mouse instead</button>
       </div>
       <div class="ls-progress" id="progress" hidden>
         <div class="ls-bar"><i id="bar"></i></div>
         <p id="progress-label">Loading</p>
       </div>
-      <p class="ls-privacy"><strong>Your video stays in this tab.</strong> Nothing is uploaded, recorded or shown: the camera feeds the trackers on your device, and you only ever see the points they find. Nothing loads until you press the button, then about <span id="size-note">12 MB</span> downloads from this site.</p>
+      <p class="ls-privacy gate-intro"><strong>Your video stays in this tab.</strong> Nothing is uploaded, recorded or shown: the camera feeds the trackers on your device, and you only ever see the points they find. Nothing loads until you press the button, then about <span id="size-note">12 MB</span> downloads from this site.</p>
     </div>
   </section>
 
   <section class="ls-finish" id="finish" role="dialog" aria-modal="true" aria-labelledby="finish-title" hidden>
     <div class="ls-card">
+      <svg class="ens-mark ls-card-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
+      <img class="ls-app-icon" src="icon.png" alt="" width="72" height="72">
       <h1 id="finish-title">That is Ensemble</h1>
       <p class="ls-lede">Look to focus, pinch twice to dictate, hold a thumbs-up to send, pinch and drag to scroll. The Mac app does this with Claude desktop, all on your Mac.</p>
       <div class="ls-actions">
-        <a class="ls-btn primary" id="download" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a>
+        <a class="ens-btn primary" id="download" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a>
       </div>
-      <p class="ls-after"><a href="../index.html">Back to the letter</a> <span aria-hidden="true">&middot;</span> <button type="button" class="ls-textbtn" id="keep">Keep playing</button></p>
+      <p class="ls-after"><a href="../index.html">Back to the letter</a> <span aria-hidden="true">&middot;</span> <button type="button" class="ens-link" id="keep">Keep playing</button></p>
     </div>
   </section>
 
+  <div class="ens-highlight" id="hl" aria-hidden="true"></div>
+  <div class="ens-dot" id="dot" aria-hidden="true"></div>
   <div class="ls-sink" id="sink" aria-hidden="true"></div>
 </div>
 <script type="module" src="live.js"></script>
-<noscript><p style="padding:24px;font-family:system-ui">This demo needs JavaScript. <a href="../index.html">Back to the letter</a></p></noscript>
+<noscript><p style="padding:24px;font-family:system-ui;color:#fff">This demo needs JavaScript. <a href="../index.html" >Back to the letter</a></p></noscript>
 </body>
 </html>
