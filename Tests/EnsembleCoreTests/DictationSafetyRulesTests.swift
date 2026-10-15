@@ -3,6 +3,67 @@ import Testing
 @testable import EnsembleCore
 
 @Suite struct DictationSafetyRulesTests {
+    // MARK: The timings docs/safety.md states
+
+    @Test func theSafetyTimingsAreTheDocumentedOnes() {
+        #expect(DictationRules.heartbeatTimeout == 1)
+        #expect(DictationRules.stallLimit == 3)
+        #expect(DictationRules.settleWindow == 3)
+        #expect(DictationRules.escalateAfter == 3)
+        #expect(DictationRules.standingCheckGrace == 1)
+    }
+
+    // MARK: The dead-man check
+
+    @Test func aHoldWithoutAHeartbeatForOverASecondIsLost() {
+        #expect(DictationRules.holdLost(holdActive: true, sinceHeartbeat: 1.01, longestCall: 0) == .noHeartbeat)
+        #expect(DictationRules.holdLost(holdActive: true, sinceHeartbeat: 1, longestCall: 0) == nil)
+        #expect(DictationRules.holdLost(holdActive: true, sinceHeartbeat: 0.99, longestCall: 0) == nil)
+    }
+
+    @Test func aHoldWithAnAccessibilityStallOverThreeSecondsIsLost() {
+        #expect(DictationRules.holdLost(holdActive: true, sinceHeartbeat: 0, longestCall: 3.01) == .stalled)
+        #expect(DictationRules.holdLost(holdActive: true, sinceHeartbeat: 0, longestCall: 3) == nil)
+        #expect(DictationRules.holdLost(holdActive: true, sinceHeartbeat: 0, longestCall: 2.99) == nil)
+        // A missing heartbeat is named first.
+        #expect(DictationRules.holdLost(holdActive: true, sinceHeartbeat: 5, longestCall: 5) == .noHeartbeat)
+    }
+
+    @Test func noHoldIsNeverLost() {
+        #expect(DictationRules.holdLost(holdActive: false, sinceHeartbeat: 60, longestCall: 60) == nil)
+    }
+
+    // MARK: The fallback alarm
+
+    @Test func aStopUnconfirmedForThreeSecondsSoundsTheAlarmOnce() {
+        #expect(DictationRules.escalateStop(owedFor: 3, escalated: false))
+        #expect(!DictationRules.escalateStop(owedFor: 2.99, escalated: false))
+        #expect(!DictationRules.escalateStop(owedFor: 30, escalated: true))
+    }
+
+    // MARK: The standing check
+
+    @Test func theStandingCheckActsOnAnOpenRecordOnceTheHoldEndedOverASecondAgo() {
+        #expect(DictationRules.standingCheckActs(recordOpen: true, holdActive: false, sinceHoldEnded: 1.01))
+        #expect(!DictationRules.standingCheckActs(recordOpen: true, holdActive: false, sinceHoldEnded: 1))
+        #expect(!DictationRules.standingCheckActs(recordOpen: true, holdActive: true, sinceHoldEnded: 60))
+        #expect(!DictationRules.standingCheckActs(recordOpen: false, holdActive: false, sinceHoldEnded: 60))
+    }
+
+    @Test func theRecordStaysUntilOffHasLastedTheSettleWindow() {
+        let settle = DictationRules.settleWindow
+        #expect(DictationRules.recordMayGo(capture: false, startInFlight: false, offFor: 3, settle: settle))
+        #expect(!DictationRules.recordMayGo(capture: false, startInFlight: false, offFor: 2.99, settle: settle))
+    }
+
+    // MARK: Written before pressed
+
+    @Test func noPressUnlessTheSafetyRecordWasWritten() {
+        #expect(DictationRules.pressPermitted(refusal: nil, calledOff: false))
+        #expect(!DictationRules.pressPermitted(refusal: "Could not write the safety record; not starting", calledOff: false))
+        #expect(!DictationRules.pressPermitted(refusal: nil, calledOff: true))
+    }
+
     // MARK: An unreadable microphone with a record open
 
     @Test func unreadableForLongEnoughWithARecordSoundsTheAlarm() {

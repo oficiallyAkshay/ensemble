@@ -71,6 +71,47 @@ public enum DictationRules {
         return paneConfirmedOff.allSatisfy { $0 } ? .allOff : .notAllOff
     }
 
+    /// The dead-man check: while a hold is active, the talk pose must be seen again within this many seconds.
+    public static let heartbeatTimeout: TimeInterval = 1
+    /// An Accessibility call stalled longer than this ends the hold: Ensemble could not press stop in time.
+    public static let stallLimit: TimeInterval = 3
+    /// The microphone must read definitely off for this long before the safety record is deleted.
+    public static let settleWindow: TimeInterval = 3
+    /// A stop not confirmed within this many seconds sounds the alarm and mutes the input.
+    public static let escalateAfter: TimeInterval = 3
+    /// After a hold ends, the standing check leaves the usual stop this long before acting on its own.
+    public static let standingCheckGrace: TimeInterval = 1
+
+    public enum HoldLoss: Equatable {
+        /// No talk-pose heartbeat for longer than `heartbeatTimeout`.
+        case noHeartbeat
+        /// An Accessibility call stalled longer than `stallLimit`.
+        case stalled
+    }
+
+    /// Why the safety check ends an active hold itself, or nil while the hold is healthy. The heartbeat wins.
+    public static func holdLost(holdActive: Bool, sinceHeartbeat: TimeInterval, longestCall: TimeInterval) -> HoldLoss? {
+        guard holdActive else { return nil }
+        if sinceHeartbeat > heartbeatTimeout { return .noHeartbeat }
+        return longestCall > stallLimit ? .stalled : nil
+    }
+
+    /// Whether an owed stop, unconfirmed for `owedFor` seconds, now sounds the alarm. It sounds once per stop.
+    public static func escalateStop(owedFor: TimeInterval, escalated: Bool) -> Bool {
+        !escalated && owedFor >= escalateAfter
+    }
+
+    /// Whether the standing check acts: a record is open, no hold runs, and the hold ended over the grace ago.
+    public static func standingCheckActs(recordOpen: Bool, holdActive: Bool, sinceHoldEnded: TimeInterval) -> Bool {
+        recordOpen && !holdActive && sinceHoldEnded > standingCheckGrace
+    }
+
+    /// Written before pressed: the microphone is pressed only when the start was not refused, and the start is
+    /// refused whenever the safety record could not be written, and not called off while that was decided.
+    public static func pressPermitted(refusal: String?, calledOff: Bool) -> Bool {
+        refusal == nil && !calledOff
+    }
+
     /// How long an unreadable microphone state may last, with a dictation record open and no hold, before the
     /// alarm sounds and the input is muted. Unreadable is never "off", so waiting for it to clear could last forever.
     public static let unreadableLimit: TimeInterval = 3

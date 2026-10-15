@@ -109,7 +109,7 @@ final class DictationController {
             // While those were read, the pose may have been released, the screen locked or Ensemble switched off.
             let called = self.disarming || self.stopWhenStarted || self.interrupted || !self.ctx.gestures.talking
                 || self.ctx.commonRefusal() != nil
-            if refusal != nil || called {
+            if !DictationRules.pressPermitted(refusal: refusal, calledOff: called) {
                 self.ctx.busy = false
                 self.startInFlight = false
                 self.stopWhenStarted = false
