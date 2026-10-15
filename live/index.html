@@ -35,13 +35,22 @@
     <div class="ls-controls">
       <button type="button" class="ens-btn small" id="recentre" hidden>Recentre</button>
       <button type="button" class="ens-btn small" id="stop" hidden>Stop camera</button>
-      <a class="ens-btn small ls-download-corner" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a>
+      <a class="ens-btn small ls-download-corner" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download for Mac</a>
     </div>
   </header>
 
   <main class="ls-main">
     <div class="ls-window" aria-label="A mock Claude desktop window with four Code sessions side by side">
       <section class="ls-stage" id="stage" aria-label="Four Claude Code sessions"><!-- panes built by live.js --></section>
+      <div class="ls-centre" id="centre" data-state="wait" hidden>
+        <p class="ls-centre-line" id="centre-line" role="status" aria-live="polite">Find the camera</p>
+        <div class="ls-centre-target" aria-hidden="true">
+          <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" id="centre-arc" cx="60" cy="60" r="52"/></svg>
+          <i class="bead"></i>
+        </div>
+        <b class="ls-centre-count" id="centre-count" aria-hidden="true">3</b>
+        <button type="button" class="ens-link ls-centre-skip" id="centre-skip">Skip</button>
+      </div>
     </div>
   </main>
 
@@ -52,6 +61,7 @@
       <div><dt>Head</dt><dd id="r-head">off</dd></div>
       <div><dt>Hand</dt><dd id="r-hand">off</dd></div>
       <div><dt>Gesture</dt><dd id="r-gesture">none</dd></div>
+      <div><dt>Pinch</dt><dd id="r-pinch">-</dd></div>
       <div><dt>Speed</dt><dd id="r-speed">-</dd></div>
     </dl>
     <p class="ls-caption">Only these points are used. The video never leaves this tab and is never shown.</p>
@@ -92,7 +102,7 @@
       <h1 id="finish-title">That is Ensemble</h1>
       <p class="ls-lede">Look to focus, pinch twice to dictate, hold a thumbs-up to send, pinch and drag to scroll. The Mac app does this with Claude desktop, all on your Mac.</p>
       <div class="ls-actions">
-        <a class="ens-btn primary" id="download" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a>
+        <a class="ens-btn primary" id="download" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download for Mac</a>
       </div>
       <p class="ls-after"><a href="../index.html">Back to the letter</a> <span aria-hidden="true">&middot;</span> <button type="button" class="ens-link" id="keep">Keep playing</button></p>
     </div>

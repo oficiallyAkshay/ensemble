@@ -161,7 +161,7 @@ export class Trackers {
     const lm = r.landmarks?.[0];
     if (!lm) return null;
     const g = r.gestures?.[0]?.[0];
-    return { landmarks: lm, gesture: g?.categoryName ?? null, score: g?.score ?? 0 };
+    return { landmarks: lm, world: r.worldLandmarks?.[0] ?? null, gesture: g?.categoryName ?? null, score: g?.score ?? 0 };
   }
 
   close() {

@@ -2,7 +2,7 @@
 // Wiring only; the rules live in logic.js (ported from the Mac app), the models in tracker.js, the skeleton in sees.js.
 
 import {
-  GestureMachine, FocusTracker, FOCUS, sessionAt, HeadPointer, FrameScheduler, PointerHand, islandMode, wordsTyped,
+  GestureMachine, FocusTracker, FOCUS, sessionAt, HeadPointer, CentreStep, PinchAdapt, FrameScheduler, PointerHand, islandMode, wordsTyped,
   observationFromHand, handFromLandmarks,
 } from './logic.js';
 import { SESSIONS } from './content.js';
@@ -15,6 +15,7 @@ const el = {
   goMouse: $('go-mouse'), progress: $('progress'), bar: $('bar'), progressLabel: $('progress-label'), coach: $('coach'),
   prompt: $('prompt'), ticks: $('ticks'), done: $('done'), finish: $('finish'), keep: $('keep'), stop: $('stop'), recentre: $('recentre'),
   sink: $('sink'), sees: $('sees'), hl: $('hl'), dot: $('dot'),
+  centre: $('centre'), centreLine: $('centre-line'), centreCount: $('centre-count'), centreArc: $('centre-arc'), centreSkip: $('centre-skip'), rPinch: $('r-pinch'),
   rHead: $('r-head'), rHand: $('r-hand'), rGesture: $('r-gesture'), rSpeed: $('r-speed'), sizeNote: $('size-note'),
 };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -111,6 +112,7 @@ const S = {
   dict: null, banner: null, focusSince: 0, focusId: null,
   faceSeen: null, handSeen: null, headText: 'off', handText: 'off', gestureText: 'none', pointerDot: null,
   frames: { seen: 0, processed: 0, start: 0 },
+  centring: false, centre: null, centreDoneAt: 0, adapt: new PinchAdapt(), pinchLog: { t: 0, closed: false },
   step: -1, scrolled: 0,
   stream: null, video: null, abort: null, vfc: 0, raf: 0, lastVideoTime: -1,
 };
@@ -118,6 +120,7 @@ S.machine.sendHold = 0.75;
 const trackers = new Trackers();
 const sees = new SeesPanel(el.sees);
 const cameraCapable = !matchMedia('(pointer: coarse)').matches || matchMedia('(hover: hover)').matches;
+const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 const phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (!cameraCapable && Math.min(screen.width, screen.height) < 900);
 
 // ---- gate and modes -------------------------------------------------------------------------------------
@@ -127,6 +130,7 @@ function setState(state) { el.app.dataset.state = state; }
 function showGate(message, { camera = !phone, mouseLabel = 'Use mouse instead' } = {}) {
   delete document.documentElement.dataset.go;   // a failed hand-over from the letter falls back to the full gate
   if (S.mode === 'camera') { S.tracking = false; }
+  endCentring(null);
   S.mode = 'none'; el.app.dataset.mode = 'none';
   el.gate.hidden = false; el.progress.hidden = true; el.finish.hidden = true;
   el.gateMsg.hidden = !message; el.gateMsg.textContent = message || '';
@@ -136,7 +140,7 @@ function showGate(message, { camera = !phone, mouseLabel = 'Use mouse instead' }
 }
 
 function enterMouse(note) {
-  stopCamera();
+  stopCamera(); endCentring(null);
   S.mode = 'mouse'; S.machine.reset(); S.focus.forgetAll();
   el.gate.hidden = true; el.finish.hidden = true;
   el.stop.hidden = phone; el.stop.textContent = 'Use camera'; el.recentre.hidden = true;
@@ -208,7 +212,7 @@ async function startCamera() {
   el.stop.hidden = false; el.stop.textContent = 'Stop camera'; el.recentre.hidden = false;
   setState('running'); el.app.dataset.mode = 'camera';
   S.seesNote = 'Looking for your face';
-  if (S.step < 0) startTutorial(); else renderCoach();
+  beginCentring();
   S.tracking = true; scheduleFrame();
 }
 
@@ -242,7 +246,7 @@ function stopCamera() {
 }
 
 function cameraLost() {
-  stopCamera(); S.machine.reset(); endDictation('lost');
+  stopCamera(); S.machine.reset(); endDictation('lost'); endCentring(null);
   showGate('The camera stopped (it was unplugged or another app took it). You can turn it back on or use the mouse.');
 }
 
@@ -292,7 +296,14 @@ function onFace(f, t) {
     return;
   }
   S.faceSeen = { landmarks: f.landmarks, t };
-  const p = S.head.push({ t, yaw: f.yaw, pitch: f.pitch, offset: f.offset });
+  readHead(t, f.yaw, f.pitch, f.offset);
+}
+
+/** One head reading: it feeds the centring step first, then the pointer. The test hook feeds it too. */
+function readHead(t, yaw, pitch, offset) {
+  const f = { yaw, pitch, offset };
+  if (S.centring) { S.centre.push(t, yaw, pitch); S.headText = 'centring'; return; }
+  const p = S.head.push({ t, yaw, pitch, offset });
   S.headText = p ? `yaw ${(f.yaw * 57.3).toFixed(0)}  pitch ${(f.pitch * 57.3).toFixed(0)} deg` : `centring ${Math.round(S.head.centringProgress * 100)}%`;
   if (!p) return;
   const r = el.stage.getBoundingClientRect();
@@ -301,13 +312,15 @@ function onFace(f, t) {
 }
 
 function onHand(h, t) {
+  if (S.centring || S.noHand) return;   // nothing acts until the centring step is done
   let obs;
   if (h) {
     const hand = handFromLandmarks(h.landmarks);
-    obs = observationFromHand(hand, t, h.gesture === 'Thumb_Up' && h.score >= 0.6);
+    obs = observationFromHand(hand, t, h.gesture === 'Thumb_Up' && h.score >= 0.6, { world: h.world, aspect: S.video ? S.video.videoWidth / S.video.videoHeight : 1 });
+    if (obs.pinch !== null) { S.adapt.push(obs.pinch); S.machine.pinchClosed = S.adapt.closed; S.machine.pinchOpen = S.adapt.open; }
     S.handSeen = { points: h.landmarks, t, closed: false };
     S.gestureText = obs.pose || (h.gesture && h.gesture !== 'None' ? h.gesture.replace('_', ' ') : 'none');
-    S.handText = obs.pinch !== null ? `pinch ${obs.pinch.toFixed(2)} palms` : 'seen';
+    S.handText = obs.pinch !== null ? `pinch ${obs.pinch.toFixed(2)}` : 'seen';
     S.lastObsPinch = obs.pinch;
   } else {
     obs = observationFromHand(null, t);
@@ -316,11 +329,57 @@ function onHand(h, t) {
   }
   feed(obs);
   if (S.handSeen) S.handSeen.closed = S.machine.pinchHeld;
+  showPinch(obs, t);
+}
+
+/** The live pinch value and a closed/open marker in the sees panel; with ?debug=1 also in the console. */
+function showPinch(obs, t) {
+  const v = obs.pinch, closed = S.machine.pinchHeld;
+  el.rPinch.innerHTML = v === null ? '-' : `<i class="pm ${closed ? 'closed' : 'open'}"></i>${v.toFixed(2)} ${closed ? 'closed' : 'open'}`;
+  if (!DEBUG || v === null) return;
+  const a = S.adapt, line = () => `[pinch] ${v.toFixed(3)} ${closed ? 'CLOSED' : 'open'} src=${obs.pinchSource} closed<${a.closed.toFixed(2)} open>${a.open.toFixed(2)} dips=${a.dips.length}${a.ready ? ` low=${a.lowValue.toFixed(2)} high=${a.highValue.toFixed(2)}` : ''}`;
+  if (closed !== S.pinchLog.closed) { console.log(line().replace('[pinch]', '[pinch] STATE CHANGE')); S.pinchLog.closed = closed; S.pinchLog.t = t; }
+  else if (t - S.pinchLog.t > 0.5) { console.log(line()); S.pinchLog.t = t; }
 }
 
 function feed(obs) {
   for (const i of S.machine.push(obs)) intent(i);
 }
+
+// ---- centring: point your nose at the dot, hold still for 3, 2, 1 ----------------------------------------
+
+function beginCentring() {
+  S.centring = true; S.centre = new CentreStep(); S.centreDoneAt = 0;
+  S.head.recentre(); S.focus.forgetAll(); S.machine.reset(); endDictation('lost');
+  el.centre.hidden = false; el.centre.dataset.state = 'wait'; el.centre.classList.remove('leaving');
+  el.coach.hidden = true;
+  renderCentre(now());
+}
+
+/** `centre`: {yaw, pitch} to use it, 'auto' for the automatic first-second centre (Skip), or null when there is no step (mouse mode). */
+function endCentring(centre) {
+  const was = S.centring;
+  S.centring = false; S.centre = null;
+  if (centre && centre !== 'auto') S.head.setCentre(centre.yaw, centre.pitch);
+  el.centre.classList.add('leaving');
+  setTimeout(() => { if (!S.centring) { el.centre.hidden = true; el.centre.classList.remove('leaving'); } }, centre ? 450 : 0);
+  if (!centre) el.centre.hidden = true;
+  if (was && centre) { if (S.step < 0) startTutorial(); else renderCoach(); }
+}
+
+function renderCentre(t) {
+  const c = S.centre; if (!c) return;
+  c.tick(t);
+  const state = c.done ? 'done' : c.lost ? 'wait' : 'count';
+  if (el.centre.dataset.state !== state) el.centre.dataset.state = state;
+  const line = state === 'done' ? 'Got it.' : state === 'wait' ? 'Find the camera' : 'Point your nose at the dot. Hold still.';
+  if (el.centreLine.textContent !== line) el.centreLine.textContent = line;
+  el.centreCount.textContent = state === 'done' ? '' : String(c.count);
+  el.centreArc.style.strokeDashoffset = (326.7 * (1 - c.progress)).toFixed(1);
+  if (c.done) endCentring(c.centre);
+}
+
+el.centreSkip.addEventListener('click', () => { if (S.centring) { S.head.recentre(); endCentring('auto'); } });
 
 // ---- focus ----------------------------------------------------------------------------------------------
 
@@ -510,9 +569,10 @@ function render(ms) {
 
 let glide = null, lastGlide = 0, frameAt = 0;
 function renderOverlays(t, target) {
+  if (S.centring) renderCentre(t);
   // the blue outline follows the focused pane with a spring; it breathes while dictating
   if (t - frameAt > 0.5) { frameAt = t; refreshFrames(); }
-  if (target && el.app.dataset.state === 'running') {
+  if (target && el.app.dataset.state === 'running' && !S.centring) {
     const f = target.frame, i = 4;
     el.hl.style.width = `${Math.max(f.w - 2 * i, 0)}px`; el.hl.style.height = `${Math.max(f.h - 2 * i, 0)}px`;
     el.hl.style.transform = `translate(${f.x + i}px, ${f.y + i}px)`;
@@ -520,7 +580,7 @@ function renderOverlays(t, target) {
     el.hl.classList.toggle('listening', S.machine.talking);
   } else el.hl.classList.remove('on', 'listening');
   // the glass-bead dot glides toward the nose point, with the app's own time constant
-  const nose = S.mode === 'camera' && S.faceSeen && S.nose && t - S.nose.t < 0.5 ? S.nose : null;
+  const nose = S.mode === 'camera' && !S.centring && S.nose && t - S.nose.t < 0.5 ? S.nose : null;
   if (nose) {
     if (!glide) glide = { x: nose.x, y: nose.y };
     const dt = Math.min(Math.max(t - (lastGlide || t - 1 / 60), 0), 0.1), k = 1 - Math.exp(-dt / 0.05);
@@ -535,7 +595,7 @@ function renderOverlays(t, target) {
 function drawSees(t) {
   const face = S.faceSeen && t - S.faceSeen.t < 0.5 ? S.faceSeen : null;
   const hand = S.handSeen && t - S.handSeen.t < 0.35 ? S.handSeen : null;
-  sees.draw({ face, hand, note: S.mode === 'camera' ? (S.head.centring && face ? 'Hold still for a second' : 'No face or hand found yet') : S.seesNote });
+  sees.draw({ face, hand, note: S.mode === 'camera' ? (S.centring ? 'Point your nose at the dot' : S.head.centring && face ? 'Hold still for a second' : 'No face or hand found yet') : S.seesNote });
 }
 
 function drawText() {
@@ -558,9 +618,9 @@ el.done.addEventListener('click', finish);
   title.addEventListener('click', toggle);
   title.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
 }
-el.recentre.addEventListener('click', () => { S.head.recentre(); S.focus.forgetAll(); });
+el.recentre.addEventListener('click', () => { if (S.mode === 'camera') beginCentring(); });
 el.stop.addEventListener('click', () => {
-  if (S.mode === 'camera') { S.resumeOnShow = false; stopCamera(); S.machine.reset(); endDictation('stopped'); S.mode = 'none'; showGate('The camera is off.'); }
+  if (S.mode === 'camera') { S.resumeOnShow = false; stopCamera(); S.machine.reset(); endDictation('stopped'); endCentring(null); S.mode = 'none'; showGate('The camera is off.'); }
   else showGate(null);
 });
 el.keep.addEventListener('click', () => {
@@ -600,4 +660,11 @@ window.__live = {
   focus: () => S.focus.target?.id ?? null,
   draft: (id) => panes.find((p) => p.id === id)?.draft ?? null,
   talking: () => S.machine.talking,
+  // test hooks: feed one synthetic head reading (radians) as if the face tracker had seen it; read the centring state
+  suppressHand: () => { S.noHand = true; },
+  feedHead: (yaw, pitch) => readHead(now(), yaw, pitch, null),
+  centring: () => ({ active: S.centring, state: el.centre.dataset.state, count: S.centre?.count ?? null, progress: S.centre?.progress ?? null, line: el.centreLine.textContent }),
+  centre: () => S.head.centre,
+  feedPinch: (d) => { const t = now(), obs = { t, present: true, pose: null, palmCenter: { x: 0.5, y: 0.5 }, pinch: d, pinchSource: 'test' }; S.adapt.push(d); S.machine.pinchClosed = S.adapt.closed; S.machine.pinchOpen = S.adapt.open; feed(obs); showPinch(obs, t); },
+  pinch: () => ({ closed: S.adapt.closed, open: S.adapt.open, dips: S.adapt.dips.length }),
 };
