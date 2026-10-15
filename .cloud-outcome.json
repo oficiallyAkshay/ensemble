@@ -1,0 +1,25 @@
+{
+  "outcome": "blocked",
+  "title": "The safety record stays while a dictation start press is still in flight",
+  "was": "The standing check and the launch sweep deleted the dictation safety record after an off reading even while a start press was still queued or running, so a microphone opened by that press had no record.",
+  "changed": "Both paths now ask one shared rule whether the record may go, and that rule says no while a start press is in flight; the settle window starts only once the press has landed.",
+  "now": "Reading the diff shows the standing check and the launch sweep both consult the in-flight start press before deleting the record; the new unit tests could not be run in this session.",
+  "doneWhenEvidence": [
+    "Unit test: DictationRulesTests gains two tests; with a start press in flight and capture off for 10 s the rule refuses to finish, and with none in flight and 3 s off it finishes. Written, not yet run.",
+    "Both paths: the standing check resets its off timer and passes the in-flight flag to the rule; the launch sweep finishes the record only when no start press is in flight.",
+    "Fails first: not seen; no Swift toolchain could be installed here (the download host is refused by the network policy), so neither the red run nor the green run happened.",
+    "Asserts changed: none; DictationRulesTests.swift only gains two new tests.",
+    "Dictation safety: the record is still written before the press and now lives longer, never shorter; the dead-man check, the alarm and mute fallback, and the send rules are untouched; the standing check still stops any capture it sees.",
+    "Dictation safety: the record is held only while the in-flight count is above zero, and that count drops in a defer on every exit of the start call, so the hold is bounded."
+  ],
+  "note": "The fix and its tests are written and committed, but swift build and swift test could not run here: this cloud session has no Swift toolchain and the network policy refuses its download host. Running the full test suite on this branch (the gate check) is what would un-stop it.\n---\nChecks: swift build could-not-run; swift test --filter DictationRulesTests could-not-run; full swift test could-not-run; bundle and size checks not needed (no new weight). The setup scripts and funnel folder named in the start message do not exist in this repository, so nothing was run from them. Followed the triage recommendation: a pure rule DictationRules.mayFinishEpisode in EnsembleCore, the settle window constant moved there unchanged at 3 s, the existing in-flight start press flag reused. The launch sweep inlines the flag check rather than the timed rule because it never had a settle window; when a press is in flight it leaves the record for the standing check. The bridge clears the flag in a defer around the start call, so it falls on done, refused, unknown and shutdown alike. docs/safety.md updated in the row on when the record is deleted. Questions answered myself: the in-flight path still lets a stop be confirmed and the mute undone on an off reading, as before; only deletion of the record waits. Not exercised: any path needing Claude, the camera or a permission.",
+  "memory": [
+    "Sources/Ensemble/Claude/ClaudeBridge.swift counts a start press as in flight only until the start call returns, so a press that returned unconfirmed and opens the microphone later is no longer in flight.",
+    "Sources/EnsembleCore/DictationRules.swift now holds the 3 s settle window used by the standing check in DictationSafety.swift."
+  ],
+  "tryIt": "Start a dictation with Claude busy so the start is slow, open your hand at once, and watch the log: the safety record is not cleared until the start press has returned, and if the microphone opens it is stopped.",
+  "leftOut": [
+    "build: A start press that has already returned unconfirmed is no longer counted as in flight, so a microphone that opens more than about four seconds after that return still has no record; covering it needs a grace period after an unconfirmed start, which the in-flight flag alone does not give."
+  ],
+  "stages": [0, 1, 3, 4, 5, 6, 8, 9, 10]
+}
