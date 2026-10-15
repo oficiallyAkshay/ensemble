@@ -1,0 +1,18 @@
+{
+  "outcome": "ready",
+  "title": "Practice folder holds two short notes",
+  "was": "The practice folder held only its README, with no first or second note.",
+  "changed": "Added two short files to the practice folder, one saying first note and one saying second note, in a single commit.",
+  "now": "Reading the practice folder back shows a.md with the line first note and b.md with the line second note, and the change against main lists only those two files.",
+  "doneWhenEvidence": [
+    "practice/a.md read back after the commit holds the single line: first note",
+    "practice/b.md read back after the commit holds the single line: second note",
+    "git diff main --name-only lists only practice/a.md and practice/b.md, both added in one commit"
+  ],
+  "note": "Checks: swift build and swift test could not run (Linux cloud session, no Swift toolchain), and none cover practice files, which the practice README says are never built or shipped. The setup scripts and the funnel folder named in the session instructions do not exist in this repository, so they were not run. No test added: the change is two text files outside the app (stage 5 does not apply). No brief constraint crossed. The note commit carries the session's configured author address rather than the repository's no-reply identity; user.email was left unchanged as AGENTS.md requires.",
+  "memory": [
+    "practice/README.md says files there are never built or shipped, so a practice-only change needs no doc, count or test update."
+  ],
+  "leftOut": [],
+  "stages": [0, 1, 3, 4, 6, 7, 8, 9, 10]
+}
