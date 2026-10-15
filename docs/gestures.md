@@ -56,7 +56,7 @@ While you dictate, other audio on speakers fades out in 0.25 seconds and pauses,
 
 ## Headphone presses
 
-macOS delivers a stem press only to the app it treats as Now Playing: a single press arrives as play/pause, a double press as next track (older AirPods' double-tap, if set to those). Ensemble claims Now Playing without playing any sound, only while the setting is on, the output is Bluetooth, Claude is running and no other app is playing audio. If music starts, Ensemble lets go at once and presses control the music. The press-and-hold mute goes to the app using the microphone, which is Claude, so Ensemble cannot use it. A play/pause key that Ensemble sends itself for the audio pause is ignored for 1.5 seconds so it can never count as a press.
+macOS gives apps no "headphone tapped" event, so Ensemble listens the way a music player does: it registers for media remote commands, and macOS delivers a stem press only to the app it treats as Now Playing: a single press arrives as play/pause, a double press as next track (older AirPods' double-tap, if set to those). Ensemble claims Now Playing without playing any sound, using the microphone or asking for any extra permission, only while the setting is on, the output is Bluetooth, Claude is running and no other app is playing audio. If music starts, Ensemble lets go at once and presses control the music; it takes over again when the music stops. The press-and-hold mute goes to the app using the microphone, which is Claude, so Ensemble cannot use it. A play/pause key that Ensemble sends itself for the audio pause is ignored for 1.5 seconds so it can never count as a press.
 
 ## Hidden setting
 
