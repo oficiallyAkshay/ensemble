@@ -3,282 +3,108 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ensemble: control Claude hands-free</title>
-<meta name="description" content="A macOS menu-bar app that lets you control Claude desktop's Code sessions with a webcam: look to focus, pinch twice to dictate, hold a thumbs-up to send, pinch and drag to scroll. All on your Mac.">
-<meta name="color-scheme" content="dark">
-<meta property="og:title" content="Ensemble: control Claude hands-free">
-<meta property="og:description" content="Look at a Claude session, pinch twice to dictate, thumbs-up to send. Runs entirely on your Mac.">
+<title>Ensemble: talk to all your Claude sessions without touching a key</title>
+<meta name="description" content="A note from the person who made Ensemble, a free Mac app that lets you pick a Claude session by looking at it, dictate with a pinch and send with a thumbs-up. Try it in your browser with your camera.">
+<meta property="og:title" content="Ensemble">
+<meta property="og:description" content="Look at a Claude session. Pinch. Talk. Thumbs-up. Try it in your browser.">
+<meta name="color-scheme" content="light">
 <link rel="icon" href="logo.png">
 <style>
   :root {
-    --bg: #0b0b0d;
-    --bg-2: #141418;
-    --card: #17171c;
-    --line: rgba(255, 255, 255, 0.09);
-    --text: #f5f5f7;
-    --muted: #a1a1aa;
-    --accent: #5aa0ff;
-    --accent-2: #8ec1ff;
-    --radius: 20px;
-    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --paper: #fbf8f1;
+    --ink: #2a2723;
+    --ink-soft: #7a7365;
+    --rule: #e6dfd2;
+    --accent: #3c6df0;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 17px;
-    line-height: 1.55;
-    -webkit-font-smoothing: antialiased;
-  }
-  a { color: var(--accent-2); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+  a { color: inherit; text-underline-offset: 3px; }
 
-  nav { position: sticky; top: 0; z-index: 10; background: rgba(11, 11, 13, 0.72); -webkit-backdrop-filter: saturate(180%) blur(18px); backdrop-filter: saturate(180%) blur(18px); border-bottom: 1px solid var(--line); }
-  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text); }
-  .brand img { width: 26px; height: 26px; border-radius: 6px; }
-  .brand:hover { text-decoration: none; }
-  nav ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; font-size: 14px; }
-  nav ul a { color: var(--muted); }
-  nav ul a:hover { color: var(--text); text-decoration: none; }
+  main { max-width: 600px; margin: 0 auto; padding: 12vh 24px 64px; }
+  .mark { display: flex; gap: 5px; align-items: flex-end; height: 18px; margin-bottom: 40px; }
+  .mark i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); display: block; }
+  .mark i:nth-child(2) { margin-bottom: 7px; }
+  .from { font-family: var(--serif); font-style: italic; color: var(--ink-soft); font-size: 16px; margin: 0 0 28px; }
+  .letter p { font-family: var(--serif); font-size: clamp(19px, 2.4vw, 23px); line-height: 1.55; margin: 0 0 20px; text-wrap: pretty; }
+  .letter .lead { font-size: clamp(23px, 3.2vw, 30px); line-height: 1.35; letter-spacing: -0.005em; }
+  .sign { font-family: var(--serif); font-style: italic; color: var(--ink-soft); margin: 28px 0 40px; font-size: 17px; }
 
-  .hero { text-align: center; padding: 84px 0 72px; background: radial-gradient(60% 50% at 50% 0%, rgba(90, 160, 255, 0.16), transparent 70%); }
-  .hero img.icon { width: 120px; height: 120px; border-radius: 27px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--line); }
-  h1 { font-size: clamp(38px, 7vw, 64px); line-height: 1.05; letter-spacing: -0.03em; margin: 28px 0 14px; font-weight: 700; }
-  .tagline { font-size: clamp(18px, 2.6vw, 23px); color: var(--muted); max-width: 640px; margin: 0 auto 32px; }
-  .btn { display: inline-block; padding: 13px 26px; border-radius: 999px; font-weight: 600; font-size: 16px; }
-  .btn:hover { text-decoration: none; }
-  .btn.primary { background: var(--accent); color: #04101f; }
-  .btn.primary:hover { background: var(--accent-2); }
-  .btn.ghost { color: var(--text); border: 1px solid var(--line); margin-left: 8px; }
-  .btn.ghost:hover { background: var(--bg-2); }
-  .fine { font-size: 14px; color: var(--muted); margin-top: 18px; }
+  .cta { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .pill { display: inline-block; border: 0; border-radius: 999px; padding: 15px 28px; font: 600 17px var(--sans); background: var(--ink); color: var(--paper); text-decoration: none; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+  .pill:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(42, 39, 35, .18); }
+  .pill:focus-visible, .quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .quiet { font-size: 15px; color: var(--ink-soft); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; font-family: var(--sans); }
+  .note { font-size: 14px; color: var(--ink-soft); margin: 4px 0 0; }
+  .mac-only { display: none; }
 
-  section { padding: 76px 0; border-top: 1px solid var(--line); }
-  h2 { font-size: clamp(28px, 4.5vw, 40px); letter-spacing: -0.02em; line-height: 1.12; margin: 0 0 14px; }
-  .lead { color: var(--muted); max-width: 660px; margin: 0 0 40px; font-size: 19px; }
+  #download { margin-top: 72px; padding-top: 36px; border-top: 1px solid var(--rule); }
+  #download h2 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0 0 18px; }
+  ol.steps { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 12px; }
+  ol.steps li { display: grid; grid-template-columns: 28px 1fr; font-size: 16px; line-height: 1.5; }
+  ol.steps b { font-family: var(--serif); font-weight: 400; color: var(--ink-soft); }
+  .needs { font-size: 14px; color: var(--ink-soft); margin-top: 20px; line-height: 1.5; }
 
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 20px 22px; }
-  .card svg { width: 100%; height: 112px; display: block; margin-bottom: 14px; }
-  .card h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -0.01em; }
-  .card p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
-  .stroke { fill: none; stroke: var(--text); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-  .soft { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .acc { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-  .accfill { fill: var(--accent); }
-  .panel { fill: var(--bg-2); stroke: var(--line); stroke-width: 1.5; }
+  footer { max-width: 600px; margin: 0 auto; padding: 24px 24px 56px; font-size: 14px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 8px 22px; }
 
-  .privacy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .privacy .card { padding: 22px; }
-  .privacy h3 { font-size: 17px; }
-
-  details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 0 20px; margin-bottom: 10px; }
-  summary { cursor: pointer; padding: 18px 0; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
-  summary::-webkit-details-marker { display: none; }
-  summary::after { content: "+"; color: var(--muted); font-size: 22px; line-height: 1; }
-  details[open] summary::after { content: "\2212"; }
-  details p { margin: 0 0 18px; color: var(--muted); font-size: 16px; }
-  details p + p { margin-top: -6px; }
-
-  footer { border-top: 1px solid var(--line); padding: 36px 0 56px; color: var(--muted); font-size: 14px; }
-  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
-  footer a { color: var(--muted); }
-  footer a:hover { color: var(--text); }
-  footer .links { display: flex; flex-wrap: wrap; gap: 8px 22px; }
-
-  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } .privacy { grid-template-columns: 1fr; } }
-  @media (max-width: 560px) {
-    body { font-size: 16px; }
-    nav ul { display: none; }
-    .hero { padding: 56px 0 48px; }
-    .hero img.icon { width: 96px; height: 96px; border-radius: 22px; }
-    .btn.ghost { margin: 12px 0 0; }
-    section { padding: 56px 0; }
-    .grid { grid-template-columns: 1fr; }
-    .card svg { height: 104px; }
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .pulse { animation: pulse 2.4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
-    @keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+  /* Phones: the app is Mac-only and the demo needs a desktop browser */
+  @media (max-width: 760px), (hover: none) {
+    .desktop-cta { display: none; }
+    .mac-only { display: flex; }
+    main { padding-top: 9vh; }
   }
 </style>
 </head>
 <body>
+<main>
+  <div class="mark" aria-hidden="true"><i></i><i></i><i></i></div>
+  <p class="from">A note from the person who made this</p>
 
-<nav>
-  <div class="wrap">
-    <a class="brand" href="#top"><img src="logo.png" alt="" width="26" height="26"><span data-product-name>Ensemble</span></a>
-    <ul>
-      <li><a href="#gestures">Gestures</a></li>
-      <li><a href="#privacy">Privacy</a></li>
-      <li><a href="#faq">FAQ</a></li>
-      <li><a data-repo-link="" href="https://github.com/OWNER/REPO">GitHub</a></li>
-    </ul>
+  <article class="letter">
+    <p class="lead">Type to your AI for thirty minutes and it can build two days of work. Talk to it for thirty minutes and it can build two weeks.</p>
+    <p>I learned that the slow way. I talk to my agents now, a lot of them, all at once. A dozen Claude sessions on three screens, each one waiting to hear what I want.</p>
+    <p>And my night became: find the right window, click it, talk. Find, click, talk.</p>
+    <p>So I got rid of the find and the click. I look at a session. I pinch. I talk. Thumbs-up. Next.</p>
+    <p>If you've already stopped typing to your agents, you're one click from leaning back.</p>
+  </article>
+  <p class="sign">Ensemble. Free, open source, for the Mac.</p>
+
+  <div class="cta desktop-cta">
+    <a class="pill" href="live/">Try it with your camera</a>
+    <a class="quiet" href="#download">or just download it</a>
+    <p class="note">The demo runs in this browser. Your video never leaves it.</p>
   </div>
-</nav>
 
-<header class="hero" id="top">
-  <div class="wrap">
-    <img class="icon" src="logo.png" alt="App icon" width="120" height="120">
-    <h1>Control Claude<br>without touching a key.</h1>
-    <p class="tagline">Look at a Claude Code session, pinch twice to dictate, hold a thumbs-up to send. A webcam and your hands, running entirely on your Mac.</p>
-    <a class="btn primary" data-download="" href="https://github.com/OWNER/REPO/releases/latest">Download for macOS</a>
-    <a class="btn ghost" data-repo-link="" href="https://github.com/OWNER/REPO">View on GitHub</a>
-    <p class="fine">Free and open source (MIT). macOS 14.2 or later, tested on Apple Silicon. Needs Claude desktop.</p>
+  <div class="cta mac-only">
+    <button class="pill" type="button" id="copy">Copy the link for your Mac</button>
+    <p class="note" id="copied" aria-live="polite">Ensemble is a Mac app, and the demo needs a laptop or desktop camera.</p>
   </div>
-</header>
 
-<section id="gestures">
-  <div class="wrap">
-    <h2>Four gestures. That is all.</h2>
-    <p class="lead">A status capsule at the top of the screen shows what the app sees and what it is about to do, so nothing happens by surprise.</p>
-    <div class="grid">
-
-      <div class="card">
-        <svg viewBox="0 0 160 112" role="img" aria-label="A head turned toward a window">
-          <rect class="panel" x="82" y="14" width="68" height="84" rx="10"/>
-          <rect class="acc" x="82" y="14" width="68" height="84" rx="10"/>
-          <path class="soft" d="M92 34h48M92 48h36M92 62h42"/>
-          <circle class="stroke" cx="36" cy="46" r="20"/>
-          <path class="stroke" d="M56 46l9 4-9 3"/>
-          <path class="stroke" d="M18 88c4-12 28-12 36 0"/>
-          <path class="acc pulse" d="M68 50h10" stroke-dasharray="2 6"/>
-        </svg>
-        <h3>Look to focus</h3>
-        <p>Face a Claude session and it lights up. Your nose is the pointer; every gesture goes to the session you face.</p>
-      </div>
-
-      <div class="card">
-        <svg viewBox="0 0 160 112" role="img" aria-label="Thumb and index finger pinching twice">
-          <path class="stroke" d="M44 92c-6-18-2-34 10-44 6-5 14-4 18 2"/>
-          <path class="stroke" d="M114 92c6-18 2-34-10-44-6-5-14-4-18 2"/>
-          <circle class="accfill" cx="80" cy="50" r="5"/>
-          <circle class="acc pulse" cx="80" cy="50" r="14"/>
-          <circle class="acc pulse" cx="80" cy="50" r="24" style="animation-delay:.4s"/>
-          <path class="soft" d="M26 22l8 4M134 22l-8 4M80 10v8"/>
-        </svg>
-        <h3>Pinch twice to dictate</h3>
-        <p>Touch thumb to index finger twice, quickly, to start Claude's dictation. Do it again to stop. Your hand can leave the frame in between.</p>
-      </div>
-
-      <div class="card">
-        <svg viewBox="0 0 160 112" role="img" aria-label="A thumbs-up with a progress ring">
-          <circle class="soft" cx="80" cy="56" r="44" opacity="0.5"/>
-          <path class="acc" d="M80 12a44 44 0 0 1 41 28"/>
-          <path class="stroke" d="M66 80V56l10-22c6 0 9 5 8 11l-2 9h18c5 0 8 4 7 9l-5 22c-1 4-4 6-8 6H66z"/>
-          <path class="stroke" d="M56 56h10v30H56z"/>
-        </svg>
-        <h3>Hold a thumbs-up to send</h3>
-        <p>Hold it for about a second and the dictated draft is sent. It works only within 30 seconds of dictation ending, and only with a non-empty draft.</p>
-      </div>
-
-      <div class="card">
-        <svg viewBox="0 0 160 112" role="img" aria-label="A pinch dragged up and down">
-          <circle class="accfill" cx="80" cy="56" r="6"/>
-          <path class="acc" d="M80 40V16M70 26l10-10 10 10"/>
-          <path class="acc" d="M80 72v24M70 86l10 10 10-10"/>
-          <path class="stroke" d="M40 78c-4-12 0-22 8-28 4-3 10-2 14 2"/>
-          <path class="stroke" d="M120 78c4-12 0-22-8-28-4-3-10-2-14 2"/>
-        </svg>
-        <h3>Pinch and drag to scroll</h3>
-        <p>Pinch, then move your hand up or down. The session scrolls at your system's own scroll direction and speed.</p>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<section id="privacy">
-  <div class="wrap">
-    <h2>Your camera never leaves your Mac.</h2>
-    <p class="lead">There is no account, no server and no analytics. The app makes no network connections.</p>
-    <div class="privacy">
-      <div class="card">
-        <h3>On-device only</h3>
-        <p>Face and hand tracking run locally. The face model ships inside the app, so nothing is downloaded or uploaded.</p>
-      </div>
-      <div class="card">
-        <h3>Frames are never stored</h3>
-        <p>Each frame is analysed in memory and discarded. The log records events and reasons, never images.</p>
-      </div>
-      <div class="card">
-        <h3>The microphone is never left on</h3>
-        <p>A record is written before dictation starts, a dead-man check watches while it runs, and a fallback mutes the input if a stop cannot be confirmed.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="faq">
-  <div class="wrap">
-    <h2>Questions</h2>
-    <p class="lead">Short answers. The README has the details.</p>
-
-    <details>
-      <summary>What permissions does it ask for?</summary>
-      <p>Camera, to read your head direction and hand pose. Accessibility, to find Claude's session panes and press its dictation, Send and scroll controls. Notifications are optional. It does not ask for the Microphone: Claude does the recording, and the app only watches which apps are recording.</p>
-    </details>
-
-    <details>
-      <summary>Which Claude apps does it work with?</summary>
-      <p>Claude desktop for Mac, in its Code sessions. It does not work with the browser version or with the terminal. It only acts when Claude is the app under your gaze; with any other app in front, gestures do nothing.</p>
-      <p>It reads Claude's interface through Accessibility, so a Claude update that renames its controls can break it until the app is updated.</p>
-    </details>
-
-    <details>
-      <summary>Does it record me?</summary>
-      <p>No. Video is analysed on your Mac and is never written to disk or sent anywhere. Dictation itself is Claude's own feature; this app only presses its button.</p>
-    </details>
-
-    <details>
-      <summary>Can it send something by accident?</summary>
-      <p>Sending needs a deliberate thumbs-up hold, a non-empty draft, dictation that ended in the last 30 seconds, and no keyboard or mouse use since. Typing, clicking, a second face in view or a covered camera all cancel it. You can also turn gesture send off in Settings.</p>
-    </details>
-
-    <details>
-      <summary>Which Macs does it support?</summary>
-      <p>macOS 14.2 or later with a webcam. It is built and tested on Apple Silicon; Intel has not been tried.</p>
-    </details>
-
-    <details>
-      <summary>Is it affiliated with Anthropic?</summary>
-      <p>No. It is an independent open-source project.</p>
-    </details>
-  </div>
-</section>
-
+  <section id="download" aria-labelledby="dl">
+    <h2 id="dl">Download</h2>
+    <a class="pill" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a>
+    <ol class="steps">
+      <li><b>1</b><span>Open the download and drag Ensemble to Applications.</span></li>
+      <li><b>2</b><span>Open it. macOS will say it is from an unidentified developer: go to System Settings, Privacy &amp; Security, and click Open Anyway.</span></li>
+      <li><b>3</b><span>Allow Camera and Accessibility, then follow the short tour.</span></li>
+    </ol>
+    <p class="needs">Needs an Apple Silicon Mac with macOS 14.2 or later, a webcam, and the Claude desktop app. Camera frames are read in memory and never stored or sent.</p>
+  </section>
+</main>
 <footer>
-  <div class="wrap">
-    <div><span data-product-name>Ensemble</span> &middot; MIT licensed &middot; Not affiliated with Anthropic</div>
-    <div class="links">
-      <a data-repo-link="" href="https://github.com/OWNER/REPO">GitHub</a>
-      <a data-repo-link="/releases" href="https://github.com/OWNER/REPO/releases">Releases</a>
-      <a data-repo-link="/blob/main/THIRD_PARTY_NOTICES.md" href="https://github.com/OWNER/REPO/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>
-      <a data-repo-link="/issues" href="https://github.com/OWNER/REPO/issues">Report an issue</a>
-    </div>
-  </div>
+  <a href="https://github.com/oficiallyAkshay/ensemble">The code</a>
+  <a href="https://github.com/oficiallyAkshay/ensemble/blob/main/SECURITY.md">Privacy and security</a>
+  <span>Not affiliated with Anthropic</span>
 </footer>
-
 <script>
-  // Edit these two constants when the repository exists and the product is renamed.
-  const REPO_URL = "https://github.com/OWNER/REPO";
-  const PRODUCT_NAME = "Ensemble";
-
-  for (const el of document.querySelectorAll("[data-repo-link]")) {
-    el.href = REPO_URL + (el.getAttribute("data-repo-link") || "");
-  }
-  for (const el of document.querySelectorAll("[data-download]")) {
-    el.href = REPO_URL + "/releases/latest";
-  }
-  for (const el of document.querySelectorAll("[data-product-name]")) {
-    el.textContent = PRODUCT_NAME;
-  }
-  document.title = PRODUCT_NAME + ": control Claude hands-free";
+  const copy = document.getElementById("copy");
+  if (copy) copy.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(location.href.split("#")[0]); copy.textContent = "Link copied"; }
+    catch { copy.textContent = location.href.split("#")[0]; }
+  });
 </script>
 </body>
 </html>
