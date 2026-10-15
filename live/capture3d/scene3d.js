@@ -1106,6 +1106,7 @@
     return TABLES[name];
   }
 
+  function HAND_HOME_V(n) { var h = HAND_HOME[n]; return new THREE.Vector3(h[0], h[1], h[2]); }
   var HAND_HOME = { dictate: [2.9, 2.5, -3.2], send: [3.0, 2.5, -3.2], scroll: [2.9, 2.35, -3.2] };
 
   function breathe(D, t, amp) {
@@ -1175,6 +1176,7 @@
   var BONE_PAIRS = [[1, 2], [2, 3], [3, 4], [5, 6], [6, 7], [7, 8], [9, 10], [10, 11], [11, 12], [13, 14], [14, 15], [15, 16], [17, 18], [18, 19], [19, 20]];
   var LM_RIG = ['wrist', 'thumb-metacarpal', 'thumb-phalanx-proximal', 'thumb-phalanx-distal', 'thumb-tip'];
   FINGERS.forEach(function (f) { ['phalanx-proximal', 'phalanx-intermediate', 'phalanx-distal', 'tip'].forEach(function (sg) { LM_RIG.push(f + '-' + sg); }); });
+  var CAP_LENIENT = false;    // loadCapture(json, { lenient: true }): accept a shorter scroll pinch (0.4 s) and a 2 cm rise
   var CAPTURE = null;         // { takes, report, handSize, chir }
   var CAP_ON = true;
 
@@ -1221,7 +1223,7 @@
         for (i = 0; i < 8; i++) if (!isFinite(im[i])) { im = null; break; }
       }
       v.push({ t: f.t / 1000, lm: lm, im: im, g: f.gesture || '' });
-      if (f.handedness === 'Left' || f.handedness === 'Right') votes[f.handedness]++;
+      var hl = f.hand || f.handedness; if (hl === 'Left' || hl === 'Right') votes[hl]++;
     });
     if (v.length < 8) return null;
     v.sort(function (a, b) { return a.t - b.t; });
@@ -1249,8 +1251,10 @@
       label[k] = al < 0.5 ? A.g : B.g;
     }
     // jitter of the raw run (rms of the second difference / sqrt 6), for the filter strength
+    // measured on the relaxed first and last half second of the take only (motion would read as noise)
     var s2 = 0, c2 = 0;
     for (i = 1; i < run.length - 1; i++) {
+      if (run[i].t - t0 > 0.5 && t1 - run[i].t > 0.5) continue;
       if (run[i + 1].t - run[i - 1].t > 3.2 * medDt) continue;
       for (var e = 0; e < 63; e++) { var dd = run[i + 1].lm[e] - 2 * run[i].lm[e] + run[i - 1].lm[e]; s2 += dd * dd; c2++; }
     }
@@ -1318,9 +1322,9 @@
   // One Euro per joint direction, the palm frame, the wrist position and the event scalars
   function smoothTrack(A, n, jitter) {
     var dt = 1 / CAP_HZ, noisy = clamp((jitter - 0.001) / 0.005, 0, 1);
-    var mc = lerp(3.0, 1.0, noisy);
+    var mc = lerp(3.0, 0.8, noisy);
     var fd = [], b, k, i;
-    for (b = 0; b < 15; b++) fd.push(new OneEuro(3, mc, 1.2, 1.0));
+    for (b = 0; b < 15; b++) fd.push(new OneEuro(3, mc, 3.0, 1.5));
     var fq = new OneEuro(4, mc, 1.0, 1.0), fp = new OneEuro(3, lerp(1.4, 0.8, noisy), 8, 1.0),
       fpd = new OneEuro(1, lerp(4.0, 2.5, noisy), 20, 1.0), ftu = new OneEuro(1, 2.0, 1.0, 1.0);
     var prevQ = null, tmp = new Float64Array(3), out = {
@@ -1384,18 +1388,18 @@
       var d0 = listen[0][0] + 0.32, d1 = Math.max(Math.min(d0 + 2.2, listen[0][1] - 0.3), d0 + 0.8);
       e = { listen: listen, draft0: d0, draft1: d1, clearAt: D - 0.35, contacts: ev.contacts, staticT: ev.contacts[0][0] + 0.04 };
     } else if (name === 'send') {
-      var h = longest(ev.thumbs);
+      var h = longest(ev.thumbs.filter(function (r) { return r[1] - r[0] >= 0.5; }));
       if (!h) return { fail: 'no thumbs-up hold found' };
       var G = clamp(0.85 * (h[1] - h[0]), 0.3, 0.75), sentAt = h[0] + G;
-      e = { holdFrom: h[0], sentAt: sentAt, sentOff: Math.min(sentAt + 2.5, D - 1.0), fadeAt: D - 0.7, pushOff: D - 0.5, textBack: D - 0.4, thumbs: ev.thumbs, staticT: sentAt - 0.2 };
-      if (e.sentOff <= sentAt + 0.5) return { fail: 'hold too late in the take to show Sent' };
+      e = { holdFrom: h[0], sentAt: sentAt, sentOff: Math.min(sentAt + 2.5, D - 0.8), fadeAt: D - 0.7, pushOff: D - 0.5, textBack: D - 0.4, thumbs: ev.thumbs, staticT: sentAt - 0.2 };
+      if (e.sentOff <= sentAt + 0.3) return { fail: 'hold too late in the take to show Sent' };
     } else {
-      var p = longest(ev.contacts.filter(function (c) { return c[1] - c[0] >= 0.4; }));
+      var p = longest(ev.contacts.filter(function (c) { return c[1] - c[0] >= (CAP_LENIENT ? 0.4 : 0.8); }));
       if (!p) return { fail: 'no held pinch found for scroll' };
       var y0 = 0, i0 = Math.round(p[0] * CAP_HZ), peak = 0, tp = p[0];
       for (var k = 0; k < 4; k++) y0 += S.pos[clamp(i0 + k, 0, n - 1) * 3 + 1] / 4;
       for (var j = i0; j < Math.min(n, Math.round(p[1] * CAP_HZ)); j++) { var dy = S.pos[j * 3 + 1] - y0; if (dy > peak) { peak = dy; tp = j / CAP_HZ; } }
-      if (peak < 0.025) return { fail: 'wrist rise during the pinch is only ' + (peak * 100).toFixed(1) + ' cm' };
+      if (peak < (CAP_LENIENT ? 0.02 : 0.03)) return { fail: 'wrist rise during the pinch is only ' + (peak * 100).toFixed(1) + ' cm' };
       var sc = new Float32Array(n);
       for (var m = 0; m < n; m++) {
         var tt = m / CAP_HZ, gate = tt < p[0] ? 0 : tt <= p[1] ? 1 : 1 - clamp((tt - p[1]) / 0.2, 0, 1);
@@ -1428,27 +1432,37 @@
       for (var rk = 0; rk < n; rk++) for (var ri = 0; ri < 3; ri++) rp[rk * 3 + ri] = S.pos[rk * 3 + ri] - p0[ri];
       return { ok: true, raw: true, name: name, D: n / CAP_HZ, n: n, dirs: Float32Array.from(S.dirs), q: Float32Array.from(S.q), pos: rp, pd: Float32Array.from(S.pd), pw: new Float32Array(n), srcStart: P.t0, events: {}, info: info, chir: chir, handSize: P.handSize };
     }
-    // trim window around the gesture, from the full smoothed series
-    var ev = rawEvents(S, n), a, b, D0 = n / CAP_HZ;
+    // trim window around the gesture, from the full smoothed series. [lo, hi] is the stretch of the take this
+    // gesture may use (a second gesture in the same take is left out); a window wider than that repeats the edge frame.
+    var ev = rawEvents(S, n), a, b, D0 = n / CAP_HZ, lo = 0, hi = D0;
+    var rr2 = function (r) { return r.map(function (x) { return [+x[0].toFixed(2), +x[1].toFixed(2)]; }); };
+    info.contactRuns = rr2(ev.contacts); info.thumbsUpRuns = rr2(ev.thumbs);
+    var bound = function (runs, main) {
+      runs.forEach(function (r) { if (r === main) return; if (r[1] <= main[0]) lo = Math.max(lo, r[1] + 0.3); else if (r[0] >= main[1]) hi = Math.min(hi, r[0] - 0.3); });
+    };
     if (name === 'dictate') {
       if (!ev.contacts.length) return { ok: false, reason: 'no pinch contact below ' + PINCH_ON * 100 + ' cm', info: info };
       a = ev.contacts[0][0] - 0.5; b = ev.contacts[ev.contacts.length - 1][1] + 1.0;
     } else if (name === 'send') {
-      var h = longest(ev.thumbs);
-      if (!h) return { ok: false, reason: 'no thumbs-up hold', info: info };
-      a = h[0] - 1.0; b = Math.max(h[1] + 3.0, h[0] - 1.0 + 4.8);
+      // the hold with the most room around it, then the longest
+      var best = null;
+      ev.thumbs.forEach(function (h) { if (h[1] - h[0] >= 0.5 && (!best || (h[1] - h[0]) > (best[1] - best[0]))) best = h; });
+      if (!best) return { ok: false, reason: 'no thumbs-up hold of at least 0.5 s', info: info };
+      bound(ev.thumbs, best);
+      a = best[0] - 1.0; b = Math.max(best[1] + 3.0, best[0] - 1.0 + 4.8);
     } else {
-      var pr = longest(ev.contacts.filter(function (c) { return c[1] - c[0] >= 0.4; }));
-      if (!pr) return { ok: false, reason: 'no held pinch', info: info };
+      var pr = longest(ev.contacts.filter(function (c) { return c[1] - c[0] >= (CAP_LENIENT ? 0.4 : 0.8); }));
+      if (!pr) return { ok: false, reason: 'no pinch held for ' + (CAP_LENIENT ? 0.4 : 0.8) + ' s', info: info };
       a = pr[0] - 0.5; b = pr[1] + 1.2;
     }
-    a = Math.max(0, a); b = Math.min(D0, b);
     var i0 = Math.round(a * CAP_HZ), m = Math.round(b * CAP_HZ) - i0, X = Math.round(CAP_XFADE * CAP_HZ), L = m - X;
-    if (L < CAP_HZ * 1.5) return { ok: false, reason: 'gesture window is only ' + (m / CAP_HZ).toFixed(1) + ' s', info: info };
+    var ilo = Math.max(0, Math.round(lo * CAP_HZ)), ihi = Math.min(n - 1, Math.round(hi * CAP_HZ));
+    if (ihi - ilo < CAP_HZ * 1.5) return { ok: false, reason: 'only ' + ((ihi - ilo) / CAP_HZ).toFixed(1) + ' s of this take is usable for the gesture', info: info };
+    info.padSeconds = +Math.max(0, (i0 < ilo ? ilo - i0 : 0) + (i0 + m > ihi ? i0 + m - ihi : 0)).toFixed(2) / CAP_HZ;
     var T = { dirs: new Float32Array(L * 45), q: new Float32Array(L * 4), pos: new Float32Array(L * 3), pd: new Float32Array(L), tu: new Float32Array(L) };
-    var k, i, w;
+    var k, i, w, sx = function (j) { return clamp(j, ilo, ihi); };
     for (k = 0; k < L; k++) {
-      var s1 = i0 + k, s0 = i0 + L + k;
+      var s1 = sx(i0 + k), s0 = sx(i0 + L + k);
       if (k < X) {
         w = smooth(k / X);
         nlerpDirs(S.dirs.subarray(s0 * 45, s0 * 45 + 45), S.dirs.subarray(s1 * 45, s1 * 45 + 45), w, T.dirs, k * 45);
@@ -1506,24 +1520,33 @@
   // Load a capture file (object or JSON string). Returns a report; takes that fail fall back to the keyed animation.
   function loadCapture(json, opts) {
     opts = opts || {};
+    CAP_LENIENT = !!opts.lenient;
     if (typeof json === 'string') json = JSON.parse(json);
     var report = { ok: false, takes: {}, warnings: [] };
     if (!json || !json.takes) { report.warnings.push('no takes in capture'); return report; }
-    var cfg = { aspect: json.aspect || (json.width && json.height ? json.width / json.height : 16 / 9), vfov: json.vfov || 45, chir: null, jitter: 0 };
+    var cam = json.camera || {};
+    var cfg = { aspect: json.aspect || cam.aspect || (cam.width && cam.height ? cam.width / cam.height : 0) || (json.width && json.height ? json.width / json.height : 16 / 9), vfov: json.vfov || cam.vfov || 45, chir: null, jitter: 0 };
     var mode = opts.chirality || json.chirality || 'label';
-    // rest take: hand size and sensor jitter, used to size the person's hand and set the filter strength
-    var rest = json.takes.rest ? prepTake(json.takes.rest, cfg) : null, handSize = 0;
+    // no rest take: the relaxed idle hand is the first and last half second of each take. It gives the
+    // person's palm size and the sensor jitter (filter strength).
     var sizeOf = function (P) {
-      var a = [], k;
-      for (k = 0; k < P.n; k += 3) a.push(vlen(vsub(lmv(P.lm, k, 9), lmv(P.lm, k, 0))));
+      var a = [], k, e = Math.round(0.5 * CAP_HZ);
+      for (k = 0; k < P.n; k++) if (k < e || k >= P.n - e) a.push(vlen(vsub(lmv(P.lm, k, 9), lmv(P.lm, k, 0))));
       a.sort(function (x, y) { return x - y; });
-      return a[a.length >> 1];
+      return a.length ? a[a.length >> 1] : 0;
     };
-    if (rest) { cfg.jitter = rest.jitter; handSize = sizeOf(rest); report.rest = { seconds: +(rest.n / CAP_HZ).toFixed(2), jitterMm: +(rest.jitter * 1000).toFixed(2), palmMm: +(handSize * 1000).toFixed(0) }; }
-    else report.warnings.push('no rest take: filter strength and hand size use defaults');
+    var handSize = 0, sizes = [], jit = [];
+    CAP_NAMES.forEach(function (nm) {
+      var P = json.takes[nm] ? prepTake(json.takes[nm], cfg) : null;
+      if (P) { sizes.push(sizeOf(P)); jit.push(P.jitter); }
+    });
+    sizes.sort(function (x, y) { return x - y; }); jit.sort(function (x, y) { return x - y; });
+    if (sizes.length) { handSize = sizes[sizes.length >> 1]; cfg.jitter = jit[jit.length >> 1]; }
+    else report.warnings.push('no usable take: filter strength and hand size use defaults');
+    report.idle = { palmMm: Math.round(handSize * 1000), jitterMm: +(cfg.jitter * 1000).toFixed(2) };
     // handedness: the label's vote, unless overridden; checked against which way the palm faces the camera
     var votes = { Left: 0, Right: 0 };
-    Object.keys(json.takes).forEach(function (nm) { (json.takes[nm] || []).forEach(function (f) { if (f && (f.handedness === 'Left' || f.handedness === 'Right')) votes[f.handedness]++; }); });
+    Object.keys(json.takes).forEach(function (nm) { (json.takes[nm] || []).forEach(function (f) { var hl = f && (f.hand || f.handedness); if (hl === 'Left' || hl === 'Right') votes[hl]++; }); });
     var chir = votes.Right >= votes.Left ? 1 : -1;
     if (mode === 'right') chir = 1; else if (mode === 'left') chir = -1;
     var facing = [];
@@ -1536,7 +1559,6 @@
     else if (facing.length && fm < -0.2) report.warnings.push('the dictate and scroll takes show the palm turned away from the camera under the "' + (chir > 0 ? 'Right' : 'Left') + '" label; if the labels came from a mirrored image, pass { chirality: "auto" }');
     cfg.chir = chir;
     report.chirality = chir > 0 ? 'Right' : 'Left'; report.palmFacing = +fm.toFixed(2);
-    var sizes = [];
     var takes = {};
     CAP_NAMES.forEach(function (nm) {
       if (!json.takes[nm] || !json.takes[nm].length) { report.takes[nm] = { ok: false, reason: 'take missing, keyed animation used' }; return; }
@@ -1546,11 +1568,6 @@
       report.takes[nm] = tk.ok ? { ok: true, loopSeconds: +tk.D.toFixed(2), trim: tk.trim, source: tk.info, events: summarize(tk.events) } : { ok: false, reason: tk.reason + ', keyed animation used', source: tk.info };
       if (!tk.ok) report.warnings.push(nm + ': ' + tk.reason);
     });
-    if (!handSize) { // no rest take: median palm size over the usable takes
-      CAP_NAMES.forEach(function (nm) { var P = json.takes[nm] ? prepTake(json.takes[nm], cfg) : null; if (P) sizes.push(sizeOf(P)); });
-      sizes.sort(function (x, y) { return x - y; }); handSize = sizes.length ? sizes[sizes.length >> 1] : 0;
-      CAP_NAMES.forEach(function (nm) { if (takes[nm]) takes[nm].handSize = handSize; });
-    }
     report.ok = CAP_NAMES.some(function (nm) { return takes[nm] && takes[nm].ok; });
     CAPTURE = { takes: takes, report: report, handSize: handSize, chir: chir };
     CAP_ON = true;
@@ -1573,20 +1590,27 @@
   // ------------------------------------------------------------------
   var rtQ0 = new THREE.Quaternion(), rtQ = new THREE.Quaternion(), rtPQ = new THREE.Quaternion(), rtSw = new THREE.Quaternion(),
     rtCur = new THREE.Vector3(), rtD = new THREE.Vector3();
-  function swingChain(hand, list, dirs, firstDir) {
-    // firstDir: index of the 3-vector for list[0] (-1: rigid, as for finger metacarpals); the next bones follow
+  function swingChain(hand, list, dirs) {
+    // list._base: first of the 3-vectors for this chain; list._rigidFirst: the metacarpal follows the palm (no landmark for it)
     rtPQ.copy(hand.W['wrist']);
     for (var i = 0; i < list.length; i++) {
-      var b = list[i], j = firstDir < 0 ? (i === 0 ? -1 : -1 + i - 1 + 0) : i;
+      var b = list[i], cd = hand.childDir[b.name];
       rtQ0.copy(rtPQ).multiply(hand.restLocal[b.name]);
-      var di = -1;
-      if (hand.childDir[b.name]) di = list._base + (list._rigidFirst ? i - 1 : i);
-      if (hand.childDir[b.name] && !(list._rigidFirst && i === 0)) {
-        var o = di * 3;
+      if (cd && !(list._rigidFirst && i === 0)) {
+        var o = (list._base + (list._rigidFirst ? i - 1 : i)) * 3;
         rtD.set(0, 0, 0).addScaledVector(hand.rigF, dirs[o]).addScaledVector(hand.rigL, dirs[o + 1]).addScaledVector(hand.rigN, dirs[o + 2]).normalize();
-        rtCur.copy(hand.childDir[b.name]).applyQuaternion(rtQ0);
+        rtCur.copy(cd).applyQuaternion(rtQ0);
         rtSw.setFromUnitVectors(rtCur, rtD);
         rtQ.copy(rtSw).multiply(rtQ0);
+      } else if (!cd && i > 0 && list._rigidFirst) {
+        // leaf bone (no landmark): bend as far as the bone before it, so the fingertip follows the distal phalanx
+        var pb = list[i - 1];
+        rtQ.copy(hand.restLocal[pb.name]).invert().multiply(pb.quaternion);
+        rtQ.premultiply(hand.restLocal[b.name]);
+        b.quaternion.copy(rtQ);
+        rtQ.copy(rtPQ).multiply(b.quaternion);
+        rtPQ.copy(rtQ);
+        continue;
       } else rtQ.copy(rtQ0);
       b.quaternion.copy(rtPQ).invert().multiply(rtQ);
       rtPQ.copy(rtQ);
@@ -1603,10 +1627,10 @@
     hand.pivot.position.set(home[0] + s.pos[0] * kk, home[1] + s.pos[1] * kk, home[2] + s.pos[2] * kk);
     hand.bones['wrist'].quaternion.copy(rtR).multiply(hand.W['wrist']);
     var th = ch['thumb']; th._base = 0; th._rigidFirst = false;
-    swingChain(hand, th, s.dirs, 0);
-    for (var fi = 0; fi < 4; fi++) { var l = ch[FINGERS[fi]]; l._base = 3 + fi * 3; l._rigidFirst = true; swingChain(hand, l, s.dirs, -1); }
+    swingChain(hand, th, s.dirs);
+    for (var fi = 0; fi < 4; fi++) { var l = ch[FINGERS[fi]]; l._base = 3 + fi * 3; l._rigidFirst = true; swingChain(hand, l, s.dirs); }
     hand.pivot.updateMatrixWorld(true);
-    if (s.pw > 0.001 && tk.ikPinch !== false) pinchIK(hand, s.pw);
+    if (s.pw > 0.001 && tk.ikPinch !== false) pinchIK(hand, 0.5 * s.pw);   // half-way: the recorded thumb already reaches, this only closes a small gap
   }
 
   // Event times that drive the screen. Keyed defaults; a loaded capture replaces them per gesture.
@@ -1656,6 +1680,7 @@
     var onFrame = typeof opts.onFrame === 'function' ? opts.onFrame : function () { };
     var handUrl = opts.handUrl || 'assets/hand.glb';
     var current = DURATIONS[opts.scene] ? opts.scene : 'welcome';
+    if (opts.capture) { try { loadCapture(opts.capture, opts.captureOptions); } catch (e) { if (window.console) console.warn('[EnsembleScene] capture ignored', e); } }
 
     var renderer;
     try {
@@ -1739,7 +1764,11 @@
         gstage.group.visible = true;
         var gst = stateFor(name, t);
         gstage.screen.draw(gst, name, t);
-        if (hand) { hand.pivot.visible = true; poseHand(hand, handPose(name, t)); }
+        if (hand) {
+          hand.pivot.visible = true;
+          var ctk = capTake(name);
+          if (ctk) poseHandCapture(hand, ctk, t, name); else poseHand(hand, handPose(name, t));
+        }
       } else {
         desk.root.visible = true;
         gstage.group.visible = false;
@@ -1751,14 +1780,14 @@
       if (extra.dot !== undefined) { st.dot = extra.dot; st.progress = extra.progress; }
       onFrame(st);
     }
-    function renderNow() { renderFrame(frozen ? frozen.name : current, frozen ? frozen.t : (reduced ? STATIC_T[current] : 0), false); }
+    function renderNow() { renderFrame(frozen ? frozen.name : current, frozen ? frozen.t : (reduced ? staticTOf(current) : 0), false); }
 
     function loop() {
       if (destroyed) return;
       raf = requestAnimationFrame(loop);
       if (frozen) { if (frozenDirty) { frozenDirty = false; renderFrame(frozen.name, frozen.t, false); } return; }
       var el = (performance.now() - t0) / 1000;
-      renderFrame(current, el % DURATIONS[current], true);
+      renderFrame(current, el % durOf(current), true);
     }
 
     if (HAND_SCENES[current]) loadHand();
@@ -1788,6 +1817,87 @@
         if (HAND_SCENES[name]) loadHand();
         if (reduced) renderNow();
       },
+      // ---- test harness: sample the keyed animation into MediaPipe-style landmarks ----
+      _synthCapture: function (fps, pad, opts) {
+        opts = opts || {};
+        if (!hand) return null;
+        var asp = 16 / 9, vfov = 45, fh = 1 / (2 * Math.tan(vfov * D2R / 2)), Z0 = 0.55;
+        var out = { version: 1, fps: fps, camera: { width: 1280, height: 720 }, vfov: vfov, meta: { source: 'synthetic-keyed', pad: pad }, takes: {} };
+        var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+        function gauss() { return Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd()); }
+        CAP_NAMES.forEach(function (name) {
+          var isRest = false, D = isRest ? 2.0 : DUR[name], total = isRest ? D : D + 2 * pad, nF = Math.round(total * fps), frames = [];
+          var home = HAND_HOME[isRest ? 'dictate' : name];
+          for (var i = 0; i < nF; i++) {
+            var tt = i / fps, kt = isRest ? 0 : clamp(tt - pad, 0, D);
+            if (opts.noise && !isRest && rnd() < 0.05) { frames.push({ t: tt * 1000, handedness: null, world: null, image: null, gesture: null, score: 0 }); continue; }
+            if (opts.noise && !isRest && name === 'send' && i >= 60 && i < 63) { frames.push({ t: tt * 1000, handedness: null, world: null, image: null, gesture: null, score: 0 }); continue; }
+            poseHand(hand, handPose(isRest ? 'dictate' : name, kt));
+            hand.pivot.updateMatrixWorld(true);
+            var C = LM_RIG.map(function (bn) {
+              var p = hand.bones[bn].getWorldPosition(new THREE.Vector3());
+              // scene units -> camera frame (x right, y down, z away), hand at ~0.55 m
+              return [-(p.x - home[0]) / HAND_SCALE, -(p.y - home[1]) / HAND_SCALE, Z0 + (p.z - home[2]) / HAND_SCALE];
+            });
+            var cen = [0, 0, 0]; [0, 5, 9, 13, 17].forEach(function (k) { for (var a = 0; a < 3; a++) cen[a] += C[k][a] / 5; });
+            var ns = opts.noise ? 0.003 : 0, ni = opts.noise ? 0.002 : 0;
+            frames.push({
+              t: tt * 1000, handedness: hand.chirality > 0 ? 'Right' : 'Left',
+              world: C.map(function (c) { return [c[0] - cen[0] + gauss() * ns, c[1] - cen[1] + gauss() * ns, c[2] - cen[2] + gauss() * ns]; }),
+              image: C.map(function (c) { return [0.5 + fh * c[0] / (c[2] * asp) + gauss() * ni, 0.5 + fh * c[1] / c[2] + gauss() * ni]; }),
+              gesture: 'None', score: 0.99
+            });
+          }
+          out.takes[name] = frames;
+        });
+        return out;
+      },
+      // error of the retarget against the keyed pose it was sampled from (raw frames, then the full pipeline)
+      _retargetTest: function (json, mode) {
+        if (!hand) return null;
+        var rep = loadCapture(json, { raw: mode === 'raw' });
+        if (mode === 'noik') CAP_NAMES.forEach(function (n) { if (CAPTURE.takes[n]) CAPTURE.takes[n].ikPinch = false; });
+        var pad = json.meta.pad, res = {}, chainNames = [];
+        Object.keys(hand.chains).forEach(function (f) { hand.chains[f].forEach(function (b) { chainNames.push(b.name); }); });
+        function snap() {
+          hand.pivot.updateMatrixWorld(true);
+          var o = { q: {}, d: {}, tip: {}, w: hand.bones['wrist'].getWorldPosition(new THREE.Vector3()), wq: hand.bones['wrist'].getWorldQuaternion(new THREE.Quaternion()) };
+          chainNames.forEach(function (n) { o.q[n] = hand.bones[n].getWorldQuaternion(new THREE.Quaternion()); });
+          Object.keys(hand.chains).forEach(function (f) {
+            var l = hand.chains[f];
+            for (var i = 0; i < l.length - 1; i++) o.d[l[i].name] = l[i + 1].getWorldPosition(new THREE.Vector3()).sub(l[i].getWorldPosition(new THREE.Vector3())).normalize();
+            o.tip[f] = l[l.length - 1].getWorldPosition(new THREE.Vector3()).sub(o.w);
+          });
+          return o;
+        }
+        var DEG = 180 / Math.PI;
+        CAP_NAMES.forEach(function (name) {
+          var tk = CAPTURE.takes[name];
+          if (!tk || !tk.ok) { res[name] = { ok: false, reason: tk && tk.reason }; return; }
+          var D = DUR[name], pb = {}, errs = { dir: [], ori: [], wrist: [], tip: [], pos: [] }, step = mode === 'raw' ? 1 : 3;
+          var base0 = null;
+          // keyed reference at its time 0 for relative motion
+          var tstart = clamp((tk.srcStart - json.takes[name][0].t / 1000) - pad, 0, D);
+          poseHand(hand, handPose(name, tstart)); base0 = snap();
+          var kbase = hand.pivot.position.clone();
+          for (var i = 0; i < tk.n; i += step) {
+            var tr = i / CAP_HZ, tk_ = mode === 'raw' ? (tk.srcStart + tr - json.takes[name][0].t / 1000) - pad : (tk.srcStart + tr - json.takes[name][0].t / 1000) - pad;
+            if (tk_ < 0 || tk_ > D) continue;
+            poseHand(hand, handPose(name, tk_)); var A = snap(); var kpos = hand.pivot.position.clone().sub(kbase);
+            var tkp = tk; poseHandCapture(hand, tkp, tr, name); var B = snap(); var rpos = hand.pivot.position.clone().sub(HAND_HOME_V(name));
+            var ds = [], os = [], ts = [];
+            chainNames.forEach(function (n) { var e = A.q[n].angleTo(B.q[n]) * DEG; os.push(e); (pb[n] = pb[n] || []).push(e); });
+            Object.keys(A.d).forEach(function (n) { ds.push(Math.acos(clamp(A.d[n].dot(B.d[n]), -1, 1)) * DEG); });
+            Object.keys(A.tip).forEach(function (f) { ts.push(A.tip[f].distanceTo(B.tip[f]) / HAND_SCALE * 100); });
+            errs.dir.push(Math.max.apply(null, ds)); (errs.series = errs.series || []).push([+tr.toFixed(2), +Math.max.apply(null, ds).toFixed(1), Object.keys(A.d)[ds.indexOf(Math.max.apply(null, ds))]]); errs.ori.push(Math.max.apply(null, os)); errs.wrist.push(A.wq.angleTo(B.wq) * DEG);
+            errs.tip.push(Math.max.apply(null, ts)); errs.pos.push(kpos.clone().sub(rpos).length() / HAND_SCALE * 100);
+          }
+          function stat(a) { var s = a.slice().sort(function (x, y) { return x - y; }); return { mean: +(a.reduce(function (x, y) { return x + y; }, 0) / a.length).toFixed(2), p95: +s[Math.floor(s.length * 0.95)].toFixed(2), max: +s[s.length - 1].toFixed(2) }; }
+          var pbm = {}; Object.keys(pb).forEach(function (n) { pbm[n] = +(pb[n].reduce(function (x, y) { return x + y; }, 0) / pb[n].length).toFixed(1); });
+          res[name] = { series: errs.series, perBoneMeanOri: pbm, frames: errs.dir.length, maxDirDeg: stat(errs.dir), maxBoneOriDeg: stat(errs.ori), wristDeg: stat(errs.wrist), maxTipCm: stat(errs.tip), motionCm: stat(errs.pos) };
+        });
+        return { report: rep, errors: res };
+      },
       _hand: function () { return hand; },
       _ready: function () { return !HAND_SCENES[current] || !!hand || handFailed; },
       _pinchGap: function () {
@@ -1806,6 +1916,11 @@
 
   window.EnsembleScene = {
     mount: mount,
+    loadCapture: loadCapture,
+    clearCapture: function () { CAPTURE = null; },
+    useCapture: function (on) { CAP_ON = !!on; },
+    captureReport: function () { return CAPTURE ? CAPTURE.report : null; },
+    _take: function (n) { return CAPTURE && CAPTURE.takes[n]; },
     _seek: function (name, t) { if (lastInstance) lastInstance._seek(name, t); },
     _last: function () { return lastInstance; }
   };
