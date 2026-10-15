@@ -2,13 +2,13 @@
 // is the file the user saves (or the JSON they copy).
 
 import { Trackers, unsupportedReason } from './tracker.js';
+import { createPreview } from './capture3d/preview.js';
+import { pinchRatio, PINCH_IS_OPEN } from './capture3d/events.js';
 
 const TAKES = [
-  { id: 'rest', title: 'Rest', seconds: 4, optional: false, text: 'Raise your hand, relaxed and still.' },
   { id: 'dictate', title: 'Dictate', seconds: 6, optional: false, text: 'Double pinch (thumb and index, two quick taps), pause 1 second, double pinch again.' },
   { id: 'send', title: 'Send', seconds: 5, optional: false, text: 'From relaxed, make a thumbs-up, hold it 1.5 seconds, then relax.' },
   { id: 'scroll', title: 'Scroll', seconds: 6, optional: false, text: 'Pinch and hold, move your hand up about 10 cm, then down, then release.' },
-  { id: 'look', title: 'Look', seconds: 2, optional: true, text: 'Put your hand down, out of view.' },
 ];
 const COUNTDOWN = 3;
 const $ = (id) => document.getElementById(id);
@@ -16,7 +16,9 @@ const log = (m) => console.log(`[${new Date().toISOString()}] ${m}`);
 const r5 = (n) => Math.round(n * 1e5) / 1e5;
 
 const trackers = new Trackers();
-const state = { stream: null, running: false, raf: 0, takes: {}, active: null, fps: [], lastVideoTime: -1, video: $('video'), busy: false };
+// takes holds every recording; kept marks the ones the owner accepted after watching the replay, and only those are saved.
+const state = { stream: null, running: false, raf: 0, takes: {}, kept: {}, active: null, fps: [], lastVideoTime: -1, video: $('video'), busy: false };
+const preview = createPreview({ onKeep: keep, onRetake: (id) => record(TAKES.find((t) => t.id === id)), aspect: () => (state.video.videoWidth && state.video.videoHeight ? state.video.videoWidth / state.video.videoHeight : 16 / 9) });
 const ctx = $('overlay').getContext('2d');
 const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 
@@ -30,9 +32,10 @@ function buildList() {
     li.className = 'cp-take'; li.id = 'take-' + t.id;
     li.innerHTML = `<div class="cp-take-top"><h2>${t.title}<small>${t.seconds} s${t.optional ? ', optional' : ''}</small></h2><span class="cp-state">not recorded</span></div>
       <p>${t.text}</p><div class="cp-bar"><i></i></div>
-      <div class="cp-actions"><button type="button" class="cp-btn primary rec">Record</button>${t.optional ? '<button type="button" class="cp-btn skip">Skip</button>' : ''}</div>`;
+      <div class="cp-actions"><button type="button" class="cp-btn primary rec">Record</button><button type="button" class="cp-btn replay" hidden>Replay</button>${t.optional ? '<button type="button" class="cp-btn skip">Skip</button>' : ''}</div>`;
     li.querySelector('.rec').addEventListener('click', () => record(t));
-    li.querySelector('.skip')?.addEventListener('click', () => { delete state.takes[t.id]; refresh(); });
+    li.querySelector('.replay').addEventListener('click', () => review(t.id));
+    li.querySelector('.skip')?.addEventListener('click', () => { delete state.takes[t.id]; delete state.kept[t.id]; if (preview.current === t.id) preview.hide(); refresh(); });
     $('takes').append(li);
   }
   refresh();
@@ -43,19 +46,25 @@ function refresh() {
   let n = 0;
   for (const t of TAKES) {
     const li = $('take-' + t.id), frames = state.takes[t.id];
-    const done = !!frames; if (done) n++;
+    const done = !!frames, kept = done && !!state.kept[t.id]; if (kept) n++;
     li.classList.toggle('done', done);
+    li.classList.toggle('kept', kept);
     li.classList.toggle('active', state.active?.id === t.id);
-    if (state.active?.id !== t.id) li.querySelector('.cp-state').textContent = done ? `${frames.length} frames` : 'not recorded';
+    if (state.active?.id !== t.id) li.querySelector('.cp-state').textContent = kept ? `${frames.length} frames, kept` : done ? `${frames.length} frames, not kept yet` : 'not recorded';
     const rec = li.querySelector('.rec');
     rec.textContent = done ? 'Retake' : 'Record';
     rec.disabled = !camOn || state.busy;
+    li.querySelector('.replay').hidden = !done;
     const skip = li.querySelector('.skip'); if (skip) skip.disabled = state.busy;
   }
-  $('taken').textContent = `(${n} of ${TAKES.length} takes)`;
-  const has = n > 0;
-  $('save').disabled = !has; $('copy').disabled = !has;
-  $('size').textContent = has ? fmtBytes(new Blob([payload()]).size) : '0 B';
+  $('taken').textContent = `(${n} of ${TAKES.length} takes kept)`;
+  const ready = TAKES.every((t) => t.optional || state.kept[t.id]);
+  $('save').disabled = !ready; $('copy').disabled = !ready;
+  $('size').textContent = n ? fmtBytes(new Blob([payload()]).size) : '0 B';
+  const cur = preview.current;
+  $('pv-keep').disabled = !cur || !!state.kept[cur];
+  $('pv-keep').textContent = cur && state.kept[cur] ? 'Kept' : 'Keep';
+  $('pv-retake').disabled = !camOn || state.busy;
 }
 
 function fmtBytes(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB'; }
@@ -70,7 +79,7 @@ function payload() {
   const v = state.video;
   return JSON.stringify({
     version: 1,
-    takes: state.takes,
+    takes: Object.fromEntries(Object.entries(state.takes).filter(([id]) => state.kept[id])),
     camera: { width: v.videoWidth || 0, height: v.videoHeight || 0 },
     fps: averageFps(),
     // Handedness is MediaPipe's label for the unmirrored camera image; the preview is only mirrored by CSS.
@@ -145,6 +154,7 @@ function loop() {
   $('r-gesture').textContent = res?.gesture && res.gesture !== 'None' ? `${res.gesture} ${res.score.toFixed(2)}` : 'none';
   draw(res);
   const a = state.active;
+  coach(res, a);
   if (a && a.recording) {
     a.frames.push({
       t: Math.round(now - a.t0),
@@ -155,6 +165,17 @@ function loop() {
       score: res ? r5(res.score) : 0,
     });
   }
+}
+
+// One line of advice while a take is being recorded, from what real recordings showed: a wrist at the bottom edge of the frame,
+// and a scroll pinch that let go.
+function coach(res, a) {
+  let text = '';
+  if (a && res) {
+    if (res.landmarks[0].y > 0.8) text = 'Raise your hand to the middle of the frame';
+    else if (a.recording && a.id === 'scroll' && pinchRatio(res.world ? res.world.map((p) => [p.x, p.y, p.z]) : null) > PINCH_IS_OPEN) text = 'Keep thumb and index pinched while you move';
+  }
+  const el = $('coach'); el.hidden = !text; if (el.textContent !== text) el.textContent = text;
 }
 
 function draw(res) {
@@ -178,6 +199,8 @@ async function record(t) {
   const li = $('take-' + t.id), bar = li.querySelector('.cp-bar i'), stateEl = li.querySelector('.cp-state');
   const a = { id: t.id, frames: [], recording: false, t0: 0 };
   state.active = a;
+  delete state.takes[t.id]; delete state.kept[t.id];
+  preview.hide();
   li.classList.add('active'); bar.style.width = '0';
   refresh();
   log(`take ${t.id}: countdown`);
@@ -189,15 +212,25 @@ async function record(t) {
     bar.style.width = Math.min(100, ((performance.now() - a.t0) / (t.seconds * 1000)) * 100) + '%';
     await sleep(50);
   }
-  a.recording = false; bar.style.width = '100%';
+  a.recording = false; bar.style.width = '100%'; coach(null, null);
   if (state.running && a.frames.length) state.takes[t.id] = a.frames;
   const seen = a.frames.filter((f) => f.world).length;
   log(`take ${t.id}: ${a.frames.length} frames, ${seen} with a hand`);
   if (a.frames.length && !seen) say(`No hand was seen during ${t.title}. Retake if that was not intended.`); else say('');
   state.active = null; state.busy = false;
   li.classList.remove('active');
+  if (state.takes[t.id]) review(t.id);
   refresh();
 }
+
+// ---- replay ----
+function review(id) {
+  const t = TAKES.find((x) => x.id === id);
+  preview.show(id, t.title, state.takes[id]);
+  refresh();
+}
+
+function keep(id) { state.kept[id] = true; log(`take ${id}: kept`); refresh(); }
 
 // ---- save ----
 function save() {
@@ -220,4 +253,8 @@ $('stop').addEventListener('click', stopCamera);
 $('save').addEventListener('click', save);
 $('copy').addEventListener('click', copy);
 buildList();
+// Test hook, only when the address has ?test: loads a saved recording so the replay can be checked without a camera.
+if (new URLSearchParams(location.search).has('test')) {
+  window.__captureTest = { load(json) { state.takes = json.takes; state.kept = {}; preview.hide(); refresh(); }, review, keep, state };
+}
 log('capture page ready');

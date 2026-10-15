@@ -32,9 +32,29 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(
 .cp-take h2 { margin: 0; font-size: 15px; }
 .cp-take h2 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
 .cp-state { font: 12px var(--mono); color: var(--muted); }
-.cp-take.done .cp-state { color: var(--ok); }
+
 .cp-take p { margin: 4px 0 10px; color: var(--muted); }
 .cp-bar { height: 6px; background: #0d1017; border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
 .cp-bar i { display: block; height: 100%; width: 0; background: var(--blue); }
 .cp-size { margin: 0 0 10px; color: var(--muted); }
 .cp-size b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
+
+/* Replay panel */
+.cp-pv { background: var(--panel); border: 1px solid var(--blue); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.cp-pv-top h2 { margin: 0 0 8px; font-size: 15px; }
+.cp-pv-stage { position: relative; aspect-ratio: 16 / 10; background: #04070c; border-radius: 8px; overflow: hidden; }
+.cp-pv-note { margin: 8px 0 0; color: var(--amber); }
+.cp-tl { position: relative; height: 22px; margin: 12px 0 6px; background: #0d1017; border-radius: 4px; }
+.pv-ev { position: absolute; top: 3px; bottom: 3px; border-radius: 3px; opacity: 0.95; }
+.pv-ev.pinch, .k.pinch::before { background: var(--blue); }
+.pv-ev.hold, .k.hold::before { background: var(--ok); }
+.pv-ev.scroll, .k.scroll::before { background: var(--amber); }
+.pv-playhead { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; }
+.cp-key { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 12px var(--mono); color: var(--muted); }
+.k::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.cp-checks { list-style: none; margin: 10px 0 12px; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.cp-checks li::before { margin-right: 8px; font: 600 12px var(--mono); }
+.cp-checks .ok { color: var(--ink); } .cp-checks .ok::before { content: 'ok'; color: var(--ok); }
+.cp-checks .bad { color: var(--amber); } .cp-checks .bad::before { content: 'check'; color: var(--amber); }
+.cp-take.kept .cp-state { color: var(--ok); }
+.cp-coach { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; background: #2a2210; color: var(--amber); font-weight: 600; }

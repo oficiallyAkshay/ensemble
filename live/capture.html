@@ -8,6 +8,12 @@
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="capture.css">
+<!-- The 3D hand preview: local copies of three.js r128 (MIT) and the scene module, so nothing loads from another host. -->
+<script defer src="capture3d/vendor/three.min.js"></script>
+<script defer src="capture3d/vendor/GLTFLoader.js"></script>
+<script defer src="capture3d/vendor/CCDIKSolver.js"></script>
+<script defer src="capture3d/hand-data.js"></script>
+<script defer src="capture3d/scene3d.js"></script>
 </head>
 <body>
 <main class="cp">
@@ -24,6 +30,7 @@
         <div class="cp-count" id="count" hidden></div>
         <div class="cp-idle" id="idle">The camera is off.</div>
       </div>
+      <p class="cp-coach" id="coach" role="status" aria-live="polite" hidden></p>
       <div class="cp-readout" role="status" aria-live="off">
         <span>Hand <b id="r-hand">off</b></span>
         <span>Gesture <b id="r-gesture">none</b></span>
@@ -38,9 +45,21 @@
     </section>
 
     <section class="cp-takes" aria-label="Takes">
+      <div class="cp-pv" id="pv" hidden>
+        <div class="cp-pv-top"><h2 id="pv-head">Replay</h2></div>
+        <div class="cp-pv-stage" id="pv-stage"></div>
+        <p class="cp-pv-note" id="pv-note" hidden></p>
+        <div class="cp-tl" id="pv-timeline" aria-label="Detected events"></div>
+        <div class="cp-key"><span class="k pinch">Pinch</span><span class="k hold">Thumbs-up</span><span class="k scroll">Pinch and drag</span></div>
+        <ul class="cp-checks" id="pv-checks"></ul>
+        <div class="cp-actions">
+          <button type="button" class="cp-btn" id="pv-retake">Retake</button>
+          <button type="button" class="cp-btn primary" id="pv-keep">Keep</button>
+        </div>
+      </div>
       <ol id="takes" class="cp-list"></ol>
       <div class="cp-save">
-        <div class="cp-size">Recording size <b id="size">0 B</b> <span id="taken">(0 of 5 takes)</span></div>
+        <div class="cp-size">Recording size <b id="size">0 B</b> <span id="taken">(0 of 5 takes kept)</span></div>
         <div class="cp-actions">
           <button type="button" class="cp-btn primary" id="save" disabled>Save recording</button>
           <button type="button" class="cp-btn" id="copy" disabled>Copy JSON</button>
