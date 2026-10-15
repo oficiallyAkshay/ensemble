@@ -3,6 +3,15 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.14</title>
+            <pubDate>Thu, 15 Oct 2026 12:12:33 -0400</pubDate>
+            <sparkle:version>345</sparkle:version>
+            <sparkle:shortVersionString>0.2.14</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.14/Ensemble-0.2.14.dmg" length="6338566" type="application/octet-stream" sparkle:edSignature="+MSEDH8wJ/OLCSybsAtq5Bxoxct7ikEUWZCL7szcEdN4GhRA2A9XESJRZIrSD98ZzqzgQScF4LGGX+8kCBREBw=="/>
+        </item>
+        <item>
             <title>0.2.13</title>
             <pubDate>Thu, 15 Oct 2026 11:55:34 -0400</pubDate>
             <sparkle:version>331</sparkle:version>
@@ -19,15 +28,6 @@
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.12/Ensemble-0.2.12.dmg" length="6268222" type="application/octet-stream" sparkle:edSignature="ml4RQ4iCu4CClivL0qDlAo5zZR+iqw+zm0+WF838UQ2PS8m3ENBpbGBsO3s5fhdFWsvKtWT4dvb35x9SRyvWBw=="/>
-        </item>
-        <item>
-            <title>0.2.11</title>
-            <pubDate>Thu, 15 Oct 2026 01:29:49 -0400</pubDate>
-            <sparkle:version>303</sparkle:version>
-            <sparkle:shortVersionString>0.2.11</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.11/Ensemble-0.2.11.dmg" length="6260954" type="application/octet-stream" sparkle:edSignature="mRwZVW4N4asV7ngAf835Mqrh2dJkyyez/RmOjX0sl8mIfVPIv/ziXK+7H7goZzha2owBJ73A1hxwaCxT6ix2AA=="/>
         </item>
     </channel>
 </rss>
