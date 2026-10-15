@@ -478,16 +478,19 @@
   }
 
   // ---- the counts: two GitHub requests after load, low priority, nothing about the visitor ----
-  // Stars come from the repo API; clones come from the clonometer ledger on the badges branch. Any failure, or a count under 5, leaves that part out.
+  // Stars come from the repo API; clones come from the clonometer ledger on the badges branch. Any failure, or a count under 5, leaves that number out.
   const GH = { credentials: 'omit', referrerPolicy: 'no-referrer', priority: 'low' };
   const fmt = (n) => n.toLocaleString('en-US');
   async function counts() {
     const out = $('counts'); if (!out) return;
     const got = { clones: '', stars: '' };
+    // Under 5 stars (or when GitHub does not answer) the line invites the first stars instead of showing a small number.
     const paint = () => {
-      const parts = [got.clones && `${got.clones} clones`, got.stars && `${got.stars} stars`].filter(Boolean);
-      out.textContent = parts.join(' · '); out.hidden = !parts.length;
+      const parts = [got.clones && `${got.clones} clones`, got.stars ? `${got.stars} stars` : 'be the first to \u2605 star it'].filter(Boolean);
+      const text = parts.join(' · ');
+      out.textContent = text.charAt(0).toUpperCase() + text.slice(1); out.hidden = false;
     };
+    paint();
     await Promise.all([
       (async () => {
         try {

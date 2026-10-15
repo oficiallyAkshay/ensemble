@@ -355,17 +355,17 @@ async function letter() {
 }
 
 async function lettersStars() {
-  say('scenario stars: stars and clones, each shown, hidden under 5, absent or failing');
+  say('scenario stars: stars and clones, each shown from 5 up; below that the line invites the first stars');
   const LEDGER = { total: 1342, total_short: '1.3k' };
   for (const [name, stars, clones, want] of [
     ['12 stars, no ledger yet', 12, 'missing', /^12 stars$/],
     ['12 stars, 1.3k clones', 12, LEDGER, /^1\.3k clones · 12 stars$/],
     ['clones without total_short', 12, { total: 1342 }, /^1,342 clones · 12 stars$/],
-    ['3 stars, 1.3k clones', 3, LEDGER, /^1\.3k clones$/],
+    ['3 stars, 1.3k clones', 3, LEDGER, /^1\.3k clones · be the first to ★ star it$/],
     ['12 stars, 4 clones', 12, { total: 4, total_short: '4' }, /^12 stars$/],
-    ['0 stars, no ledger', 0, 'missing', /^$/],
-    ['stars fail, 1.3k clones', 'fail', LEDGER, /^1\.3k clones$/],
-    ['stars rate limit, ledger fails', 'limit', 'fail', /^$/],
+    ['0 stars, no ledger', 0, 'missing', /^Be the first to ★ star it$/],
+    ['stars fail, 1.3k clones', 'fail', LEDGER, /^1\.3k clones · be the first to ★ star it$/],
+    ['stars rate limit, ledger fails', 'limit', 'fail', /^Be the first to ★ star it$/],
     ['12 stars, ledger is not JSON', 12, 'limit', /^12 stars$/],
   ]) {
     const c = await launch({ port: 9352, flags: FAKE });
