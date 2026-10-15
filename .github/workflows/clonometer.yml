@@ -1,0 +1,20 @@
+# GitHub disables a scheduled workflow on a public repository after 60 days
+# with no commit to the repository; any commit, on any branch, resets that
+# clock, so a repository that commits regularly never sees this schedule
+# stop.
+name: clonometer
+on:
+  schedule: [{cron: "17 3 * * *"}]
+  workflow_dispatch:
+permissions: {}
+concurrency: {group: clonometer}
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - uses: oficiallyAkshay/clonometer@bc07967d1aafcbf67af9eb0ad230650de0be8ca4 # v1.1.0
+        with:
+          token: ${{ secrets.TRAFFIC_TOKEN }}
+          metrics: clones,views

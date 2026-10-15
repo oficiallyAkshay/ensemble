@@ -12,6 +12,7 @@
     "NOTARY_KEY_P8": "App Store Connect API key, used by release.yml so Apple notarizes the disk image; without it Gatekeeper rejects the download.",
     "NOTARY_KEY_ID": "Key id of the App Store Connect API key.",
     "NOTARY_ISSUER_ID": "Issuer id of the App Store Connect API key.",
-    "SPARKLE_ED_PRIVATE_KEY": "Sparkle EdDSA key, used by release.yml to sign the update feed entry so installed copies accept updates."
+    "SPARKLE_ED_PRIVATE_KEY": "Sparkle EdDSA key, used by release.yml to sign the update feed entry so installed copies accept updates.",
+    "TRAFFIC_TOKEN": "Fine-grained token for clonometer.yml: reads the repository's traffic (clones and views need Administration: read, which the built-in token cannot hold) and writes the daily count to the badges branch (Contents: write). The website shows the clone total from that branch."
   }
 }
