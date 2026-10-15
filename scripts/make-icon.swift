@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// Draws the Ensemble app icon with CoreGraphics and writes Assets/AppIcon.iconset, Assets/AppIcon.icns and Assets/logo.png.
+// Draws the Ensemble app icon (\"Lanterns\") with CoreGraphics and writes Assets/AppIcon.iconset, Assets/AppIcon.icns and Assets/logo.png.
 // Run from the repo root: swift scripts/make-icon.swift
 import AppKit
 import CoreGraphics
@@ -38,108 +38,75 @@ func roundedRect(_ r: CGRect, _ radius: CGFloat) -> CGPath {
     CGPath(roundedRect: r, cornerWidth: min(radius, r.width / 2), cornerHeight: min(radius, r.height / 2), transform: nil)
 }
 
-func fill(_ ctx: CGContext, _ path: CGPath, top: CGColor, bottom: CGColor, in rect: CGRect) {
-    ctx.saveGState()
-    ctx.addPath(path)
-    ctx.clip()
-    ctx.drawLinearGradient(gradient([(0, top), (1, bottom)]), start: CGPoint(x: rect.midX, y: rect.maxY), end: CGPoint(x: rect.midX, y: rect.minY), options: fullRange)
-    ctx.restoreGState()
-}
-
-/// The closed fist, front view, as one silhouette: a palm block with four knuckle bumps, plus the thumb across it.
-func fistPaths() -> (silhouette: CGPath, thumb: CGPath, creases: [CGPath]) {
-    let left: CGFloat = 372, width: CGFloat = 280, gap: CGFloat = 8
-    let fingerW = (width - 3 * gap) / 4
-    let silhouette = CGMutablePath()
-    silhouette.addPath(roundedRect(CGRect(x: left - 6, y: 300, width: width + 12, height: 280), 84))
-    let heights: [CGFloat] = [176, 196, 196, 172]
-    var creases: [CGPath] = []
-    for i in 0..<4 {
-        let x = left + CGFloat(i) * (fingerW + gap)
-        silhouette.addPath(roundedRect(CGRect(x: x, y: 646 - heights[i], width: fingerW, height: heights[i]), fingerW / 2))
-        creases.append(roundedRect(CGRect(x: x + 1, y: 478, width: fingerW - 2, height: 110), (fingerW - 2) / 2))
+/// Fine film grain as a tiled greyscale image, seeded so every build draws the same icon.
+let grain: CGImage = {
+    let n = 256
+    var seed: UInt64 = 0x9E3779B97F4A7C15
+    var bytes = [UInt8](repeating: 0, count: n * n)
+    for i in 0..<bytes.count {
+        seed = seed &* 6364136223846793005 &+ 1442695040888963407
+        bytes[i] = UInt8(truncatingIfNeeded: seed >> 56)
     }
-    let thumb = roundedRect(CGRect(x: left - 16, y: 346, width: 216, height: 88), 44)
-    return (silhouette, thumb, creases)
-}
+    let provider = CGDataProvider(data: Data(bytes) as CFData)!
+    return CGImage(width: n, height: n, bitsPerComponent: 8, bitsPerPixel: 8, bytesPerRow: n,
+                   space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGBitmapInfo(rawValue: 0),
+                   provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
+}()
 
-func drawWaves(_ ctx: CGContext, small: Bool) {
-    let center = CGPoint(x: 512, y: 484)
-    let radii: [CGFloat] = [222, 292, 362]
-    let alphas: [CGFloat] = [0.95, 0.7, 0.45]
-    let spread: CGFloat = 36 * .pi / 180
-    ctx.setLineCap(.round)
-    ctx.setLineWidth(small ? 34 : 28)
-    for (radius, alpha) in zip(radii, alphas) {
-        ctx.setStrokeColor(rgb(0xFFFFFF, alpha))
-        for side in [CGFloat(0), .pi] {
-            ctx.addArc(center: center, radius: radius, startAngle: side - spread, endAngle: side + spread, clockwise: false)
-            ctx.strokePath()
-        }
-    }
-}
-
+/// "Lanterns": a deep teal night with three warm lights in the Ensemble formation. The top light is the session
+/// you are looking at, amber with a soft glow; the two below are dimmer peach.
 func draw(_ ctx: CGContext, pixels: Int) {
     let small = pixels <= 64
     let body = squircle(half: 412)
-    let bodyRect = CGRect(x: 100, y: 100, width: 824, height: 824)
 
     // Contact shadow under the whole icon.
     ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -14), blur: 24, color: rgb(0x0A0830, 0.30))
+    ctx.setShadow(offset: CGSize(width: 0, height: -14), blur: 24, color: rgb(0x061416, 0.32))
     ctx.addPath(body)
-    ctx.setFillColor(rgb(0x1B1580))
+    ctx.setFillColor(rgb(0x0F2A2C))
     ctx.fillPath()
     ctx.restoreGState()
 
-    // Base gradient: electric violet down to deep indigo.
+    // Base: teal, lighter at the top left, deepening to the bottom right.
     ctx.saveGState()
     ctx.addPath(body)
     ctx.clip()
-    ctx.drawLinearGradient(
-        gradient([(0, rgb(0x7B6BFF)), (0.45, rgb(0x4A3FE0)), (1, rgb(0x1A1470))]),
-        start: CGPoint(x: 330, y: 924), end: CGPoint(x: 700, y: 100), options: fullRange)
-    // Warm bloom bottom-right and cool bloom top-left give the surface depth.
-    ctx.drawRadialGradient(
-        gradient([(0, rgb(0xFF5FA8, 0.55)), (1, rgb(0xFF5FA8, 0))]),
-        startCenter: CGPoint(x: 800, y: 190), startRadius: 0, endCenter: CGPoint(x: 800, y: 190), endRadius: 460, options: [])
-    ctx.drawRadialGradient(
-        gradient([(0, rgb(0x4FE0FF, 0.40)), (1, rgb(0x4FE0FF, 0))]),
-        startCenter: CGPoint(x: 230, y: 860), startRadius: 0, endCenter: CGPoint(x: 230, y: 860), endRadius: 420, options: [])
-    ctx.restoreGState()
-
-    // Glyph with a soft lifted shadow.
-    ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -16), blur: 30, color: rgb(0x120C5C, 0.5))
-    ctx.beginTransparencyLayer(auxiliaryInfo: nil)
-    drawWaves(ctx, small: small)
-    let fist = fistPaths()
-    fill(ctx, fist.silhouette, top: rgb(0xFFFFFF), bottom: rgb(0xC9C5FF), in: CGRect(x: 366, y: 300, width: 292, height: 346))
+    ctx.drawLinearGradient(gradient([(0, rgb(0x24575A)), (0.55, rgb(0x163C3E)), (1, rgb(0x0C2426))]),
+                           start: CGPoint(x: 230, y: 900), end: CGPoint(x: 820, y: 110), options: fullRange)
     if !small {
-        ctx.setStrokeColor(rgb(0x4A3FE0, 0.28))
-        ctx.setLineWidth(5)
-        ctx.setLineCap(.round)
-        for crease in fist.creases { ctx.addPath(crease); ctx.strokePath() }
+        ctx.setBlendMode(.softLight)
+        ctx.setAlpha(0.35)
+        ctx.draw(grain, in: CGRect(x: 0, y: 0, width: 256, height: 256), byTiling: true)
+        ctx.setAlpha(1)
+        ctx.setBlendMode(.normal)
     }
-    // The thumb sits in front: a darker rim above it separates it from the fingers.
-    ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: 6), blur: 10, color: rgb(0x2A1FA8, 0.45))
-    ctx.translateBy(x: 464, y: 390)
-    ctx.rotate(by: -7 * .pi / 180)
-    ctx.translateBy(x: -464, y: -390)
-    fill(ctx, fist.thumb, top: rgb(0xFFFFFF), bottom: rgb(0xE4E1FF), in: CGRect(x: 356, y: 346, width: 216, height: 88))
-    ctx.restoreGState()
-    ctx.endTransparencyLayer()
+    // The looked-at light warms the dark around it.
+    let top = CGPoint(x: 512, y: 636)
+    ctx.drawRadialGradient(gradient([(0, rgb(0xFFC867, 0.42)), (1, rgb(0xFFC867, 0))]),
+                           startCenter: top, startRadius: 0, endCenter: top, endRadius: 270, options: [])
     ctx.restoreGState()
 
-    // Glass sheen over the top, clipped to the squircle.
-    ctx.saveGState()
-    ctx.addPath(body)
-    ctx.clip()
-    ctx.drawLinearGradient(
-        gradient([(0, rgb(0xFFFFFF, 0.0)), (1, rgb(0xFFFFFF, 0.20))]),
-        start: CGPoint(x: 512, y: 600), end: CGPoint(x: 512, y: 924), options: fullRange)
-    ctx.restoreGState()
+    // The three lights, lifted with a soft shadow.
+    func light(_ c: CGPoint, inner: UInt32, outer: UInt32, alpha: CGFloat) {
+        let r: CGFloat = 89
+        let disc = CGPath(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r), transform: nil)
+        ctx.saveGState()
+        ctx.setShadow(offset: CGSize(width: 0, height: -10), blur: 22, color: rgb(0x041012, 0.45))
+        ctx.addPath(disc)
+        ctx.setFillColor(rgb(outer, alpha))
+        ctx.fillPath()
+        ctx.restoreGState()
+        ctx.saveGState()
+        ctx.addPath(disc)
+        ctx.clip()
+        ctx.drawRadialGradient(gradient([(0, rgb(inner, alpha)), (1, rgb(outer, alpha))]),
+                               startCenter: CGPoint(x: c.x - 26, y: c.y + 30), startRadius: 0,
+                               endCenter: c, endRadius: r, options: fullRange)
+        ctx.restoreGState()
+    }
+    light(CGPoint(x: 375, y: 395), inner: 0xFAD2C0, outer: 0xE9A58C, alpha: 0.92)
+    light(CGPoint(x: 649, y: 395), inner: 0xFAD2C0, outer: 0xE9A58C, alpha: 0.92)
+    light(top, inner: 0xFFE7AE, outer: 0xFFC35C, alpha: 1)
 
     // Hairline rim: bright on top, faint underneath.
     ctx.saveGState()
@@ -147,9 +114,8 @@ func draw(_ ctx: CGContext, pixels: Int) {
     ctx.addPath(squircle(half: 410))
     ctx.replacePathWithStrokedPath()
     ctx.clip()
-    ctx.drawLinearGradient(
-        gradient([(0, rgb(0xFFFFFF, 0.05)), (0.5, rgb(0xFFFFFF, 0.15)), (1, rgb(0xFFFFFF, 0.65))]),
-        start: CGPoint(x: 512, y: 100), end: CGPoint(x: 512, y: 924), options: fullRange)
+    ctx.drawLinearGradient(gradient([(0, rgb(0xFFFFFF, 0.04)), (0.5, rgb(0xFFFFFF, 0.10)), (1, rgb(0xFFFFFF, 0.38))]),
+                           start: CGPoint(x: 512, y: 100), end: CGPoint(x: 512, y: 924), options: fullRange)
     ctx.restoreGState()
 }
 
