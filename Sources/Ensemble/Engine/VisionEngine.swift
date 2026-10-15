@@ -25,8 +25,8 @@ final class VisionEngine {
     var onDiagnostic: ((String) -> Void)?
 
     private(set) var isRunning = false
-    /// The face tracker is restarted once after a failure; a good reading re-arms that.
-    private var trackerRestarted = false
+    private var trackerRetry = TrackerRetry()
+    private var pendingTrackerRetry: Task<Void, Never>?
 
     private let camera = CameraSession()
     private let face = FaceTracker()
@@ -75,7 +75,7 @@ final class VisionEngine {
         face.onFailure = { [weak self] message in self?.trackerFailed(message) }
         face.onHead = { [weak self] head in
             guard let self else { return }
-            self.trackerRestarted = false
+            self.trackerRetry.reset()
             if head.faceCount >= 1 { self.hints.withLock { $0.lastFaceSeenAt = CACurrentMediaTime() } }
             self.onHead?(head)
         }
@@ -91,14 +91,24 @@ final class VisionEngine {
 
     private func trackerFailed(_ message: String) {
         guard isRunning else { return }
-        if trackerRestarted {
-            onStatus?(.faceTrackerFailed(message))
-        } else {
-            trackerRestarted = true
-            onDiagnostic?("face tracker failed (\(message)); restarting it once")
-            onStatus?(.faceTrackerRestarting)
-            face.start()
+        let delay = trackerRetry.nextDelay()
+        onDiagnostic?("face tracker failed (\(message)); retry \(trackerRetry.failures) in \(Int(delay)) s")
+        guard delay > 0 else { return restartTracker() }
+        // The failure stays on the status during the wait, so the panel says why there is no pointer.
+        onStatus?(.faceTrackerFailed(message))
+        let mine = generation
+        pendingTrackerRetry?.cancel()
+        pendingTrackerRetry = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            // A stop or a camera start since (which starts the tracker itself) changes the generation.
+            guard !Task.isCancelled, let self, self.generation == mine else { return }
+            self.restartTracker()
         }
+    }
+
+    private func restartTracker() {
+        onStatus?(.faceTrackerRestarting)
+        face.start()
     }
 
     /// True while something needs every hand frame (dictating, a send pending, calibrating, a gesture held).
@@ -130,7 +140,7 @@ final class VisionEngine {
         isRunning = true
         cameraStarted = false
         requestedCamera = cameraName
-        trackerRestarted = false
+        trackerRetry.reset()
         generation += 1
         fpsWindowStart = 0
         fpsFrames = 0
