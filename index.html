@@ -19,7 +19,7 @@
   .page { position: relative; overflow-x: clip; }
   .disp { font-family: var(--e-display); letter-spacing: -0.04em; }
 
-  /* ---- gradient shapes, with grain ---- */
+  /* ---- gradient shapes, with grain. Every gradient is linear: no centre point can show. ---- */
   .blob { position: absolute; display: block; pointer-events: none; background: var(--g); border-radius: var(--r, 50%); rotate: var(--rot, 0deg); animation: drift var(--dur, 22s) ease-in-out infinite alternate; }
   .blob::after, .cap::after { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0.22; mix-blend-mode: multiply; background-image: var(--grain); pointer-events: none; }
   .blob.soft::after { opacity: 0.14; }
@@ -31,22 +31,20 @@
   .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font: 700 18px var(--e-display); letter-spacing: -0.03em; }
   .brand .ens-mark { width: 21px; height: 21px; }
   .nav-links { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
-  .nav-links a { text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .nav-links a { text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
   .nav-links a:hover { background: #fff; }
 
-  /* ---- spread 1: the hero ---- */
-  .hero { position: relative; min-height: max(760px, min(100vh, 960px)); padding: 0 clamp(20px, 5.5vw, 90px); }
-  .hero .h1 { width: 46vw; height: 38vw; left: -17vw; top: -15vw; --r: 58% 42% 61% 39% / 46% 57% 43% 54%; --rot: -16deg; --g: conic-gradient(from 200deg at 50% 52%, #ff5fa2, #ff8a4c, #ffd84d, #ff7ab8 70%, #ff5fa2); }
-  .hero .h2 { width: 15vw; height: 15vw; left: 38vw; top: 33vw; --g: radial-gradient(circle at 30% 28%, #8ff0e2, #2fd3c0 45%, #3a7bff 100%); --dx: -10px; --dy: 14px; --dur: 17s; }
-  .hero .h3 { width: 26vw; height: 12vw; left: 3vw; bottom: -4vw; --r: 999px; --rot: -9deg; --g: linear-gradient(95deg, #ffe04d, #ffa63d 50%, #ff5f6d); }
-  .hero-text { position: relative; z-index: 5; padding-top: clamp(120px, 14vw, 200px); max-width: 58vw; }
-  .hero h1 { margin: 0; font: 700 clamp(46px, 8.2vw, 138px)/0.92 var(--e-display); letter-spacing: -0.045em; word-spacing: 0.06em; }
-  .hero h1 span { display: block; }
-  .hero h1 .grad { display: inline-block; background: linear-gradient(95deg, #3a7bff, #7a5cff 45%, #ff5fa2 85%); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: 0.06em; }
-  .hero h1 .sm { font-size: 0.5em; letter-spacing: -0.035em; line-height: 1.05; margin-top: 0.4em; color: #0a0a0a; font-weight: 600; }
-  .hero .sub { margin: 26px 0 0; max-width: 430px; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.45; color: #404040; letter-spacing: -0.015em; }
-  .hero .scroll { margin-top: 30px; display: inline-flex; align-items: center; gap: 10px; font: 500 12px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: #525252; text-decoration: none; }
-  .hero .scroll i { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #d4d4d4; display: grid; place-items: center; background: #fff; font-style: normal; }
+  /* ---- spread 1: the hero, with the whole action row above the fold ---- */
+  .hero { position: relative; min-height: max(740px, min(100vh, 940px)); padding: 0 clamp(20px, 5.5vw, 90px); }
+  .hero .h1 { width: 46vw; height: 36vw; left: -16vw; top: -14vw; --r: 58% 42% 61% 39% / 46% 57% 43% 54%; --rot: -16deg;
+    --g: linear-gradient(200deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 55%), linear-gradient(140deg, #ffe9a6 0%, #ffcb9a 45%, #ffaaa0 100%); }
+  .hero .h3 { width: 24vw; height: 11vw; left: 33vw; bottom: -5vw; --r: 999px; --rot: -7deg; --g: linear-gradient(95deg, #ffe7a8, #ffc79b 55%, #ffb0a6); }
+  .hero-text { position: relative; z-index: 5; padding-top: clamp(104px, 8.4vw, 130px); max-width: 52vw; }
+  .hero .ens-chip { background: #fff; rotate: -3deg; font-size: 12px; padding: 8px 14px; box-shadow: 0 8px 18px rgba(80, 60, 160, 0.15); margin: 0 0 18px 4px; }
+  .hero h1 { margin: 0; font: 700 clamp(30px, 4.9vw, 88px)/1.02 var(--e-display); letter-spacing: -0.045em; text-wrap: balance; }
+  /* the two highlights are cool blues and violets: they stay clear of the warm shapes behind the headline */
+  .hero h1 mark { background: none; color: inherit; background-image: linear-gradient(95deg, #c4d4ff, #9db8ff); background-repeat: no-repeat; background-size: 100% 0.34em; background-position: 0 90%; padding: 0 0.04em; }
+  .hero h1 mark.b { background-image: linear-gradient(95deg, #d9c9ff, #b79cff); }
 
   .caps { position: absolute; right: -3vw; top: -2vw; width: 44vw; height: 100%; display: flex; gap: 1.3vw; align-items: flex-start; justify-content: flex-end; z-index: 1; }
   .cap { position: relative; flex: none; width: 5.6vw; border-radius: 999px; background: var(--g); overflow: hidden; translate: 0 -2vw; transition: translate 0.9s var(--e-spring), box-shadow 0.8s ease, filter 0.8s ease; box-shadow: 0 20px 30px -12px rgba(40, 30, 90, 0.25); }
@@ -55,60 +53,27 @@
   .cap.lit::before { opacity: 1; }
   .cap .ens-mark { position: absolute; left: 50%; bottom: 2.2vw; translate: -50% 0; width: 2.6vw; height: 2.6vw; min-width: 18px; min-height: 18px; color: #fff; opacity: 0; transition: opacity 0.6s ease; z-index: 2; }
   .cap.lit .ens-mark { opacity: 1; }
-  .island-slot { position: absolute; left: 51vw; top: 25vw; z-index: 6; rotate: -5deg; scale: 1.22; transform-origin: left center; pointer-events: none; }
+  .island-slot { position: absolute; left: 60vw; top: 16vw; z-index: 6; rotate: -5deg; scale: 1.22; transform-origin: left center; pointer-events: none; }
   .hero-bead { transition: left 1s var(--e-spring), top 1s var(--e-spring); margin: -2.2vw 0 0 -2.2vw; }
-  .win-cut { position: absolute; right: 2.5vw; bottom: 3vw; width: 25vw; min-width: 250px; z-index: 4; rotate: 5deg; }
+  .hero-shot { position: absolute; right: 3vw; bottom: 3vw; width: 19vw; min-width: 230px; z-index: 4; rotate: 4deg; margin: 0; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 16px; border: 1px solid rgba(10, 10, 10, 0.08); background: #faf9f5; }
   .bead-obj { position: absolute; z-index: 5; left: 62vw; top: 22vw; width: 4.4vw; height: 4.4vw; min-width: 36px; min-height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); -webkit-backdrop-filter: blur(6px) saturate(1.8); backdrop-filter: blur(6px) saturate(1.8);
     box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.8), inset 0 -8px 16px rgba(255, 255, 255, 0.3), 0 14px 26px rgba(20, 40, 120, 0.3); }
   .bead-obj::after { content: ""; position: absolute; left: 22%; top: 15%; width: 32%; height: 19%; border-radius: 50%; background: rgba(255, 255, 255, 0.95); rotate: -30deg; }
 
-  /* the cut-out Claude window */
-  .paneset { background: #faf9f5; border-radius: 12px; padding: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .paneset .pn { background: #faf9f5; border-radius: 9px; border: 1px solid #e8e6dc; padding: 9px 8px 8px; display: flex; flex-direction: column; gap: 6px; min-height: 150px; position: relative; }
-  .paneset .pn i { display: block; height: 7px; border-radius: 4px; background: #e8e6dc; }
-  .paneset .pn i.me { align-self: flex-end; width: 60%; height: 18px; border-radius: 8px; background: #f0eee6; }
-  .paneset .pn i.w1 { width: 90%; } .paneset .pn i.w2 { width: 70%; } .paneset .pn i.w3 { width: 80%; }
-  .paneset .pn .cm { margin-top: auto; height: 20px; border-radius: 8px; border: 1px solid #dedad0; background: #fff; }
-  .paneset .pn.on { outline: 3px solid rgba(82, 148, 255, 0.9); outline-offset: 1px; box-shadow: 0 0 14px rgba(82, 148, 255, 0.5); }
-  .paneset .dots { display: flex; gap: 4px; margin-bottom: 2px; } .paneset .dots b { width: 6px; height: 6px; border-radius: 50%; background: #ff5f57; } .paneset .dots b:nth-child(2) { background: #febc2e; } .paneset .dots b:nth-child(3) { background: #28c840; }
-  .paneset .bead { position: absolute; right: 12px; top: 40px; width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(10, 10, 10, 0.2), 0 3px 8px rgba(10, 10, 10, 0.25); }
-
-  /* ---- spread 2: the letter ---- */
-  .letter-sec { position: relative; padding: clamp(60px, 9vw, 140px) 0 40px; }
-  .letter-sec .l1 { width: 30vw; height: 22vw; right: -10vw; top: 4vw; --r: 999px; --rot: 28deg; --g: linear-gradient(100deg, #7a5cff, #3a7bff 55%, #2fd3c0); }
-  .letter-sec .l2 { width: 18vw; height: 18vw; left: -7vw; top: 38vw; --r: 44% 56% 38% 62% / 55% 40% 60% 45%; --rot: 20deg; --g: radial-gradient(circle at 35% 30%, #ffe04d, #ff9a4c 55%, #ff5fa2); --dur: 26s; }
-  .chip-wrap { position: relative; z-index: 3; padding-left: clamp(20px, 8vw, 150px); margin-bottom: 20px; }
-  .chip-wrap .ens-chip { rotate: -3deg; font-size: 12px; padding: 8px 14px; box-shadow: 0 8px 18px rgba(80, 60, 160, 0.15); }
-  .lead { position: relative; z-index: 3; margin: 0 0 clamp(30px, 4vw, 64px); padding: 0 clamp(20px, 8vw, 150px); max-width: min(1180px, 94vw); font: 700 clamp(32px, 5.3vw, 84px)/1.02 var(--e-display); letter-spacing: -0.045em; text-wrap: balance; }
-  .lead mark { background: none; color: inherit; background-image: linear-gradient(95deg, #ffd84d, #ff9a4c 60%, #ff5fa2); background-repeat: no-repeat; background-size: 100% 0.34em; background-position: 0 90%; padding: 0 0.04em; }
-  .lead mark.b { background-image: linear-gradient(95deg, #8fb8ff, #5294ff 50%, #7a5cff); }
-  .body { position: relative; z-index: 3; margin-left: clamp(20px, 15vw, 280px); max-width: 640px; padding-right: 20px; }
-  .body p { margin: 0 0 24px; color: #404040; font-size: clamp(19px, 1.7vw, 24px); line-height: 1.55; letter-spacing: -0.015em; text-wrap: pretty; }
-  .body p.p2 { font-size: clamp(26px, 2.8vw, 40px); line-height: 1.12; letter-spacing: -0.035em; color: #0a0a0a; font-weight: 600; font-family: var(--e-display); margin-left: -3vw; }
-  .body p.p3 { font-size: clamp(30px, 3.6vw, 52px); line-height: 1.05; letter-spacing: -0.04em; color: #0a0a0a; font-weight: 700; font-family: var(--e-display); }
-  .body p.p4 { font-size: clamp(20px, 2vw, 26px); color: #0a0a0a; font-weight: 500; }
-  .float-hand { float: right; width: clamp(210px, 25vw, 380px); aspect-ratio: 1; shape-outside: circle(50%); margin: -20px -9vw 10px 20px; position: relative; rotate: 8deg; }
-  .float-hand .blob { inset: 0; position: absolute; --r: 52% 48% 55% 45% / 47% 56% 44% 53%; --g: conic-gradient(from 120deg at 50% 50%, #ff5fa2, #ff9a4c, #ffe04d, #3fd9c4, #5294ff, #ff5fa2); }
-  .float-hand svg { position: absolute; left: 14%; top: 1%; width: 72%; }
-  .sign { position: relative; z-index: 3; margin: 36px 0 0; padding-left: clamp(20px, 15vw, 280px); font: 500 12px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: #737373; }
-
-  .reveal { opacity: 0; translate: 0 22px; transition: opacity 0.8s var(--e-ease), translate 0.9s var(--e-spring); }
-  .reveal.in { opacity: 1; translate: 0 0; }
-
-  /* the call to action, on its own big shape */
-  .cta-stage { position: relative; margin: clamp(50px, 7vw, 110px) 0 0; padding: clamp(40px, 6vw, 90px) clamp(20px, 8vw, 150px) clamp(60px, 8vw, 120px); }
-  .cta-stage .c1 { width: 70vw; height: 24vw; left: -12vw; top: 6vw; --r: 999px; --rot: -6deg; --g: linear-gradient(95deg, #ff5fa2, #e9a58c 22%, #ffc35c 45%, #ffe04d 62%, #5fd9c6 85%); opacity: 0.95; }
-  .cta-stage .c2 { width: 12vw; height: 12vw; right: 6vw; top: 0; --g: radial-gradient(circle at 35% 30%, #a9c8ff, #5294ff 60%, #7a5cff); --dur: 15s; }
-  .cta { position: relative; z-index: 4; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
-  .btns { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
-  .primary-col { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
-  .stars { font-size: 14px; color: #262626; text-decoration: underline dotted; text-decoration-color: #525252; text-underline-offset: 4px; padding-left: 6px; font-weight: 500; }
-  .stars:hover { text-decoration-color: #0a0a0a; }
+  /* the action row */
+  .cta { position: relative; z-index: 6; margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .btns { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .cta .ens-btn.primary { box-shadow: 0 14px 30px rgba(10, 10, 10, 0.3); font-size: 16px; padding: 13px 24px; }
   .dl-btn { font-size: 16px; padding: 13px 24px; }
   .dl-btn svg { width: 17px; height: 17px; margin-top: -2px; }
-  .note { font-size: 14px; color: #262626; margin: 0; padding-left: 6px; font-weight: 500; }
+  .src { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 15px; color: #262626; }
+  .src a { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: underline; text-decoration-color: #a3a3a3; }
+  .src a:hover { text-decoration-color: #0a0a0a; }
+  .src a svg { width: 18px; height: 18px; flex: none; }
+  .counts { color: #404040; font-weight: 500; }
+  .note { font-size: 14px; color: #262626; margin: 0; font-weight: 500; }
   .mac-only { display: none; }
-  .cta .ens-btn.primary { box-shadow: 0 14px 30px rgba(10, 10, 10, 0.3); }
 
   .pop { position: absolute; left: 0; bottom: calc(100% + 16px); z-index: 30; width: min(360px, calc(100vw - 40px)); padding: 20px 20px 18px; transform-origin: 60px calc(100% + 10px);
     opacity: 0; transform: translateY(8px) scale(0.92); pointer-events: none; visibility: hidden;
@@ -127,49 +92,82 @@
   .pop .dots i:nth-child(2) { animation-delay: 0.15s; } .pop .dots i:nth-child(3) { animation-delay: 0.3s; }
   @keyframes pulse { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
 
+  /* ---- spread 2: the letter ---- */
+  .letter-sec { position: relative; padding: clamp(40px, 6vw, 90px) 0 40px; }
+  .letter-sec .l1 { width: 30vw; height: 22vw; right: -10vw; top: 2vw; --r: 999px; --rot: 28deg; --g: linear-gradient(100deg, #7a5cff, #3a7bff 55%, #2fd3c0); }
+  .letter-sec .l2 { width: 18vw; height: 18vw; left: -7vw; top: 40vw; --r: 44% 56% 38% 62% / 55% 40% 60% 45%; --rot: 20deg; --g: linear-gradient(150deg, #ffe9a6, #ffc79b 55%, #ffaaa0); --dur: 26s; }
+  .how-head .ens-chip { background: #fff; }
+  .body { position: relative; z-index: 3; margin-left: clamp(20px, 15vw, 280px); max-width: 640px; padding-right: 20px; }
+  .body p { margin: 0 0 24px; color: #404040; font-size: clamp(19px, 1.7vw, 24px); line-height: 1.55; letter-spacing: -0.015em; text-wrap: pretty; }
+  .body p.p2 { font-size: clamp(26px, 2.8vw, 40px); line-height: 1.12; letter-spacing: -0.035em; color: #0a0a0a; font-weight: 600; font-family: var(--e-display); margin-left: -3vw; }
+  .body p.p3 { font-size: clamp(30px, 3.6vw, 52px); line-height: 1.05; letter-spacing: -0.04em; color: #0a0a0a; font-weight: 700; font-family: var(--e-display); }
+  .body p.p4 { font-size: clamp(20px, 2vw, 26px); color: #0a0a0a; font-weight: 500; }
+  .float-hand { float: right; width: clamp(210px, 25vw, 380px); aspect-ratio: 1; shape-outside: circle(50%); margin: -20px -9vw 10px 20px; position: relative; rotate: 6deg; }
+  .float-hand .blob { inset: 0; position: absolute; --r: 52% 48% 55% 45% / 47% 56% 44% 53%; --g: linear-gradient(160deg, #fff3d6, #ffdcc9 50%, #e4dcff); animation-duration: 30s; }
+  .float-hand .scene { position: absolute; inset: -6% -2% 0 -2%; }
+  .sign { position: relative; z-index: 3; margin: 36px 0 0; padding-left: clamp(20px, 15vw, 280px); font: 500 12px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: #595959; }
+
+  .reveal { opacity: 0; translate: 0 22px; transition: opacity 0.8s var(--e-ease), translate 0.9s var(--e-spring); }
+  .reveal.in { opacity: 1; translate: 0 0; }
+
+  /* the 3D stages: transparent canvases that sit on a pale card, loaded only when they scroll into view */
+  .fig3d { position: absolute; z-index: 4; aspect-ratio: 1; border-radius: 34px; overflow: hidden; background: linear-gradient(160deg, #ffffff, #f0ecfb); box-shadow: 0 24px 44px -14px rgba(40, 30, 90, 0.35), 0 2px 6px rgba(10, 10, 10, 0.08); }
+  .fig3d canvas { opacity: 0; transition: opacity 0.6s ease; }
+  .fig3d.ready canvas { opacity: 1; }
+  .scene { position: relative; width: 100%; height: 100%; }
+
   /* ---- spread 3: how it works, scattered along the scroll ---- */
   .how { position: relative; padding: clamp(40px, 6vw, 90px) 0 0; }
   .how-head { position: relative; z-index: 4; padding-left: clamp(20px, 8vw, 150px); margin-bottom: 0; }
   .how-head h2 { margin: 16px 0 0; font: 700 clamp(40px, 7vw, 112px)/0.92 var(--e-display); letter-spacing: -0.05em; }
-  .moment { position: relative; min-height: clamp(380px, 38vw, 560px); }
+  .moment { position: relative; min-height: max(420px, 38vw); }
+  .m3 { min-height: max(420px, 40vw); }
+  .m4 { min-height: max(420px, 54vw); }
   .moment .txt { position: relative; z-index: 4; max-width: 440px; padding-top: clamp(30px, 5vw, 80px); }
-  .moment .n { font: 500 13px var(--e-mono); letter-spacing: 0.1em; color: #525252; }
+  .moment .n { font: 500 13px var(--e-mono); letter-spacing: 0.1em; color: #404040; }
   .moment h3 { margin: 8px 0 12px; font: 700 clamp(44px, 6.4vw, 104px)/0.9 var(--e-display); letter-spacing: -0.05em; }
   .moment p { margin: 0; font-size: clamp(17px, 1.5vw, 20px); line-height: 1.45; color: #404040; letter-spacing: -0.01em; max-width: 340px; }
+  .moment .shot { position: absolute; z-index: 3; margin: 0; }
+  .moment .shot figcaption { display: inline-block; margin-top: 8px; padding: 3px 9px; border-radius: 8px; background: #fff; font-size: 13px; line-height: 1.35; color: #262626; }
   .m1 { margin-top: clamp(-30px, -2vw, 0px); } .m1 .txt { margin-left: clamp(20px, 8vw, 150px); }
-  .m2 { margin-top: -4vw; } .m2 .txt { margin-left: auto; margin-right: clamp(20px, 9vw, 160px); text-align: left; }
-  .m3 { margin-top: -2vw; } .m3 .txt { margin-left: clamp(20px, 22vw, 340px); }
-  .m4 { margin-top: -3vw; } .m4 .txt { margin-left: auto; margin-right: clamp(20px, 14vw, 240px); }
-  .m1 .bl1 { width: 40vw; height: 34vw; right: -9vw; top: 2vw; --r: 56% 44% 48% 52% / 50% 58% 42% 50%; --rot: 12deg; --g: linear-gradient(145deg, #7a5cff, #5294ff 38%, #3fd9c4 70%, #ffe04d); }
-  .m1 .cut { position: absolute; right: 4vw; top: 7vw; width: 33vw; min-width: 300px; rotate: -6deg; z-index: 3; }
-  .m1 .bead-obj { left: auto; right: 14vw; top: 17vw; width: 4.4vw; z-index: 5; }
-  .m2 .bl2 { width: 34vw; height: 34vw; left: -8vw; top: 0; --r: 48% 52% 60% 40% / 56% 42% 58% 44%; --rot: -10deg; --g: conic-gradient(from 300deg at 50% 50%, #ff5fa2, #ff9a4c, #ffe04d, #ff7ab8 75%, #ff5fa2); }
-  .m2 .cut { position: absolute; left: 3vw; top: 1.5vw; width: 25vw; min-width: 220px; rotate: -9deg; z-index: 3; }
-  .m3 .bl3 { width: 52vw; height: 17vw; right: -9vw; top: 7vw; --r: 999px; --rot: -8deg; --g: linear-gradient(95deg, #2fd3c0, #5294ff 50%, #7a5cff 90%); }
-  .m3 .island-cut { position: absolute; right: 7vw; top: 9.4vw; z-index: 3; rotate: -5deg; scale: 1.7; transform-origin: right center; }
-  .m3 .wave { position: absolute; right: 9vw; top: 20vw; display: flex; gap: 0.7vw; align-items: center; height: 8vw; z-index: 3; }
+  .m2 { margin-top: -2vw; } .m2 .txt { margin-left: auto; margin-right: clamp(20px, 9vw, 160px); }
+  .m3 { margin-top: 0; } .m3 .txt { margin-left: clamp(20px, 15vw, 280px); }
+  .m4 { margin-top: -1vw; } .m4 .txt { margin-left: auto; margin-right: clamp(20px, 12vw, 220px); }
+  .m1 .bl1 { width: 40vw; height: 34vw; right: -9vw; top: 3vw; --r: 56% 44% 48% 52% / 50% 58% 42% 50%; --rot: 12deg; --g: linear-gradient(145deg, #7a5cff, #5294ff 40%, #3fd9c4 80%); opacity: 0.9; }
+  .m1 .shot { right: 5vw; top: 1vw; width: 23vw; min-width: 260px; rotate: -3deg; }
+  .m1 .fig3d { right: 30vw; top: 14vw; width: 17vw; min-width: 190px; rotate: 3deg; }
+  .m2 .bl2 { width: 34vw; height: 34vw; left: -8vw; top: 1vw; --r: 48% 52% 60% 40% / 56% 42% 58% 44%; --rot: -10deg; --g: linear-gradient(160deg, #ffe9a6, #ffc79b 50%, #ffaaa0); }
+  .m2 .shot { left: 4vw; top: 1vw; width: 23vw; min-width: 260px; rotate: 3deg; }
+  .m2 .fig3d { left: 22vw; top: 15vw; width: 18vw; min-width: 190px; rotate: -3deg; }
+  .m3 .bl3 { width: 52vw; height: 17vw; right: -9vw; top: 20vw; --r: 999px; --rot: -8deg; --g: linear-gradient(95deg, #2fd3c0, #5294ff 50%, #7a5cff 90%); }
+  .m3 .shot { right: 6vw; top: 1vw; width: 23vw; min-width: 260px; rotate: -2deg; }
+  .m3 .wave { position: absolute; right: 31vw; top: 12vw; display: flex; gap: 0.7vw; align-items: center; height: 8vw; z-index: 5; }
   .m3 .wave i { width: 1.2vw; min-width: 8px; border-radius: 999px; background: var(--g); display: block; height: var(--h); box-shadow: 0 10px 18px -6px rgba(40, 30, 90, 0.35); }
-  .m4 .bl4 { width: 34vw; height: 34vw; left: -6vw; top: 1vw; --r: 52% 48% 40% 60% / 46% 55% 45% 54%; --rot: 8deg; --g: radial-gradient(circle at 60% 35%, #ffe04d, #ff9a4c 45%, #ff5f6d 80%); }
-  .m4 .cut { position: absolute; left: 6vw; top: 1vw; width: 24vw; min-width: 210px; rotate: -10deg; z-index: 3; }
+  .m4 .bl4 { width: 34vw; height: 34vw; left: -6vw; top: 1vw; --r: 52% 48% 40% 60% / 46% 55% 45% 54%; --rot: 8deg; --g: linear-gradient(150deg, #ffe9a6, #ffcb9a 50%, #ffaaa0); }
+  .m4 .shot { left: 4vw; top: 1vw; width: 23vw; min-width: 260px; rotate: -3deg; }
+  .m4 .fig3d { left: 22vw; top: 16vw; width: 18vw; min-width: 190px; rotate: 3deg; }
+  .m4 .shot.small { left: auto; right: 3vw; top: 25vw; width: 14vw; min-width: 190px; rotate: 4deg; }
 
   /* ---- spread 4: download ---- */
   .dl { position: relative; padding: clamp(70px, 10vw, 150px) 0 0; overflow: clip; }
-  .dl .giant { position: relative; z-index: 2; margin: 0; white-space: nowrap; font: 700 clamp(70px, 21vw, 340px)/0.82 var(--e-display); letter-spacing: -0.07em; margin-left: -1.6vw; background: linear-gradient(95deg, #ff5fa2 0%, #ff9a4c 22%, #ffe04d 40%, #3fd9c4 62%, #5294ff 82%, #7a5cff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0 0.08em; }
-  .dl .d1 { width: 30vw; height: 30vw; right: -7vw; top: -6vw; --g: radial-gradient(circle at 35% 35%, #ffc35c, #e9a58c 45%, #ff5fa2 80%); --dur: 19s; }
+  .dl .giant { position: relative; z-index: 2; margin: 0; white-space: nowrap; font: 700 clamp(70px, 21vw, 340px)/0.82 var(--e-display); letter-spacing: -0.07em; margin-left: -1.6vw; background: linear-gradient(95deg, #d6336c 0%, #b23bc4 38%, #6a46e8 68%, #2f5fe0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0 0.08em; }
+  .dl .d1 { width: 30vw; height: 30vw; right: -7vw; top: -6vw; --g: linear-gradient(150deg, #ffe9a6, #ffcb9a 45%, #ffaaa0 85%); --dur: 19s; }
   .app-icon { position: absolute; z-index: 3; right: 4vw; top: 1vw; width: 17vw; min-width: 150px; rotate: 9deg; }
   .app-icon img { width: 100%; height: auto; display: block; }
   .notes { position: relative; z-index: 3; display: flex; flex-wrap: wrap; gap: 26px; padding: 0 clamp(20px, 8vw, 150px); margin-top: clamp(-20px, -2vw, 0px); align-items: flex-start; }
   .note-card { width: min(300px, 100%); background: #fff; border-radius: 14px; padding: 20px 22px 24px; box-shadow: 0 24px 40px -12px rgba(40, 30, 90, 0.28), 0 2px 6px rgba(10, 10, 10, 0.08); font-size: 16px; line-height: 1.5; color: #262626; position: relative; }
-  .note-card .n { display: block; font: 500 12px var(--e-mono); letter-spacing: 0.1em; color: #737373; margin-bottom: 16px; }
+  .note-card .n { display: block; font: 500 12px var(--e-mono); letter-spacing: 0.1em; color: #404040; margin-bottom: 16px; }
   .note-card:nth-child(1) { rotate: -3deg; } .note-card:nth-child(2) { rotate: 2deg; margin-top: 34px; width: min(340px, 100%); } .note-card:nth-child(3) { rotate: -1.5deg; margin-top: 8px; }
   .note-card::before { content: ""; position: absolute; left: 50%; top: -9px; width: 64px; height: 18px; translate: -50% 0; rotate: -2deg; background: rgba(255, 224, 77, 0.8); border-radius: 2px; box-shadow: 0 2px 4px rgba(10, 10, 10, 0.08); }
   .note-card:nth-child(2)::before { background: rgba(143, 184, 255, 0.85); } .note-card:nth-child(3)::before { background: rgba(255, 150, 190, 0.8); }
   .dl-cta { position: relative; z-index: 3; padding: 44px clamp(20px, 8vw, 150px) 0; display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: center; }
-  .needs { font-size: 14.5px; color: #525252; line-height: 1.55; max-width: 520px; margin: 0; }
+  .needs { font-size: 14.5px; color: #404040; line-height: 1.55; max-width: 520px; margin: 0; }
 
-  footer { position: relative; z-index: 3; margin-top: clamp(70px, 9vw, 130px); padding: 28px clamp(20px, 5vw, 56px) 48px; font-size: 14px; color: #525252; display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: center; }
+  footer { position: relative; z-index: 3; margin-top: clamp(70px, 9vw, 130px); padding: 28px clamp(20px, 5vw, 56px) 48px; font-size: 14px; color: #404040; display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: center; }
   footer a { text-decoration: none; } footer a:hover { color: var(--e-ink); }
   footer .brand { font-size: 15px; margin-right: auto; color: var(--e-ink); }
+  footer .credits { flex-basis: 100%; margin: 0; font-size: 13px; color: #525252; }
+  footer .credits a { text-decoration: underline; }
 
   /* Phones: the app is Mac-only and the demo needs a desktop browser */
   @media (max-width: 760px), (hover: none) {
@@ -177,35 +175,37 @@
     .mac-only { display: flex; }
   }
   @media (max-width: 820px) {
-    .hero { min-height: 0; padding-bottom: 60px; }
-    .hero-text { max-width: none; padding-top: 118px; }
-    .hero h1 { font-size: clamp(44px, 14vw, 90px); }
+    .hero { min-height: 0; padding-bottom: 60px; display: flex; flex-direction: column; }
+    .hero-text { order: 1; max-width: none; padding-top: 96px; }
+    .hero h1 { font-size: clamp(30px, 8.4vw, 64px); }
     .caps { width: 74vw; right: -16vw; top: -6vw; opacity: 0.9; }
     .cap { width: 10vw; }
-    .hero { display: flex; flex-direction: column; }
-    .hero-text { order: 1; }
     .island-slot { order: 2; position: relative; left: auto; top: auto; align-self: flex-start; margin: 36px 0 0 2vw; scale: 1; rotate: -3deg; transform-origin: left center; }
     .hero-bead { display: none; }
     .nav-links a:first-child { display: none; }
-    .hero .h1 { width: 80vw; height: 70vw; left: -30vw; top: -26vw; }
-    .hero .h2, .bead-obj { display: none; }
-    .hero .h3 { width: 60vw; height: 24vw; bottom: 0; }
-    .win-cut { order: 3; position: relative; right: auto; bottom: auto; width: 86vw; margin: 40px 0 0 6vw; }
+    .hero .h1 { width: 80vw; height: 66vw; left: -30vw; top: -26vw; }
+    .bead-obj { display: none; }
+    .hero .h3 { width: 60vw; height: 24vw; left: auto; right: -10vw; bottom: 0; }
+    .hero-shot { order: 3; position: relative; right: auto; bottom: auto; width: 84vw; margin: 40px 0 0 6vw; }
     .body { margin-left: clamp(20px, 6vw, 60px); }
+    .hero .h1 { opacity: 0.9; }
     .body p.p2 { margin-left: 0; }
-    .float-hand { width: 40vw; margin: 0 -8vw 6px 10px; }
+    .float-hand { width: 44vw; margin: 0 -8vw 6px 10px; }
     .letter-sec .l1 { width: 60vw; height: 40vw; right: -24vw; top: 0; }
-    .moment { min-height: 0; padding-bottom: 28px; }
-    .moment .txt, .m1 .txt, .m2 .txt, .m3 .txt, .m4 .txt { margin: 0 20px; max-width: none; padding-top: 24px; }
-    .moment .cut, .m1 .cut, .m2 .cut, .m4 .cut { position: relative; display: block; right: auto; left: auto; top: auto; width: 74vw; margin: 26px 0 0 12vw; }
-    .m2 .cut { width: 58vw; margin-left: 20vw; } .m4 .cut { width: 52vw; margin-left: 8vw; }
-    .moment .blob { opacity: 0.85; }
+    .letter-sec .l2 { display: none; }
+    .moment { min-height: 0; padding-bottom: 28px; display: flex; flex-direction: column; }
+    .moment .txt, .m1 .txt, .m2 .txt, .m3 .txt, .m4 .txt { margin: 0 20px; max-width: none; padding-top: 24px; order: 1; }
+    .moment .shot, .m1 .shot, .m2 .shot, .m3 .shot, .m4 .shot, .m4 .shot.small { position: relative; order: 2; left: auto; right: auto; top: auto; width: 62vw; min-width: 0; margin: 24px 0 0 6vw; }
+    .m2 .shot { margin-left: 30vw; } .m4 .shot.small { width: 44vw; margin-left: 50vw; }
+    .moment .fig3d, .m1 .fig3d, .m2 .fig3d, .m4 .fig3d { position: relative; order: 3; left: auto; right: auto; top: auto; width: 60vw; min-width: 0; margin: -36px 0 0 30vw; }
+    .m2 .fig3d { margin-left: 6vw; } .m4 .fig3d { margin-left: 8vw; }
+    .moment .blob { opacity: 0.8; }
     .m1 .bl1 { width: 90vw; height: 70vw; top: auto; bottom: -20vw; right: -30vw; }
     .m2 .bl2, .m4 .bl4 { width: 80vw; height: 80vw; left: -30vw; top: auto; bottom: -26vw; }
     .m3 .bl3 { width: 110vw; height: 36vw; top: auto; bottom: 0; right: -30vw; }
-    .m3 .island-cut { position: relative; right: auto; top: auto; scale: 1; display: block; margin: 30px 0 0 20px; width: max-content; max-width: 90vw; }
-    .m3 .wave { position: relative; right: auto; top: auto; margin: 26px 0 0 24px; height: 18vw; }
-    .m1 .bead-obj { display: none; }
+    .m3 .wave { position: relative; order: 4; right: auto; top: auto; margin: 22px 0 0 24px; height: 18vw; }
+    .m3 .shot { order: 3; }
+    .m1 .shot { margin-top: 24px; }
     .moment h3 { font-size: clamp(44px, 13vw, 80px); }
     .dl .giant { font-size: 22vw; margin-bottom: 18px; }
     .notes { margin-top: 8px; }
@@ -217,26 +217,9 @@
 </head>
 <body>
 <div class="page">
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
-  <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eeecf8"/></linearGradient>
-  <symbol id="hand-cut" viewBox="0 0 260 300">
-    <g stroke-linecap="round" stroke-linejoin="round" fill="none">
-      <g stroke="#d6d3e8">
-        <path d="M118 176 114 62" stroke-width="32"/><path d="M152 178 160 80" stroke-width="30"/><path d="M183 192 205 122" stroke-width="27"/>
-        <rect x="76" y="148" width="120" height="116" rx="48" fill="#d6d3e8" stroke="none"/><circle cx="76" cy="138" r="31" stroke-width="28"/>
-      </g>
-      <g stroke="url(#paper)">
-        <path d="M118 176 114 62" stroke-width="28"/><path d="M152 178 160 80" stroke-width="26"/><path d="M183 192 205 122" stroke-width="23"/>
-        <rect x="78" y="150" width="116" height="112" rx="46" fill="url(#paper)" stroke="none"/><circle cx="76" cy="138" r="31" stroke-width="24"/>
-      </g>
-      <g stroke="#e4e1f2" stroke-width="3"><path d="M134 168c4 8 4 18 0 28M165 176c3 7 3 15 0 22"/></g>
-      <rect x="96" y="258" width="92" height="34" rx="9" fill="#0a0a0a" stroke="none"/>
-      <circle cx="94" cy="160" r="5.5" fill="#5294ff" stroke="none"/>
-    </g>
-  </symbol></defs></svg>
 <nav class="nav">
   <a class="brand" href="./" aria-label="Ensemble"><svg class="ens-mark" id="brand-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</a>
-  <div class="nav-links"><a href="#how">How it works</a><a href="#download">Download</a><a href="https://github.com/oficiallyAkshay/ensemble">GitHub</a></div>
+  <div class="nav-links"><a href="#how">How it works</a><a href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download</a><a href="https://github.com/oficiallyAkshay/ensemble">GitHub</a></div>
 </nav>
 
 <header class="hero">
@@ -266,46 +249,18 @@
       <i class="ens-edge"></i>
     </div>
   </div>
-  <div class="win-cut shadowed" aria-hidden="true">
-    <div class="paneset"><div class="pn"><span class="dots"><b></b><b></b><b></b></span><i class="me"></i><i class="w1"></i><i class="w2"></i><i class="w3"></i><span class="cm"></span></div><div class="pn on"><span class="dots"><b></b><b></b><b></b></span><i class="w1"></i><i class="me"></i><i class="w3"></i><i class="w2"></i><span class="cm"></span></div><div class="pn"><span class="dots"><b></b><b></b><b></b></span><i class="w2"></i><i class="w1"></i><i class="me"></i><i class="w3"></i><span class="cm"></span></div></div>
-  </div>
+  <figure class="hero-shot shot shadowed"><img src="assets/shots/send.webp" width="840" height="1164" alt="The demo in mouse mode: the Ensemble island reads Sending in api-refactor with a blue bar filling along its edge, above the focused Claude session with its drafted message." decoding="async"></figure>
 
   <div class="hero-text">
-    <h1><span>Talk to all</span><span>your <em class="grad" style="font-style:normal">Claude</em></span><span>sessions without</span><span>touching a key</span></h1>
-    <p class="sub">Ensemble is a free Mac app. Look at a session, pinch, talk, thumbs-up.</p>
-    <a class="scroll" href="#note"><i>&darr;</i>Read the note</a>
-  </div>
-</header>
-
-<section class="letter-sec" id="note">
-  <i class="blob l1 soft" aria-hidden="true"></i><i class="blob l2" aria-hidden="true"></i>
-  <div class="chip-wrap reveal"><span class="ens-chip">A note from the person who made this</span></div>
-  <article class="letter">
-    <p class="lead reveal">Type to your AI for thirty minutes and it can build <mark>two days</mark> of work. Talk to it for thirty minutes and it can build <mark class="b">two weeks</mark>.</p>
-    <div class="body">
-      <div class="float-hand shadowed" aria-hidden="true">
-        <i class="blob"></i>
-        <svg viewBox="0 0 260 300" fill="none"><use href="#hand-cut"/></svg>
-      </div>
-      <p class="reveal">I learned that the slow way. I talk to my agents now, a lot of them, all at once. A dozen Claude sessions on three screens, each one waiting to hear what I want.</p>
-      <p class="p2 reveal">And my night became: find the right window, click it, talk. Find, click, talk.</p>
-      <p class="p3 reveal">So I got rid of the find and the click. I look at a session. I pinch. I talk. <span style="white-space:nowrap">Thumbs-up.</span> Next.</p>
-      <p class="p4 reveal">If you've already stopped typing to your agents, you're one click from leaning back.</p>
-    </div>
-  </article>
-  <p class="sign reveal">Ensemble. Free, open source, for the Mac.</p>
-
-  <div class="cta-stage">
-    <i class="blob c1 soft" aria-hidden="true"></i><i class="blob c2" aria-hidden="true"></i>
-    <div class="cta reveal">
+    <span class="ens-chip">A note from the person who made this</span>
+    <h1>Type to your AI for thirty minutes and it can build <mark>two days</mark> of work. Talk to it for thirty minutes and it can build <mark class="b">two weeks</mark>.</h1>
+    <div class="cta" id="cta">
       <div class="btns">
-        <div class="primary-col">
-          <button class="ens-btn primary desktop-cta" type="button" id="try" aria-haspopup="dialog" aria-expanded="false" aria-controls="cam-pop">See the demo</button>
-          <button class="ens-btn primary mac-only" type="button" id="copy">Copy the link for your Mac</button>
-          <a class="stars" id="stars" href="https://github.com/oficiallyAkshay/ensemble">Open source on GitHub</a>
-        </div>
-        <a class="ens-btn dl-btn" id="dl-btn" href="https://github.com/oficiallyAkshay/ensemble/releases/latest"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download</a>
+        <button class="ens-btn primary desktop-cta" type="button" id="try" aria-haspopup="dialog" aria-expanded="false" aria-controls="cam-pop">See the demo</button>
+        <button class="ens-btn primary mac-only" type="button" id="copy">Copy the link for your Mac</button>
+        <a class="ens-btn dl-btn" id="dl-btn" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download</a>
       </div>
+      <p class="src"><a id="src" href="https://github.com/oficiallyAkshay/ensemble"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>See the source code on GitHub</a><span class="counts" id="counts" hidden></span></p>
       <p class="note desktop-cta">The demo runs in this browser. Your video never leaves it.</p>
       <p class="note mac-only" id="copied" aria-live="polite">Ensemble is a Mac app, and the demo needs a laptop or desktop camera.</p>
       <div class="pop ens-pop" id="cam-pop" role="dialog" aria-labelledby="pop-title" aria-live="polite" data-state="asking">
@@ -319,6 +274,23 @@
       </div>
     </div>
   </div>
+</header>
+
+<section class="letter-sec" id="note">
+  <i class="blob l1 soft" aria-hidden="true"></i><i class="blob l2" aria-hidden="true"></i>
+  <article class="letter">
+    <div class="body">
+      <div class="float-hand shadowed" role="img" aria-label="A 3D hand pinching its thumb and index finger, then dragging, the gesture that scrolls a session.">
+        <i class="blob"></i>
+        <div class="scene" data-scene="scroll"></div>
+      </div>
+      <p class="reveal">I learned that the slow way. I talk to my agents now, a lot of them, all at once. A dozen Claude sessions on three screens, each one waiting to hear what I want.</p>
+      <p class="p2 reveal">And my night became: find the right window, click it, talk. Find, click, talk.</p>
+      <p class="p3 reveal">So I got rid of the find and the click. I look at a session. I pinch. I talk. <span style="white-space:nowrap">Thumbs-up.</span> Next.</p>
+      <p class="p4 reveal">If you've already stopped typing to your agents, you're one click from leaning back.</p>
+    </div>
+  </article>
+  <p class="sign reveal">Ensemble. Free, open source, for the Mac.</p>
 </section>
 
 <section class="how" id="how">
@@ -327,36 +299,30 @@
   <div class="moment m1">
     <i class="blob bl1" aria-hidden="true"></i>
     <div class="txt reveal"><span class="n">01</span><h3>Look.</h3><p>Focus follows your nose. The session you face gets the blue outline.</p></div>
-    <div class="cut shadowed" aria-hidden="true"><div class="paneset"><div class="pn"><span class="dots"><b></b><b></b><b></b></span><i class="me"></i><i class="w1"></i><i class="w2"></i><span class="cm"></span></div><div class="pn on"><span class="dots"><b></b><b></b><b></b></span><i class="w2"></i><i class="me"></i><i class="w1"></i><i class="w3"></i><span class="cm"></span></div><div class="pn"><span class="dots"><b></b><b></b><b></b></span><i class="w1"></i><i class="w3"></i><i class="me"></i><span class="cm"></span></div></div></div>
-    <div class="bead-obj" aria-hidden="true"></div>
+    <figure class="shot shadowed"><img src="assets/shots/look.webp" width="840" height="1164" loading="lazy" decoding="async" alt="The demo with the first Claude session, api-refactor, outlined in blue because the pointer is over it; the other sessions are plain."></figure>
+    <div class="fig3d shadowed" role="img" aria-label="A 3D head turning to look at one of four session windows, which lights up blue."><div class="scene" data-scene="look"></div></div>
   </div>
 
   <div class="moment m2">
     <i class="blob bl2" aria-hidden="true"></i>
-    <div class="cut shadowed" aria-hidden="true"><svg viewBox="0 0 260 300" fill="none" style="width:100%;display:block"><use href="#hand-cut"/></svg></div>
+    <figure class="shot shadowed"><img src="assets/shots/pinch.webp" width="840" height="1164" loading="lazy" decoding="async" alt="After a double click the island reads Claude dictation on in api-refactor, and the words Add retry start to appear in that session's message box."></figure>
+    <div class="fig3d shadowed" role="img" aria-label="A 3D hand pinching thumb and index finger twice."><div class="scene" data-scene="dictate"></div></div>
     <div class="txt reveal"><span class="n">02</span><h3>Pinch twice.</h3><p>Two quick pinches of thumb and index start Claude's own dictation.</p></div>
   </div>
 
   <div class="moment m3">
     <i class="blob bl3" aria-hidden="true"></i>
     <div class="txt reveal"><span class="n">03</span><h3>Talk.</h3><p>Say what you want. The words land in the session you are looking at.</p></div>
-    <div class="ens-island island-cut shadowed" data-mode="dictating" aria-hidden="true">
-      <span class="ens-glyph"><svg class="g-mic" viewBox="0 0 26 18"><rect x="10" y="1.5" width="6" height="10" rx="3"/><path d="M7 8.5a6 6 0 0 0 12 0M13 14.5v2" fill="none"/></svg></span>
-      <span class="ens-text"><b class="l1">Claude dictation on</b><span class="l2">in <em>api-refactor</em></span></span><span class="ens-hint">double pinch to stop</span>
-    </div>
+    <figure class="shot shadowed"><img src="assets/shots/talk.webp" width="840" height="1164" loading="lazy" decoding="async" alt="Dictation running: the full sentence, Add retry with backoff to the upload client and cover it with a test, has been typed into the focused session's message box."></figure>
     <div class="wave" aria-hidden="true"><i style="--h:30%;--g:linear-gradient(#ffd84d,#ff9a4c)"></i><i style="--h:60%;--g:linear-gradient(#ff9a4c,#ff5fa2)"></i><i style="--h:92%;--g:linear-gradient(#ff5fa2,#b04cff)"></i><i style="--h:56%;--g:linear-gradient(#b04cff,#7a5cff)"></i><i style="--h:100%;--g:linear-gradient(#7a5cff,#5294ff)"></i><i style="--h:70%;--g:linear-gradient(#5294ff,#2fd3c0)"></i><i style="--h:38%;--g:linear-gradient(#2fd3c0,#9be85a)"></i><i style="--h:80%;--g:linear-gradient(#9be85a,#ffe04d)"></i><i style="--h:44%;--g:linear-gradient(#ffe04d,#ff9a4c)"></i></div>
   </div>
 
   <div class="moment m4">
     <i class="blob bl4" aria-hidden="true"></i>
-    <div class="cut shadowed" aria-hidden="true"><svg viewBox="0 0 240 270" fill="none" style="width:100%;display:block">
-      <g stroke-linecap="round" stroke-linejoin="round">
-        <g stroke="#d9d6ea" fill="#d9d6ea"><rect x="66" y="26" width="38" height="124" rx="19" transform="rotate(-8 85 88)" stroke-width="6"/><rect x="92" y="112" width="112" height="28" rx="14" stroke-width="6"/><rect x="92" y="138" width="106" height="28" rx="14" stroke-width="6"/><rect x="92" y="164" width="98" height="28" rx="14" stroke-width="6"/><rect x="92" y="190" width="84" height="28" rx="14" stroke-width="6"/><rect x="62" y="108" width="70" height="112" rx="30" stroke-width="6"/></g>
-        <g stroke="none" fill="#fff"><rect x="68" y="28" width="34" height="120" rx="17" transform="rotate(-8 85 88)"/><rect x="94" y="114" width="108" height="24" rx="12"/><rect x="94" y="140" width="102" height="24" rx="12"/><rect x="94" y="166" width="94" height="24" rx="12"/><rect x="94" y="192" width="80" height="24" rx="12"/><rect x="64" y="110" width="66" height="108" rx="28"/></g>
-        <path d="M118 140h60M118 166h54M118 192h46" stroke="#e3e0f2" stroke-width="3"/>
-        <rect x="26" y="116" width="46" height="108" rx="10" fill="#0a0a0a"/>
-      </g></svg></div>
+    <figure class="shot shadowed"><img src="assets/shots/send.webp" width="840" height="1164" loading="lazy" decoding="async" alt="Holding still sends: the island reads Sending in api-refactor with a blue bar filling along its bottom edge."></figure>
+    <div class="fig3d shadowed" role="img" aria-label="A 3D hand making a thumbs-up and holding it."><div class="scene" data-scene="send"></div></div>
     <div class="txt reveal"><span class="n">04</span><h3 style="white-space:nowrap">Thumbs-up.</h3><p>Hold it to send. Then look at the next session.</p></div>
+    <figure class="shot small shadowed"><img src="assets/shots/scroll.webp" width="840" height="1164" loading="lazy" decoding="async" alt="The session after the reply streamed in, scrolled down with a drag."><figcaption>Pinch and drag to scroll.</figcaption></figure>
   </div>
 </section>
 
@@ -369,7 +335,7 @@
     <div class="note-card reveal"><span class="n">02</span>Open it. macOS will say it is from an unidentified developer: go to System Settings, Privacy &amp; Security, and click Open Anyway.</div>
     <div class="note-card reveal"><span class="n">03</span>Allow Camera and Accessibility, then follow the short tour.</div>
   </div>
-  <div class="dl-cta reveal"><a class="ens-btn primary" href="https://github.com/oficiallyAkshay/ensemble/releases/latest">Download for Mac</a><p class="needs">Needs an Apple Silicon Mac with macOS 14.2 or later, a webcam, and the Claude desktop app. Camera frames are read in memory and never stored or sent.</p></div>
+  <div class="dl-cta reveal"><a class="ens-btn primary" id="dl-btn-2" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download for Mac</a><p class="needs">Needs an Apple Silicon Mac with macOS 14.2 or later, a webcam, and the Claude desktop app. Camera frames are read in memory and never stored or sent.</p></div>
 </section>
 
 <footer>
@@ -377,6 +343,7 @@
   <a href="https://github.com/oficiallyAkshay/ensemble">The code</a>
   <a href="https://github.com/oficiallyAkshay/ensemble/blob/main/SECURITY.md">Privacy and security</a>
   <span>Not affiliated with Anthropic</span>
+  <p class="credits">3D hands: the WebXR generic hand model (<a href="assets/3d/LICENSES.txt">MIT licence</a>) drawn with <a href="https://threejs.org">three.js</a> (MIT licence).</p>
 </footer>
 </div>
 
@@ -500,15 +467,70 @@
     document.addEventListener('pointerdown', (e) => { if (pop.classList.contains('open') && !pop.contains(e.target) && e.target !== btn) close(); });
   }
 
-  // ---- the star count: the one third-party request, after load, low priority, nothing about the visitor ----
-  async function stars() {
-    const a = $('stars'); if (!a) return;
-    try {
-      const r = await fetch('https://api.github.com/repos/oficiallyAkshay/ensemble', { priority: 'low', credentials: 'omit', referrerPolicy: 'no-referrer', headers: { Accept: 'application/vnd.github+json' } });
-      if (!r.ok) return;
-      const n = (await r.json()).stargazers_count;
-      if (Number.isInteger(n) && n >= 5) a.textContent = '\u2605 ' + n.toLocaleString('en-US') + ' stars on GitHub';
-    } catch { /* keep "Open source on GitHub" */ }
+  // ---- the counts: two GitHub requests after load, low priority, nothing about the visitor ----
+  // Stars come from the repo API; clones come from the clonometer ledger on the badges branch. Any failure, or a count under 5, leaves that part out.
+  const GH = { credentials: 'omit', referrerPolicy: 'no-referrer', priority: 'low' };
+  const fmt = (n) => n.toLocaleString('en-US');
+  async function counts() {
+    const out = $('counts'); if (!out) return;
+    const got = { clones: '', stars: '' };
+    const paint = () => {
+      const parts = [got.clones && `${got.clones} clones`, got.stars && `${got.stars} stars`].filter(Boolean);
+      out.textContent = parts.join(' · '); out.hidden = !parts.length;
+    };
+    await Promise.all([
+      (async () => {
+        try {
+          const r = await fetch('https://api.github.com/repos/oficiallyAkshay/ensemble', { ...GH, headers: { Accept: 'application/vnd.github+json' } });
+          if (!r.ok) return;
+          const n = (await r.json()).stargazers_count;
+          if (Number.isInteger(n) && n >= 5) { got.stars = fmt(n); paint(); }
+        } catch { /* leave the stars out */ }
+      })(),
+      (async () => {
+        try {
+          const r = await fetch('https://raw.githubusercontent.com/oficiallyAkshay/ensemble/badges/clones.json', GH);
+          if (!r.ok) return;
+          const j = await r.json();
+          if (Number.isInteger(j.total) && j.total >= 5) { got.clones = typeof j.total_short === 'string' && j.total_short ? j.total_short : fmt(j.total); paint(); }
+        } catch { /* the ledger does not exist yet, or is unreachable: leave the clones out */ }
+      })(),
+    ]);
+  }
+
+  // ---- the 3D hands: nothing loads until a scene is about to scroll into view ----
+  const scenes = [...document.querySelectorAll('[data-scene]')];
+  const narrow = matchMedia('(max-width: 820px)').matches;
+  const saveData = !!(navigator.connection && (navigator.connection.saveData || /(^|-)2g$/.test(navigator.connection.effectiveType || '')));
+  const hasGL = () => { try { const c = document.createElement('canvas'); const g = c.getContext('webgl'); if (!g) return false; const x = g.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); return true; } catch { return false; } };
+  const loadJS = (src) => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src)); document.head.appendChild(s); });
+  let libs = null;
+  const ensureLibs = () => libs || (libs = hasGL()
+    ? loadJS('assets/3d/three.min.js').then(() => Promise.all([loadJS('assets/3d/GLTFLoader.js'), loadJS('assets/3d/CCDIKSolver.js')])).then(() => loadJS('assets/3d/scene3d.js'))
+    : Promise.reject(new Error('no webgl')));
+  const HAND_CAM = () => ({ pos: new THREE.Vector3(4.4, 2.5, 3.4), look: new THREE.Vector3(0, 1.82, 0), fov: 33 });
+  const DESK_CAM = () => ({ pos: new THREE.Vector3(1.1, 3.5, 4.0), look: new THREE.Vector3(-0.15, 1.6, -1.2), fov: 46 });
+  window.__scenes = [];
+  function mountScene(el) {
+    ensureLibs().then(() => {
+      const holder = el.closest('.fig3d, .float-hand') || el;
+      const inst = window.EnsembleScene.mount(el, { scene: el.dataset.scene, theme: 'light', reducedMotion: reduce, handUrl: 'assets/3d/hand.glb', camHand: HAND_CAM(), camDesk: DESK_CAM(), maxDpr: phone || narrow ? 1 : 1.75 });
+      const rec = { el, inst, name: el.dataset.scene, visible: true };
+      window.__scenes.push(rec);
+      let tries = 0;
+      const wait = setInterval(() => { tries++; if ((inst._ready && inst._ready()) || tries > 60) { clearInterval(wait); holder.classList.add('ready'); if (!reduce && !rec.visible && inst.pause) inst.pause(); } }, 120);
+      vis.observe(el);
+    }).catch(() => { /* no WebGL or the files did not load: the screenshots carry the step */ });
+  }
+  const vis = new IntersectionObserver((es) => es.forEach((e) => {
+    const rec = window.__scenes.find((r) => r.el === e.target); if (!rec) return;
+    rec.visible = e.isIntersecting;
+    if (reduce) return;
+    if (e.isIntersecting) rec.inst.resume && rec.inst.resume(); else rec.inst.pause && rec.inst.pause();
+  }));
+  if ('IntersectionObserver' in window && !saveData) {
+    const lazy = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { lazy.unobserve(e.target); mountScene(e.target); } }), { rootMargin: '300px 0px' });
+    scenes.forEach((s) => lazy.observe(s));
   }
 
   // ---- quietly warm the demo's files once the page has settled, so the demo starts instantly ----
@@ -523,7 +545,7 @@
       catch { window.__warm.failed++; }
     }
   }
-  const both = () => { if (!(navigator.connection && navigator.connection.saveData)) stars(); warm(); };
+  const both = () => { if (!(navigator.connection && navigator.connection.saveData)) counts(); warm(); };
   const later = () => (window.requestIdleCallback ? requestIdleCallback(both, { timeout: 4000 }) : setTimeout(both, 1000));
   if (document.readyState === 'complete') setTimeout(later, 600); else addEventListener('load', () => setTimeout(later, 600));
 })();
