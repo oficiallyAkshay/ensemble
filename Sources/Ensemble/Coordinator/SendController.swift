@@ -89,7 +89,7 @@ final class SendController {
                 self.finish(why); return
             }
             EnsembleLog.write("sending (\(text.count) characters)")
-            self.sendNow(session, shown: text)
+            self.sendNow(session, shown: text, spokenAt: spoken.stoppedAt, byReturn: byReturn)
         }
     }
 
@@ -125,11 +125,16 @@ final class SendController {
         ctx.overlay.setSending(name: session.map(ctx.name(of:)))
     }
 
-    private func sendNow(_ session: ClaudeSession, shown: String) {
+    private func sendNow(_ session: ClaudeSession, shown: String, spokenAt: Date, byReturn: Bool) {
         guard claudeInFront() else { finish(nil); return }
         ctx.busy = true
+        // The same reader as the checks above, run on the bridge queue right before the press. The Return-send
+        // reader's key record lives on the main thread, so it is read there.
+        let inputAge: @Sendable () -> Double = byReturn
+            ? { DispatchQueue.main.sync { MainActor.assumeIsolated { self.returnInputAge() } } }
+            : { ClaudeBridge.secondsSinceTypingOrClick() }
         Task { @MainActor in
-            let result = await self.ctx.bridge.sendDraft(session, shown: shown)
+            let result = await self.ctx.bridge.sendDraft(session, shown: shown, spokenAt: spokenAt, inputAge: inputAge)
             self.ctx.busy = false
             switch result {
             case .done:

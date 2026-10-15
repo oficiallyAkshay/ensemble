@@ -25,4 +25,11 @@ import Testing
         #expect(SendRules.frontRefusal(claudeInFront: false) == "Claude is not the app in front")
         #expect(SendRules.frontRefusal(claudeInFront: true) == nil)
     }
+
+    /// A click that left the draft unchanged while the press waited in the bridge queue: the last check refuses.
+    @Test func inputWhileThePressWaitedRefuses() {
+        #expect(SendRules.pressRefusal(claudeInFront: true, spokenAgo: 3, inputAge: 0.2) == "Typed or clicked since dictation; not sending")
+        #expect(SendRules.pressRefusal(claudeInFront: false, spokenAgo: 3, inputAge: 100) == "Claude is not the app in front")
+        #expect(SendRules.pressRefusal(claudeInFront: true, spokenAgo: 3, inputAge: 3.1) == nil)
+    }
 }

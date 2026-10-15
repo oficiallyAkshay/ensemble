@@ -18,6 +18,12 @@ public enum SendRules {
         claudeInFront ? nil : "Claude is not the app in front"
     }
 
+    /// The last check, on the bridge queue right before Send is pressed: a press can wait there behind other
+    /// Accessibility work, and another app may have come to the front or a key or click arrived meanwhile.
+    public static func pressRefusal(claudeInFront: Bool, spokenAgo: TimeInterval, inputAge: TimeInterval) -> String? {
+        frontRefusal(claudeInFront: claudeInFront) ?? typedRefusal(spokenAgo: spokenAgo, inputAge: inputAge)
+    }
+
     /// The draft may have been edited by hand after dictation: input more recent than the dictation's end.
     public static func typedRefusal(spokenAgo: TimeInterval, inputAge: TimeInterval) -> String? {
         inputAge < spokenAgo ? "Typed or clicked since dictation; not sending" : nil
