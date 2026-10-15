@@ -1,0 +1,20 @@
+{
+  "outcome": "ready",
+  "title": "A send is refused at the press when you typed or clicked while it waited",
+  "was": "A thumbs-up or Return send that waited in line behind other Accessibility work could still press Send after a click that left the draft unchanged, because the last check before the press only asked whether Claude was in front.",
+  "changed": "The last check before the press now also applies the typed-or-clicked-since-dictation rule, on the same queue and with the same input reader the send controller used, and the safety doc says so.",
+  "now": "Read back from the code: the press is preceded by one shared rule that refuses when Claude is not in front or when input is newer than the end of dictation, and the new unit test pins it; not yet run here.",
+  "doneWhenEvidence": [
+    "Shared rules test: SendRulesTests gains inputWhileThePressWaitedRefuses, expecting the press check to refuse with the typed-or-clicked reason when input is 0.2 s old and dictation ended 3 s ago. Fails first: not run, no Swift toolchain in this session.",
+    "Bridge: the send path calls the shared press check on the bridge queue immediately before pressing Send, with the dictation end time and the controller's own reader (the Return-send reader for Return sends, so those Returns still do not count).",
+    "swift build and swift test: could not run here (Linux container, no Swift toolchain, download blocked); gate must prove both.",
+    "Dictation safety: only the send path changed, and only by adding a refusal before the press; the written-before-pressed record, the dead-man check, the standing check and every existing narrow send rule are untouched, and a send is now refused in one more case."
+  ],
+  "note": "Checks: swift build could not run; swift test could not run (no Swift toolchain on this Linux container, the toolchain download was refused by the network proxy, and the core imports CoreGraphics so it would not build on Linux anyway); setup.sh, setup-engine.sh and funnel/ named in the session instructions do not exist in this repository, so they were not run. The fails-first run of the new test was therefore not seen. Questions answered myself: the Return-send reader keeps its key record on the main thread, so the bridge reads it with a synchronous hop to main; nothing on main waits synchronously on the bridge queue (the quit path waits only on the urgent queue and a global queue, both with timeouts), so this cannot deadlock, at worst it waits out the quit timeout. Not exercised: real presses in Claude desktop. Recommendation followed: decision lives in SendRules.pressRefusal, the bridge is a thin caller.",
+  "memory": [
+    "Sources/Ensemble/Coordinator/SendController.swift: the Return-send input reader touches main-actor state, so any off-main caller must hop to the main thread to read it."
+  ],
+  "tryIt": "Dictate a sentence, start a thumbs-up hold and, while it is sending, click once inside Claude without changing the draft: the island should say Not sent: Typed or clicked since dictation; a send with no click still goes out, and Return twice still sends.",
+  "leftOut": [],
+  "stages": [0, 1, 2, 3, 4, 6, 8, 9, 10]
+}
