@@ -52,11 +52,6 @@ final class DictationSafety: @unchecked Sendable {
     private var muter = InputMuter()
     private var ticks = 0
 
-    static let heartbeatTimeout: TimeInterval = 1.0
-    static let axStallLimit: TimeInterval = 3.0
-    static let settleWindow: TimeInterval = 3.0
-    static let escalateAfter: TimeInterval = 3.0
-
     init(bridge: ClaudeBridge) {
         self.bridge = bridge
         let t = DispatchSource.makeTimerSource(queue: queue)
@@ -81,11 +76,9 @@ final class DictationSafety: @unchecked Sendable {
     /// earlier dictation is still owed a confirmed stop, so that dictation's record, alarm and mute are never abandoned.
     func episodeStarting(session: ClaudeSession) async -> String? {
         await onQueue {
-            if let why = DictationRules.startRefusal(stopOwed: self.stopStartedAt != nil, alarmOn: self.escalated,
-                                                     muteInEffect: self.muter.isActive && self.muter.anyDeviceConnected) {
-                return why
-            }
-            return self.writeEpisode(session: session) ? nil : "Could not write the safety record; not starting"
+            let refusal = DictationRules.startRefusal(stopOwed: self.stopStartedAt != nil, alarmOn: self.escalated,
+                                                      muteInEffect: self.muter.isActive && self.muter.anyDeviceConnected)
+            return DictationRules.pressRefusal(refusal) { self.writeEpisode(session: session) }
         }
     }
 
@@ -208,12 +201,11 @@ final class DictationSafety: @unchecked Sendable {
     private func tick() {
         ticks += 1
         let now = Date()
-        if holdActive {
-            if now.timeIntervalSince(lastHeartbeat) > Self.heartbeatTimeout {
-                endHoldAndStop("no talk-pose heartbeat for 1 s")
-            } else if bridge.longestAXCallSeconds > Self.axStallLimit {
-                endHoldAndStop("an Accessibility call stalled for more than 3 s")
-            }
+        switch DictationRules.holdLoss(holdActive: holdActive, heartbeatAge: now.timeIntervalSince(lastHeartbeat),
+                                       longestStall: bridge.longestAXCallSeconds) {
+        case .noHeartbeat: endHoldAndStop("no talk-pose heartbeat for \(Int(DictationRules.heartbeatTimeout)) s")
+        case .stalled: endHoldAndStop("an Accessibility call stalled for more than \(Int(DictationRules.stallLimit)) s")
+        case nil: break
         }
         if stopStartedAt != nil { driveStop(now) }
         if ticks % 4 == 0 {
@@ -232,7 +224,8 @@ final class DictationSafety: @unchecked Sendable {
 
     /// Runs once a second: an episode on disk, Claude capturing, and no hold active means a stop is owed.
     private func standingCheck(_ now: Date) {
-        guard episode != nil, !holdActive, now.timeIntervalSince(holdEndedAt) > 1.0 else { return }
+        guard DictationRules.standingCheckActs(recordOpen: episode != nil, holdActive: holdActive,
+                                               sinceHoldEnded: now.timeIntervalSince(holdEndedAt)) else { return }
         let capture = bridge.claudeCaptureActive()
         switch capture {
         case .some(true):
@@ -247,7 +240,7 @@ final class DictationSafety: @unchecked Sendable {
             let startInFlight = bridge.startPressInFlight
             offSince = startInFlight ? nil : offSince ?? now
             if DictationRules.recordMayGo(capture: capture, startInFlight: startInFlight,
-                                          offFor: now.timeIntervalSince(offSince ?? now), settle: Self.settleWindow) {
+                                          offFor: now.timeIntervalSince(offSince ?? now), settle: DictationRules.settleWindow) {
                 finishEpisode()
             }
         case .none:
@@ -289,7 +282,7 @@ final class DictationSafety: @unchecked Sendable {
             stopConfirmed()
             return
         }
-        if let started = stopStartedAt, !escalated, now.timeIntervalSince(started) >= Self.escalateAfter {
+        if let started = stopStartedAt, DictationRules.escalateStop(alarmOn: escalated, owedFor: now.timeIntervalSince(started)) {
             escalate("Claude's microphone could not be confirmed off (\(stopReason))")
         }
         guard !stopInFlight else { return }

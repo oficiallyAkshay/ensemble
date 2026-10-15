@@ -3,6 +3,75 @@ import Testing
 @testable import EnsembleCore
 
 @Suite struct DictationSafetyRulesTests {
+    // MARK: The dead-man check
+
+    @Test func theHoldEndsAfterOneSecondWithoutAHeartbeat() {
+        #expect(DictationRules.heartbeatTimeout == 1)
+        #expect(DictationRules.holdLoss(holdActive: true, heartbeatAge: 0.99, longestStall: 0) == nil)
+        #expect(DictationRules.holdLoss(holdActive: true, heartbeatAge: 1, longestStall: 0) == nil)       // greater-than, not at
+        #expect(DictationRules.holdLoss(holdActive: true, heartbeatAge: 1.01, longestStall: 0) == .noHeartbeat)
+        #expect(DictationRules.holdLoss(holdActive: true, heartbeatAge: 1.01, longestStall: 30) == .noHeartbeat)
+    }
+
+    @Test func theHoldEndsAfterAnAccessibilityStallOfThreeSeconds() {
+        #expect(DictationRules.stallLimit == 3)
+        #expect(DictationRules.holdLoss(holdActive: true, heartbeatAge: 0, longestStall: 2.99) == nil)
+        #expect(DictationRules.holdLoss(holdActive: true, heartbeatAge: 0, longestStall: 3) == nil)
+        #expect(DictationRules.holdLoss(holdActive: true, heartbeatAge: 0, longestStall: 3.01) == .stalled)
+    }
+
+    @Test func noHoldMeansNothingToEnd() {
+        #expect(DictationRules.holdLoss(holdActive: false, heartbeatAge: 30, longestStall: 30) == nil)
+    }
+
+    // MARK: The fallback alarm for an unconfirmed stop
+
+    @Test func aStopUnconfirmedForThreeSecondsSoundsTheAlarm() {
+        #expect(DictationRules.escalateAfter == 3)
+        #expect(!DictationRules.escalateStop(alarmOn: false, owedFor: 2.99))
+        #expect(DictationRules.escalateStop(alarmOn: false, owedFor: 3))
+        #expect(DictationRules.escalateStop(alarmOn: false, owedFor: 30))
+    }
+
+    @Test func theAlarmIsRaisedOnce() {
+        #expect(!DictationRules.escalateStop(alarmOn: true, owedFor: 30))
+    }
+
+    // MARK: The standing check
+
+    @Test func theRecordGoesAfterThreeSecondsConfirmedOff() {
+        #expect(DictationRules.settleWindow == 3)
+        let settle = DictationRules.settleWindow
+        #expect(!DictationRules.recordMayGo(capture: false, startInFlight: false, offFor: 2.99, settle: settle))
+        #expect(DictationRules.recordMayGo(capture: false, startInFlight: false, offFor: 3, settle: settle))
+    }
+
+    @Test func theStandingCheckWaitsOneSecondAfterAHoldEnds() {
+        #expect(DictationRules.standingCheckGrace == 1)
+        #expect(!DictationRules.standingCheckActs(recordOpen: true, holdActive: false, sinceHoldEnded: 1))
+        #expect(DictationRules.standingCheckActs(recordOpen: true, holdActive: false, sinceHoldEnded: 1.01))
+    }
+
+    @Test func theStandingCheckLeavesAHoldAndANoRecordAlone() {
+        #expect(!DictationRules.standingCheckActs(recordOpen: true, holdActive: true, sinceHoldEnded: 30))
+        #expect(!DictationRules.standingCheckActs(recordOpen: false, holdActive: false, sinceHoldEnded: 30))
+    }
+
+    // MARK: Written before pressed
+
+    @Test func aPressIsPermittedOnlyOnceTheRecordIsWritten() {
+        var writes = 0
+        #expect(DictationRules.pressRefusal(nil) { writes += 1; return true } == nil)
+        #expect(DictationRules.pressRefusal(nil) { writes += 1; return false } != nil)
+        #expect(writes == 2)
+    }
+
+    @Test func aRefusedStartWritesNoRecordAndPressesNothing() {
+        var writes = 0
+        #expect(DictationRules.pressRefusal("refused") { writes += 1; return true } == "refused")
+        #expect(writes == 0)
+    }
+
     // MARK: An unreadable microphone with a record open
 
     @Test func unreadableForLongEnoughWithARecordSoundsTheAlarm() {

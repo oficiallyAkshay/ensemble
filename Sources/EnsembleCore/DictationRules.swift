@@ -79,6 +79,47 @@ public enum DictationRules {
         recordOpen && !holdActive && unreadableFor >= unreadableLimit
     }
 
+    /// The dead-man check: while a hold is active, the talk pose must be seen at least this often.
+    public static let heartbeatTimeout: TimeInterval = 1
+    /// An Accessibility call stuck longer than this means presses cannot be trusted to land, so the hold ends.
+    public static let stallLimit: TimeInterval = 3
+
+    public enum HoldLoss: Equatable {
+        case noHeartbeat
+        case stalled
+    }
+
+    /// Why an active hold must end now, or nil. A missing heartbeat is checked first.
+    public static func holdLoss(holdActive: Bool, heartbeatAge: TimeInterval, longestStall: TimeInterval) -> HoldLoss? {
+        guard holdActive else { return nil }
+        if heartbeatAge > heartbeatTimeout { return .noHeartbeat }
+        return longestStall > stallLimit ? .stalled : nil
+    }
+
+    /// How long capture must read definitely off, with no hold, before the safety record is deleted.
+    public static let settleWindow: TimeInterval = 3
+    /// How long a stop may stay unconfirmed before the alarm sounds and the input is muted.
+    public static let escalateAfter: TimeInterval = 3
+
+    public static func escalateStop(alarmOn: Bool, owedFor: TimeInterval) -> Bool {
+        !alarmOn && owedFor >= escalateAfter
+    }
+
+    /// How long after a hold ends the standing check leaves the stop to the press already under way.
+    public static let standingCheckGrace: TimeInterval = 1
+
+    /// The standing check acts only on an open record with no hold, once the grace after the hold has passed.
+    public static func standingCheckActs(recordOpen: Bool, holdActive: Bool, sinceHoldEnded: TimeInterval) -> Bool {
+        recordOpen && !holdActive && sinceHoldEnded > standingCheckGrace
+    }
+
+    /// Written before pressed: `writeRecord` runs only when nothing refused the start, and the press is permitted
+    /// (nil) only once it reports the record on disk. A crash after the press then always leaves a record to act on.
+    public static func pressRefusal(_ refusal: String?, writeRecord: () -> Bool) -> String? {
+        if let refusal { return refusal }
+        return writeRecord() ? nil : "Could not write the safety record; not starting"
+    }
+
     /// A new dictation may not start while an earlier one is still owed a confirmed stop: starting would replace
     /// that dictation's record and abandon its stop, its alarm and its mute. `muteInEffect` counts only a safety
     /// mute still set on a connected device.
