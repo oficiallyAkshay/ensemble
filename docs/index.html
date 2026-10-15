@@ -40,11 +40,10 @@
     --g: linear-gradient(200deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 55%), linear-gradient(140deg, #ffe9a6 0%, #ffcb9a 45%, #ffaaa0 100%); }
   .hero .h3 { width: 24vw; height: 11vw; left: 33vw; bottom: -5vw; --r: 999px; --rot: -7deg; --g: linear-gradient(95deg, #ffe7a8, #ffc79b 55%, #ffb0a6); }
   .hero-text { position: relative; z-index: 5; padding-top: clamp(104px, 8.4vw, 130px); max-width: 52vw; }
-  .hero .ens-chip { background: #fff; rotate: -3deg; font-size: 12px; padding: 8px 14px; box-shadow: 0 8px 18px rgba(80, 60, 160, 0.15); margin: 0 0 18px 4px; }
-  .hero h1 { margin: 0; font: 700 clamp(30px, 4.9vw, 88px)/1.02 var(--e-display); letter-spacing: -0.045em; text-wrap: balance; }
-  /* the two highlights are cool blues and violets: they stay clear of the warm shapes behind the headline */
-  .hero h1 mark { background: none; color: inherit; background-image: linear-gradient(95deg, #c4d4ff, #9db8ff); background-repeat: no-repeat; background-size: 100% 0.34em; background-position: 0 90%; padding: 0 0.04em; }
-  .hero h1 mark.b { background-image: linear-gradient(95deg, #d9c9ff, #b79cff); }
+  .hero .ens-chip { background: #fff; font-size: 12px; padding: 8px 14px; box-shadow: 0 8px 18px rgba(80, 60, 160, 0.15); margin: 0 0 18px; }
+  .hero h1 { margin: 0; font: 700 clamp(40px, 7.2vw, 128px)/0.96 var(--e-display); letter-spacing: -0.05em; text-wrap: balance; max-width: 9.5em; }
+  .hero .sub { margin: 20px 0 0; font: 600 clamp(18px, 1.7vw, 25px)/1.3 var(--e-display); letter-spacing: -0.025em; color: #0a0a0a; max-width: 30em; }
+  .hero .copy { margin: 12px 0 0; max-width: 33em; font-size: clamp(15.5px, 1.2vw, 18px); line-height: 1.5; color: #404040; letter-spacing: -0.01em; }
 
   .caps { position: absolute; right: -3vw; top: -2vw; width: 44vw; height: 100%; display: flex; gap: 1.3vw; align-items: flex-start; justify-content: flex-end; z-index: 1; }
   .cap { position: relative; flex: none; width: 5.6vw; border-radius: 999px; background: var(--g); overflow: hidden; translate: 0 -2vw; transition: translate 0.9s var(--e-spring), box-shadow 0.8s ease, filter 0.8s ease; box-shadow: 0 20px 30px -12px rgba(40, 30, 90, 0.25); }
@@ -93,10 +92,15 @@
   @keyframes pulse { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
 
   /* ---- spread 2: the letter ---- */
-  .letter-sec { position: relative; padding: clamp(40px, 6vw, 90px) 0 40px; }
+  .letter-sec { position: relative; padding: clamp(50px, 7vw, 110px) 0 40px; }
   .letter-sec .l1 { width: 30vw; height: 22vw; right: -10vw; top: 2vw; --r: 999px; --rot: 28deg; --g: linear-gradient(100deg, #7a5cff, #3a7bff 55%, #2fd3c0); }
   .letter-sec .l2 { width: 18vw; height: 18vw; left: -7vw; top: 40vw; --r: 44% 56% 38% 62% / 55% 40% 60% 45%; --rot: 20deg; --g: linear-gradient(150deg, #ffe9a6, #ffc79b 55%, #ffaaa0); --dur: 26s; }
-  .how-head .ens-chip { background: #fff; }
+  .how-head .ens-chip, .chip-wrap .ens-chip { background: #fff; }
+  .chip-wrap { position: relative; z-index: 3; padding-left: clamp(20px, 8vw, 150px); margin-bottom: 20px; }
+  .chip-wrap .ens-chip { rotate: -3deg; font-size: 12px; padding: 8px 14px; box-shadow: 0 8px 18px rgba(80, 60, 160, 0.15); }
+  .lead { position: relative; z-index: 3; margin: 0 0 clamp(30px, 4vw, 64px); padding: 0 clamp(20px, 8vw, 150px); max-width: min(1080px, 94vw); font: 700 clamp(28px, 3.9vw, 62px)/1.06 var(--e-display); letter-spacing: -0.04em; text-wrap: balance; }
+  .lead mark { background: none; color: inherit; background-image: linear-gradient(95deg, #ffd84d, #ff9a4c 60%, #ff7f86); background-repeat: no-repeat; background-size: 100% 0.34em; background-position: 0 90%; padding: 0 0.04em; }
+  .lead mark.b { background-image: linear-gradient(95deg, #8fb8ff, #5294ff 50%, #7a5cff); }
   .body { position: relative; z-index: 3; margin-left: clamp(20px, 15vw, 280px); max-width: 640px; padding-right: 20px; }
   .body p { margin: 0 0 24px; color: #404040; font-size: clamp(19px, 1.7vw, 24px); line-height: 1.55; letter-spacing: -0.015em; text-wrap: pretty; }
   .body p.p2 { font-size: clamp(26px, 2.8vw, 40px); line-height: 1.12; letter-spacing: -0.035em; color: #0a0a0a; font-weight: 600; font-family: var(--e-display); margin-left: -3vw; }
@@ -177,7 +181,7 @@
   @media (max-width: 820px) {
     .hero { min-height: 0; padding-bottom: 60px; display: flex; flex-direction: column; }
     .hero-text { order: 1; max-width: none; padding-top: 96px; }
-    .hero h1 { font-size: clamp(30px, 8.4vw, 64px); }
+    .hero h1 { font-size: clamp(40px, 12.4vw, 84px); }
     .caps { width: 74vw; right: -16vw; top: -6vw; opacity: 0.9; }
     .cap { width: 10vw; }
     .island-slot { order: 2; position: relative; left: auto; top: auto; align-self: flex-start; margin: 36px 0 0 2vw; scale: 1; rotate: -3deg; transform-origin: left center; }
@@ -252,8 +256,10 @@
   <figure class="hero-shot shot shadowed"><img src="assets/shots/send.webp" width="840" height="1164" alt="The demo in mouse mode: the Ensemble island reads Sending in api-refactor with a blue bar filling along its edge, above the focused Claude session with its drafted message." decoding="async"></figure>
 
   <div class="hero-text">
-    <span class="ens-chip">A note from the person who made this</span>
-    <h1>Type to your AI for thirty minutes and it can build <mark>two days</mark> of work. Talk to it for thirty minutes and it can build <mark class="b">two weeks</mark>.</h1>
+    <span class="ens-chip">Free &middot; open source &middot; for Mac</span>
+    <h1>Run Claude by looking at it.</h1>
+    <p class="sub">Look at a session to pick it. Pinch twice to talk. Thumbs-up to send.</p>
+    <p class="copy">Ensemble turns your webcam into a remote for every Claude session on your screens: your nose picks the session, your fingers drive Claude's own dictation. Nothing leaves your Mac.</p>
     <div class="cta" id="cta">
       <div class="btns">
         <button class="ens-btn primary desktop-cta" type="button" id="try" aria-haspopup="dialog" aria-expanded="false" aria-controls="cam-pop">See the demo</button>
@@ -278,7 +284,9 @@
 
 <section class="letter-sec" id="note">
   <i class="blob l1 soft" aria-hidden="true"></i><i class="blob l2" aria-hidden="true"></i>
+  <div class="chip-wrap reveal"><span class="ens-chip">A note from the person who made this</span></div>
   <article class="letter">
+    <p class="lead reveal">Type to your AI for thirty minutes and it can build <mark>two days</mark> of work. Talk to it for thirty minutes and it can build <mark class="b">two weeks</mark>.</p>
     <div class="body">
       <div class="float-hand shadowed" role="img" aria-label="A 3D hand pinching its thumb and index finger, then dragging, the gesture that scrolls a session.">
         <i class="blob"></i>
