@@ -1,0 +1,15 @@
+{
+  "outcome": "ready",
+  "title": "Practice folder notes the day the board first built a ticket",
+  "was": "The practice folder had no note saying when the board first built a ticket.",
+  "changed": "Added a one-line note to the practice folder holding the date the owner confirmed.",
+  "now": "The practice folder holds first-run.md with exactly one line, 2026-10-15, and nothing outside the practice folder changed.",
+  "doneWhenEvidence": [
+    "practice/first-run.md read back after commit: wc -l reports 1 line, contents 2026-10-15",
+    "git diff main --name-only lists only practice/first-run.md"
+  ],
+  "note": "Date taken from the owner's comment confirming 2026-10-15, not from the clock or commit times. Docs-only change in practice/, no test can reach it. Checks: swift build and swift test could not run (no Swift toolchain in this Linux cloud session); not needed for a practice-folder note. The setup scripts named in the start message (setup.sh, setup-engine.sh, funnel/) do not exist in this repository, so they were not run. practice/README.md left unchanged.",
+  "memory": [],
+  "leftOut": [],
+  "stages": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+}
