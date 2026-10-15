@@ -407,6 +407,7 @@
         var r = lookAt(t % 8);
         rig.rotation.y = r.yaw; rig.rotation.x = r.pitch;
         setPaneHighlights(r.hl, false);
+        st.hl = r.hl;
       }
       return st;
     }
@@ -863,6 +864,7 @@
       renderer.render(scene, camera);
       var st = stateFor(name, t);
       if (extra.dot !== undefined) { st.dot = extra.dot; st.progress = extra.progress; }
+      if (extra.hl) st.hl = extra.hl;
       onFrame(st);
     }
     function renderNow() { renderFrame(frozen ? frozen.name : current, frozen ? frozen.t : (reduced ? STATIC_T[current] : 0), false); }
@@ -903,7 +905,7 @@
         current = name;
         frozen = { name: name, t: t }; frozenDirty = true;
         if (HAND_SCENES[name]) loadHand();
-        if (reduced) renderNow();
+        renderNow();   // site copy: draw (and report) the frozen frame right away, loop running or not
       },
       _hand: function () { return hand; },
       _ready: function () { return !HAND_SCENES[current] || !!hand || handFailed; },
@@ -921,7 +923,17 @@
     return handle;
   }
 
+  // Site copy: when things happen inside each loop, in seconds, so a page can tie a screen to the hand. The values restate the key times above.
+  var MARKS = {
+    look: { duration: DURATIONS.look, order: HEAD_ORDER_MARK() },
+    dictate: { duration: DURATIONS.dictate, pinch1: 0.65, pinch2: 0.95, listening: 1.05, typeFrom: 1.3, typeTo: 4.3, stop: 4.85 },
+    send: { duration: DURATIONS.send, holdFrom: 1.0, sent: 1.75, release: 4.2 },
+    scroll: { duration: DURATIONS.scroll, pinch: 0.6, dragFrom: 0.8, dragTo: 2.0, release: 4.4 }
+  };
+  function HEAD_ORDER_MARK() { return [{ t: 0.0, p: 1 }, { t: 2.0, p: 0 }, { t: 4.0, p: 2 }, { t: 6.0, p: 3 }, { t: 8.0, p: 1 }]; }
+
   window.EnsembleScene = {
+    MARKS: MARKS,
     mount: mount,
     _seek: function (name, t) { if (lastInstance) lastInstance._seek(name, t); },
     _last: function () { return lastInstance; }
