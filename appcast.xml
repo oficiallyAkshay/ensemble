@@ -3,6 +3,15 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.22</title>
+            <pubDate>Fri, 16 Oct 2026 19:32:39 -0400</pubDate>
+            <sparkle:version>447</sparkle:version>
+            <sparkle:shortVersionString>0.2.22</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.22/Ensemble-0.2.22.dmg" length="6386710" type="application/octet-stream" sparkle:edSignature="yJdWPoypcStlVL5SjTgSR2XlcvCEDTnCdJPiMUYpANmlCb5ApcTZS8JuFhIhO+TAOdkyxE0WYE6Da6wTFyviBw=="/>
+        </item>
+        <item>
             <title>0.2.21</title>
             <pubDate>Thu, 15 Oct 2026 15:50:35 -0400</pubDate>
             <sparkle:version>438</sparkle:version>
@@ -19,15 +28,6 @@
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.20/Ensemble-0.2.20.dmg" length="6391078" type="application/octet-stream" sparkle:edSignature="MBodiBh3M3gBZorFfr6IUm3DXddaFSdjfPlnH+y2Z/J4KmmvAbu+9vKBmG9QOa1ncye9DlK80tLAtiZcFJyCDA=="/>
-        </item>
-        <item>
-            <title>0.2.19</title>
-            <pubDate>Thu, 15 Oct 2026 15:05:02 -0400</pubDate>
-            <sparkle:version>428</sparkle:version>
-            <sparkle:shortVersionString>0.2.19</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.19/Ensemble-0.2.19.dmg" length="6388726" type="application/octet-stream" sparkle:edSignature="dLSyVYMiY2ZgVXU8XWQEi64YhRhq8FLXAOiZAKqs8HltfQBUQ541YcxnwWNZePp0UWrhd8ykv8deWFm70Na8CQ=="/>
         </item>
     </channel>
 </rss>
