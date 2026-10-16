@@ -247,7 +247,6 @@ export class GestureMachine {
   static staleHold = 1.0;
   static stopAndSendHold = 0.35;
   static sendAfterTalkEnd = 0.5;
-  static cancelHold = 0.3;
   static scrollHold = 0.25;
   static scrollMinSpeed = 300;
   static scrollMaxSpeed = 1200;
@@ -255,7 +254,7 @@ export class GestureMachine {
   static scrollMaxGap = 0.2;
 
   constructor(mapping = {}) {
-    this.mapping = { send: 'thumbsUp', scrollUp: null, scrollDown: null, cancel: 'openPalm', ...mapping };
+    this.mapping = { send: 'thumbsUp', scrollUp: null, scrollDown: null, ...mapping };
     this.talking = false;
     this.pinchClosed = 0.30;
     this.pinchOpen = GestureMachine.reopenAbove;
@@ -299,7 +298,6 @@ export class GestureMachine {
     const make = (action, need, can) => ({ pose: r.pose, action, progress: Math.min(Math.max(held / need, 0), 1), willAct: can, active: false });
     if (this.talking) return null;
     if (r.pose === this.mapping.send) return make('send', this.sendHold, (!r.startedWhileTalking || r.stoppedForSend) && !r.fired);
-    if (r.pose === this.mapping.cancel) return null;
     const dir = this.scrollDirection(r.pose);
     if (dir !== null) {
       const p = make(dir < 0 ? 'scrollUp' : 'scrollDown', G.scrollHold, !r.startedWhileTalking);
@@ -352,9 +350,6 @@ export class GestureMachine {
         && (r.stoppedForSend || (this.lastTalkEndT === null ? true : h.t - this.lastTalkEndT >= G.sendAfterTalkEnd))) {
         r.fired = true;
         intents.push({ type: 'sendRequested' });
-      } else if (pose === this.mapping.cancel && !r.startedWhileTalking && !r.fired && held >= G.cancelHold) {
-        r.fired = true;
-        intents.push({ type: 'cancelRequested' });
       } else {
         const direction = this.scrollDirection(pose);
         if (direction !== null && !r.startedWhileTalking && held >= G.scrollHold) {
