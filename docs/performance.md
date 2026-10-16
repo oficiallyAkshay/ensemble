@@ -49,6 +49,7 @@ With `detailedTrace` on, the trace records how long each face frame held the gat
 | Command | What it measures |
 |---|---|
 | `swift build -c release && .build/release/perfbench native` | Frame preparation and Apple Vision. |
+| `perfbench formats` | Capture's BGRA against the camera's own 4:2:0 video range on the same synthetic scene: CPU ms per step (brightness grid, still-head grid, face frame, hand pose, and the 4:2:0 to BGRA conversion capture does now), the total per second at 30 fps with and without a hand in view, and whether hand classification, joints, brightness and the face frame come out the same. |
 | `perfbench web [transfer=pull, b64 or bgra] [sec=15] [hz=30] [delegate=GPU or CPU] [model=landmarker or detector] [max-cpu-ms=N] [max-growth-mb=N]` | The face pipeline on synthetic frames: frames answered per second, bytes per frame, latency, CPU ms per frame and CPU per second of the harness (frame preparation, as the app's camera queue), the web content process and the GPU process, and memory at start, peak and end. `pull` loads the app's own `head.html`; `b64` is the old JPEG protocol, for before and after. The limits make it exit 1, for a local check before a change to the face pipeline. |
 | `perfbench pointer [noise=0.004] [sweep]` | How the nose dot moves: jitter, step lag, rest error and judder, before and after. |
 
