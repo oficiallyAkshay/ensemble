@@ -42,7 +42,9 @@ final class VisionEngine {
     /// Owned by the camera queue. Decides which analyses run on each frame.
     nonisolated(unsafe) private var planner = FrameRatePlanner()
     /// `lastReadingAt`: the frame time of the tracker's last real answer in this run, for `StillFace`.
-    private struct RateHints { var forceFull = false; var slowFace = false; var lastFaceSeenAt: TimeInterval?; var lastReadingAt: TimeInterval? }
+    private struct RateHints {
+        var forceFull = false; var slowFace = false; var otherAppInFront = false; var lastFaceSeenAt: TimeInterval?; var lastReadingAt: TimeInterval?
+    }
     private let hints = OSAllocatedUnfairLock(initialState: RateHints())
     /// Owned by the camera queue: skips the tracker while the picture is still (`StillFace`). `stillReference` is the
     /// luma grid of the frame last sent, `lastSubmittedT` its time, `stillRun` the run they belong to.
@@ -132,6 +134,9 @@ final class VisionEngine {
 
     /// True while the face may run at the planner's slow rate (`FrameRatePlanner.wantsSlowFace`).
     func setSlowFace(_ on: Bool) { hints.withLock { if $0.slowFace != on { $0.slowFace = on } } }
+
+    /// True while another app is in front: gestures do nothing, so a hand in view gets only the probe.
+    func setOtherAppInFront(_ on: Bool) { hints.withLock { if $0.otherAppInFront != on { $0.otherAppInFront = on } } }
 
     /// A camera (re)appeared. In automatic mode, a camera the owner would now be picked over the one running
     /// (an external camera just plugged in, say) restarts the session onto it.
@@ -249,7 +254,8 @@ final class VisionEngine {
             planner.noteHand(present: note.present, at: note.t)
         }
         let hint = hints.withLock { $0 }
-        let plan = planner.plan(now: t, forceFull: hint.forceFull, lastFaceSeenAt: hint.lastFaceSeenAt, slowFace: hint.slowFace)
+        let plan = planner.plan(now: t, forceFull: hint.forceFull, lastFaceSeenAt: hint.lastFaceSeenAt, slowFace: hint.slowFace,
+                                otherAppInFront: hint.otherAppInFront)
 
         // The face frame goes out first: the nose dot waits on the face tracker.
         if plan.runFace { submitFace(pixels, at: t, generation: mine, forceFull: hint.forceFull, lastReadingAt: hint.lastReadingAt) }

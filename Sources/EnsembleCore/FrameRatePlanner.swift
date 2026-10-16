@@ -1,7 +1,8 @@
 import Foundation
 
 /// Decides, for each camera frame, which analyses run. Full rate only where a gesture or a safety check needs it:
-/// hand pose every frame while a hand is in view (and for `handHold` s after), otherwise a slow probe; the face
+/// hand pose every frame while a hand is in view (and for `handHold` s after) with Claude in front, otherwise a slow
+/// probe (gestures do nothing with another app in front, `otherAppInFront`); the face
 /// tracker at `faceInterval`, or `slowFaceInterval` while nothing follows the nose closely (`wantsSlowFace`); and both
 /// near zero once no face has been seen for `idleAfter` s. `forceFull` (dictating, a send pending, calibrating, a
 /// gesture held) keeps the hand at every frame and cancels both slowdowns.
@@ -48,13 +49,14 @@ public struct FrameRatePlanner {
         return otherAppInFront || !sessionsOnScreen || (pausedFor ?? 0) >= pausedSlowAfter
     }
 
-    public mutating func plan(now: TimeInterval, forceFull: Bool, lastFaceSeenAt: TimeInterval?, slowFace: Bool = false) -> Plan {
+    public mutating func plan(now: TimeInterval, forceFull: Bool, lastFaceSeenAt: TimeInterval?, slowFace: Bool = false,
+                              otherAppInFront: Bool = false) -> Plan {
         if startedAt == nil { startedAt = now }
         let faceReference = max(lastFaceSeenAt ?? -.infinity, startedAt ?? now)
         let idle = !forceFull && now - faceReference > idleAfter
 
         var runHand = false
-        if !idle, forceFull || handPresent || now - lastHandSeen < handHold {
+        if !idle, forceFull || (!otherAppInFront && (handPresent || now - lastHandSeen < handHold)) {
             runHand = true
         } else {
             runHand = now - lastHandRun >= (idle ? idleInterval : handProbeInterval) - slack

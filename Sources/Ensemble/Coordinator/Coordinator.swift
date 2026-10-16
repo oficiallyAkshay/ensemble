@@ -106,7 +106,8 @@ final class Coordinator: AppCoordinating {
             self.pushOverlay()
         }
         focus.stopDictation = { [weak self] reason in self?.dictation.end(reason: reason) }
-        focus.frontAppChanged = { [weak self] in self?.wake() }
+        // The rates follow the switch itself: a tick within the last 50 ms makes wake wait for the next reading.
+        focus.frontAppChanged = { [weak self] in self?.updateFaceRate(now: CACurrentMediaTime()); self?.wake() }
         dictation.interrupt = { [weak self] reason in self?.interrupt(reason) }
         dictation.stopResolved = { [weak self] confirmed in self?.stopResolved(confirmed: confirmed) }
         keyTap.onKey = { [weak self] isReturn, modified, isRepeat in
@@ -656,6 +657,7 @@ final class Coordinator: AppCoordinating {
     private func updateFaceRate(now: TimeInterval) {
         let full = needsFullRate
         engine.setForceFullRate(full)
+        engine.setOtherAppInFront(focus.userLeftClaude)
         let slow = FrameRatePlanner.wantsSlowFace(needsFull: full, tourOpen: tourOpen, otherAppInFront: focus.userLeftClaude,
                                                   sessionsOnScreen: !ctx.sessions.isEmpty,
                                                   pausedFor: ctx.handsBusy ? now - pausedSince : nil)
