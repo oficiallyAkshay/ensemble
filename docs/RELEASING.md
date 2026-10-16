@@ -70,7 +70,7 @@ Until a Developer ID exists, releases are built on the owner's Mac right after a
 scripts/ship-release.sh 0.2.0
 ```
 
-It builds and signs the DMG with the local identity, adds it to the appcast with the update key in this Mac's login keychain (a refusal here stops the run before anything is public), then tags `main`, publishes the GitHub Release, and pushes `appcast.xml` to `gh-pages`, which GitHub Pages serves at the feed address in `UpdateController.swift`. Installed copies then see the version on their next check, or at once with Check for Updates. The update key and feed are set; the private key is also kept outside the keychain by the owner. Copies signed with the local identity update only on this Mac.
+It builds and signs the DMG with the local identity, adds it to the appcast with the update key in this Mac's login keychain (a refusal here stops the run before anything is public), then tags `main`, publishes the GitHub Release, and pushes `appcast.xml` to `gh-pages`, which GitHub Pages serves at the feed address in `UpdateController.swift`. Installed copies then see the version on their next check, or at once with Check for Updates. The update key and feed are set; the private key is also kept outside the keychain by the owner. Copies signed with the local identity update only on this Mac. On a Mac whose login keychain does not hold the update key, the run stops at the appcast step and nothing is published. The owner restores the key from the password-manager copy of the file `generate_keys -x` wrote, in their own terminal and never from an agent session: `.build/artifacts/sparkle/Sparkle/bin/generate_keys -f <key file>`; then the run is repeated.
 
 ## Cut a release
 
