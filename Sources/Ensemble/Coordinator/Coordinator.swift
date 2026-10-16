@@ -50,6 +50,9 @@ final class Coordinator: AppCoordinating {
     private var tickTailUntil: TimeInterval = -.infinity
     private static let tickInterval = 1.0 / 20.0
     private static let tickTail = 0.5
+    /// A pending overlay push from a reading; see `pushOverlaySoon`.
+    private var overlayFlush: Timer?
+    private static let overlayInterval = 1.0 / 60.0
     private var cancellables = Set<AnyCancellable>()
     private var headStats: (since: TimeInterval, n: Int, faces: [Int]) = (0, 0, [0, 0, 0])
     private var refreshInFlight = false
@@ -447,7 +450,7 @@ final class Coordinator: AppCoordinating {
             focusNose = nil
         }
         dot.place(target: focus.target)
-        pushOverlay()
+        pushOverlaySoon()
     }
 
     private func logHeadStats(_ head: HeadObservation) {
@@ -477,7 +480,7 @@ final class Coordinator: AppCoordinating {
         ctx.gestureShowing = progress != nil
         ctx.overlay.setGesture(progress)
         dot.place(target: focus.target)
-        pushOverlay()
+        pushOverlaySoon()
     }
 
     private func handle(light: FrameLight) {
@@ -903,7 +906,16 @@ final class Coordinator: AppCoordinating {
         wake()
     }
 
+    /// Head and hand readings together arrive up to 60 times a second, both from each camera frame: they mark the
+    /// overlay for one push 1/60 s later, which reads the latest values. The tick timer is armed
+    /// now, so a gesture, hold or deferred focus the reading started never waits for the push.
+    private func pushOverlaySoon() {
+        armTickTimer()
+        if overlayFlush == nil { overlayFlush = commonModeTimer(Self.overlayInterval) { [weak self] in self?.pushOverlay() } }
+    }
+
     private func pushOverlay() {
+        overlayFlush?.invalidate(); overlayFlush = nil
         dictation.restoreAudioIfIdle()
         let acting = ctx.listening ?? (gestures.progress?.action == .send ? send.lastSpoken?.session : nil) ?? focus.target
         ctx.overlay.setSession(name: acting.map(ctx.name(of:)), switching: focus.switching())

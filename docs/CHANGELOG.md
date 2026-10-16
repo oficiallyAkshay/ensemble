@@ -4,7 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
-Nothing yet since 0.2.21.
+- With a face or hand in view, the overlay is refreshed at most once per screen refresh instead of on every camera reading, so the app does less work on its main thread.
 
 ## 0.2.21 - 2026-10-15
 
