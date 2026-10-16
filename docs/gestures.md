@@ -29,6 +29,8 @@ When Ensemble starts a dictation, it also puts the keyboard in that session's me
 
 Ensemble does no speech recognition of its own. The status capsule at the top of the screen, a floating one on screens without a notch, names the state and the session. Option-Command-K opens the control panel from anywhere. The panel, top to bottom: the on/off switch with the live status, the camera with its rate and the dot's ("camera 30 fps · dot 75 Hz": a webcam such as the C920 delivers at most 30 frames a second, while the dot moves on every refresh of its screen), how many screens are calibrated (click it to see your screens drawn where macOS has them, then click one to recalibrate only that screen), the nose dot and highlight switches, then Replay tour, the update button, Calibrate and Settings, and a footer with the installed version and a power button that quits. A refused gesture adds a short note under the camera that clears after a few seconds, or sooner once what it described no longer holds.
 
+The five-step tour on first launch shows each gesture on a flat Claude window with one focused session and a 3D hand beside it, and lets you practise them with nothing reaching Claude. A panel under the 3D hand draws your own hand's 21 joints as the camera reads them; the joint points stay in the app, and no image is kept or sent. Replay it from the menu bar panel, the panel under Option-Command-K, or Settings.
+
 ## Warnings while you dictate
 
 Only while dictating, and only when your look is heading out of the session you dictate into. The outer 15 percent of that session is the warning band.

@@ -15,23 +15,19 @@
 
 ## Features
 
-Ensemble is a macOS menu bar app that lets you run Claude desktop's Code sessions without touching the keyboard or the mouse.
-
 <p align="center"><b>Focus follows your nose</b><br>Look at a session and it takes focus, so every gesture lands where you are looking.</p>
 
 <p align="center"><b>Dictate and send hands-free</b><br>A double thumb-index pinch starts and stops Claude's own dictation, and a held thumbs-up sends the draft.</p>
 
 <p align="center"><b>Scroll with one hand</b><br>Pinch and drag to scroll the session, and flick for momentum.</p>
 
-<p align="center"><b>Make room for one session</b><br>A session you look at that is narrower than Claude's chat column widens to just past it on its own, taking the room from the widest session beside it. Hold a peace sign and it becomes as wide as Claude allows; close the two fingers like scissors and the sessions share the window evenly again.</p>
+<p align="center"><b>Fits the chat column</b><br>A session you look at widens enough to read, a peace sign makes it as wide as Claude allows, and scissors share the window evenly.</p>
 
-<p align="center"><b>Always say what it sees</b><br>A capsule at the top of the screen names the state and the session, so nothing happens by surprise.</p>
+<p align="center"><b>Always shows its state</b><br>A capsule at the top of the screen names the state and the session, so nothing happens by surprise.</p>
 
 <p align="center"><b>Quiet while you talk</b><br>Other audio on your speakers pauses while you dictate, then comes back.</p>
 
-<p align="center"><b>A five-step tour on first launch</b><br>It shows each gesture on a flat Claude window with one focused session and a 3D hand beside it, lets you practise them without anything reaching Claude while a panel under the 3D hand draws your own hand's 21 joints as the camera reads them (the joint points stay in the app; no image is kept or sent), and replays from the menu bar panel, the panel under Option-Command-K, or Settings.</p>
-
-<p align="center"><b>Private stays private</b><br>Camera frames are analysed in memory and never stored or sent anywhere.</p>
+<p align="center"><b>A first-launch tour</b><br>A short tour teaches each gesture while nothing reaches Claude.</p>
 
 ## Fit
 
