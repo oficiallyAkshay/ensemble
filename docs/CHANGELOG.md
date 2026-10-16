@@ -1,8 +1,26 @@
 # Changelog
 
-Each release and what changed. Back to the [README](../README.md).
+Each release and what changed, newest first, dated by its release on GitHub. Back to the [README](../README.md).
 
 ## Unreleased
+
+Nothing yet since 0.2.21.
+
+## 0.2.21 - 2026-10-15
+
+- Pressing "Update to x.y.z" installs at once, and the "Install now?" alert no longer comes back from an earlier update check.
+- The chat-column fit widens the session to 10 percent past the chat column, moving as few dividers as it can from the wider side, in one fast burst.
+
+## 0.2.20 - 2026-10-15
+
+- Maximize leaves every other session in its row at Claude's narrowest, each divider moves once, and the highlight goes straight to where the session ends up.
+- The chat-column fit acts only on the session your nose rests on and stops when you look elsewhere; the highlight moves between sessions twice as fast.
+
+## 0.2.19 - 2026-10-15
+
+- A peace sign is recognised with the thumb out, at desk distance and as a narrow V.
+
+## 0.2.18 - 2026-10-15
 
 - The menu panel, Settings and the safety page no longer say gestures are ignored while you type or use the mouse. The status now reads "Focus holds while you type or use the mouse", and Settings says focus and the highlight hold while gestures still work.
 - Ensemble uses less energy when you are not pointing at Claude: face tracking drops from every frame (30 a second) to 10 a second while another app is in front, while no Claude session is on screen, and after 3 seconds on the keyboard or mouse, and goes back to every frame on the next tick once that ends or a gesture, dictation or send starts. Hand detection is unchanged. The face tracker is most of Ensemble's CPU (about 60 percent of one core with the web content and GPU processes at full rate), so in those states that part should fall to about a third; this is an estimate, not yet measured on the app.
@@ -19,23 +37,41 @@ Each release and what changed. Back to the [README](../README.md).
 - Logs name a session by its place in its row ("pane 2 of 4"), never by its title.
 - Calibration dots sit 4% in from each screen edge instead of 8%, so sessions at a screen's edge are measured rather than guessed, and every dot stays whole and clear of the menu bar and the notch. Recalibrate after updating (menu panel, Calibrate) to get the wider reach; calibrations from before keep working as they were.
 - Recalibrating one screen after moving or rotating monitors no longer saves the wrong screen. The first dot of a one-screen run now waits for your head to turn away from the screen you were looking at, and a run whose points repeat another calibrated screen's is not saved: Ensemble says "Not saved: the points on ... matched where you look at ..." instead of leaving the nose unable to reach that screen. The log says when a calibration is saved, for which screens and position, and which screens point with it.
+
+## 0.2.16 - 2026-10-15
+
 - The log names a camera by its model id, never its device name (which can carry the owner's name, such as "Akshay's iPhone Camera"). The start line says only whether a camera was chosen in Settings, and a newly connected camera is named by its model id too.
 - Gestures and headphone presses work while Ensemble is paused for the keyboard or mouse: the pause now only holds focus, the highlight and resizes. Before, a double pinch made right after typing landed inside the 2-second quiet time and did nothing, and each pause began or ended by resetting a half-made gesture.
 - Holding an open hand no longer asks for a cancel that nothing acted on: a resting open hand does nothing, and Settings, Actions drops the Cancel row. Saved settings keep their Send and scroll gestures.
 - A face tracker that keeps failing recovers by itself instead of leaving the pointer and focus-follow dead until Ensemble restarts. The first failure retries at once, as before; each later one waits 2, 4, 8, 16, then 30 seconds before the next try and never gives up. The menu panel shows the failure during the wait, and a good head reading or a camera restart starts the count over.
+
+## 0.2.15 - 2026-10-15
+
 - The session you look at widens to Claude's chat column when it is narrower. Once your look has rested on a session for 0.6 seconds, Ensemble drags the dividers so the session is as wide as Claude's text column (read from a wider session on screen, 832 points until one is) and the other sessions beside it each give up an equal share, none below 300 points. Once per look, only with Claude in front, never while dictating or sending or while you type or use the mouse. On by default; Settings, Actions, "Fit the focused session to the chat width" turns it off. The peace sign and scissors work as before.
+
+## 0.2.14 - 2026-10-15
+
 - Ensemble steps back while your hands are on the keyboard, mouse or trackpad: typing, clicking, scrolling or moving the pointer more than a few points stops focus following your look, fades the nose dot and highlight out, and ignores gestures and headphone presses, so working by hand never meets a session switch you did not ask for. The menu panel says "Paused while you type or use the mouse". Two seconds after your hands rest (Settings, General, Pause after typing or mouse use, 1 to 5 seconds) the dot and highlight fade back in and Ensemble acts again; the camera never stops, so it is instant. Ensemble's own scrolls, divider drags and held-back Returns never pause it, stopping a dictation still works while paused, and every dictation safety check keeps running.
 - Peace sign and scissors change session widths. Hold a peace sign for 0.6 seconds and the session you look at widens to most of the Claude window while the sessions beside it narrow; make a peace sign and close the two fingers within 0.6 seconds and every session there gets an equal share again. Ensemble drags Claude's own dividers between sessions, one at a time along the smooth curve over 0.3 seconds each, and puts the pointer back. Only with Claude in front and never while dictating or sending; touching the keyboard or mouse stops it. Settings, Actions has a "Session widths" section to turn either one off.
+
+## 0.2.13 - 2026-10-15
+
 - A dictation started with Claude's own button no longer locks Ensemble out. A double pinch in that session stops it (before: "mic is not verifiably off: on"), a thumbs-up, a headphone double press or two Returns stop it and send it, and once it has ended a thumbs-up within 30 seconds sends it (before: "Nothing dictated in the last 30 seconds"). A start that finds Claude already dictating says "Claude is already dictating here; pinch twice to stop".
 - A send reads and presses only the pane that was dictated into. When Claude changed its layout a second after a stop (one pane shown, then four), the send read another pane and said "The draft is empty"; another pane's draft could have been sent. It now finds the same pane again by window, session name and place, or sends nothing and says it could not read that session's message box.
 - A thumbs-up while dictating feels like one motion: the dictation stops as soon as the thumbs-up is recognised and the transcript settles while the bar fills, so Send is pressed as the hold completes instead of about 0.8 s after. Dropping the hand before the bar fills keeps the text unsent and says "Kept, not sent". A thumbs-up still up after a send no longer starts a second bar. The log carries each send's timeline.
 - Clicking "Calibrated for N screens" in the menu panel opens your screens drawn where macOS has them, as System Settings, Displays draws them: each at its real position and relative size, with its name, size, a menu bar strip on the main screen and "Calibrated Oct 15" or "Not calibrated". Click a screen to recalibrate only that one. The same arrangement heads Settings, Calibration, above a row per screen with its Recalibrate button, and both follow screens being plugged in, moved or removed.
 - The Settings tab "Gestures" is now "Actions": each row is an action with its own icon (microphone for Talk, paper plane for Send, arrows for Scroll) and the gesture that does it on the right. Scroll is a row of its own, done by pinch and move, with Reverse the scroll direction beside it; the hold-to-send time sits under Send. The pose-held Scroll up and Scroll down move to "Other ways to scroll", still Off by default because pinch and move already scrolls. The Talk row no longer offers a pose picker that did nothing: talking is always a double pinch.
 - The panel's camera row names both rates, "HD Pro Webcam C920 · camera 30 fps · dot 75 Hz". The 30 is the camera's own limit (every C920 format tops out at 30); the dot already moves on every refresh of its screen.
+
+## 0.2.12 - 2026-10-15
+
 - The menu panel's status line is always the live state, and a refused gesture's note no longer sticks: it clears after 6 seconds, when a dictation starts, when you type or click, and for "Your nose is not on a Claude session" or "Claude isn't on screen" as soon as your nose is back on a session. Switching Ensemble off clears it too.
 - With Update automatically on, Ensemble checks 15 seconds after launch and then every hour instead of every 6 hours, and a new version found by any check, background ones included, shows on the update button without you pressing it.
 - One update button everywhere (menu bar panel, Option-Command-K panel, Settings): "Check for Updates", "Update to x.y.z" when one is found (pressing it installs), or "Up to date" for a few seconds after your check finds nothing. The separate "is available" and "Up to date" lines are gone; the installed version is a small caption in the panel's footer and beside the button in Settings.
 - The menu panel reads top to bottom: on/off, the camera and "Calibrated for N screens", the nose dot and highlight switches, then Replay tour, the update button, Calibrate and Settings. Quit is a power button in the footer, and the "⌥⌘K shows this panel" caption is gone (the shortcut still works).
+
+## 0.2.11 - 2026-10-15
+
 - The menu bar panel says "Claude isn't on screen" instead of "Watching" while Claude runs but none of its windows is on screen (another Space, minimized, behind a full-screen app), and goes back to "Watching" when a session is found.
 - Return twice while talking sends again when the stop takes longer than half a second: Ensemble switching its own key watch off after the stop came back from macOS as a pause, counted as typing, and refused the send with "You just typed or clicked". The watch now also stays on until a send asked for with Return is done, so a key typed meanwhile still refuses it.
 - The session list no longer empties for a second when Claude's tree reads empty while it re-renders: one empty scan keeps the sessions while their dictation checkboxes still answer, and two in a row drop them.
@@ -55,8 +91,10 @@ Each release and what changed. Back to the [README](../README.md).
 - The camera turns off while the Mac or display sleeps, the screen is locked or the screen saver runs, and Ensemble moves no focus meanwhile; it comes back on when you return.
 - Moving or resizing the Claude window you are dictating into keeps the highlight and edge warnings on it.
 - An automatic update no longer installs while a send is pending or a gesture is being held.
-
 - The nose dot glides instead of stepping and lands where you look: the camera is held at 30 frames a second (dim light no longer halves it where the camera allows), every frame becomes a head reading instead of every second one, and the dot moves on every screen refresh as a spring. In a replay of a head turn it covers 90% of the move in about 0.27 s instead of about 1 s, rests within a few points of the aim instead of about 20 points short, and stays still while your head is still. Center Stage is turned off for Ensemble's camera, and a camera restart no longer reloads the face tracker. The Pointer smoothing slider keeps its place; its scale is retuned.
+
+## 0.2.9 - 2026-10-15
+
 - The onboarding tour is in light mode, like the website's live demo: a white window with the app's blue on the selected tab and buttons, the gestures step's Claude window in Claude's light theme, the hand and the welcome and calibration scenes on a white background, and the camera panel and success badge on white.
 - The "Claude's microphone may still be on" alarm now always shows as a banner on the island and stays until the safety check confirms the microphone is off and the mute is undone, even when notifications are refused or a Focus mode hides them; the system notification is sent as well when allowed.
 - On first launch the tour's Welcome step is no longer covered by the Accessibility prompt and the Camera request: the camera starts when the tour moves on to calibration, and the Accessibility prompt waits for the tour's permissions step or for the tour to close.
@@ -65,19 +103,52 @@ Each release and what changed. Back to the [README](../README.md).
 - The website and README now quote the current macOS 15 and later install wording (Apple could not verify the app; Done; Open Anyway asks for your Mac password). The live demo's no-JavaScript message is readable.
 - The release workflow also uploads Ensemble.dmg, the fixed name the Download button links to, and stands down when scripts/ship-release.sh has already published the release.
 - Return stops a dictation Ensemble started: the text stays unsent and Claude never sees that key, and the next Return sends as usual. Two quick Returns while you talk stop and then send, under the same rules as the thumbs-up; if the stop cannot be confirmed, the island says "Not sent". Only with Claude in front and only plain Return: Shift-Return and every other key are left alone. Starting a dictation also puts the keyboard in that session's message box while Claude is in front.
+
+## 0.2.8 - 2026-10-15
+
 - Settings, Calibration can recalibrate one screen: pick it under Screens and press Calibrate this screen; every other screen keeps its calibration. Add position calibrates again from another place, such as standing or leaning back, and keeps it beside the ones you have; Ensemble uses, screen by screen, the saved position nearest where your head is (switching only once another is clearly nearer), Calibrate redoes the position in use, and Remove forgets one. Calibrations saved before this version become Position 1, nothing lost.
 - Turning Ensemble off while a dictation is starting no longer leaves Claude's microphone recording: the start is waited for and, if it turns the microphone on, stopped at once, and the safety record is kept until the microphone is confirmed off.
 - When macOS cannot say whether Claude is recording (the audio system restarting, say), Ensemble treats the microphone as possibly on: the safety record and any safety mute stay until a definite "off". On quit, a stop that finds no Claude session is no longer counted as confirmed.
 - A thumbs-up sends nothing while another app is in front, even right after dictating; the island says "Not sent". This is checked when the gesture arrives and again right before Send is pressed.
 - Next to every Check for Updates button (menu bar panel, Option-Command-K panel, Settings) Ensemble shows the version you have installed, and after a check it says "Ensemble 0.5.0 is available" or "Up to date". The latest version is learned only from a check you start or the automatic checks you turned on; nothing is fetched otherwise.
+
+## 0.2.7 - 2026-10-15
+
 - With one chat session open in Claude, the highlight, focus and edge warnings cover just that session, not the whole window with its top bar and left navigation. Two or more sessions side by side are unchanged.
+
+## 0.2.6 - 2026-10-15
+
+- Pointing follows your nose when you slide along the desk: Ensemble reads where your head is as well as which way it points, so the screen you aim at stays the one you aim at without recalibrating. It is on by default and can be switched off in Settings, Display, "Correct for where I sit". Calibrations saved before this version keep pointing by angle until you recalibrate.
+
+## 0.2.5 - 2026-10-15
+
 - Calibrate puts its full-screen window up at once, even when Ensemble was off or the camera is still starting; it says what it is waiting for ("Starting the camera...", "Looking for your face...") and shows the first dot only after a face reading arrives. The log records the time from click to window and from click to first face reading.
 - A calibration dot is captured only when your head has turned toward it and holds still for 0.4 s; the ring does not fill before that. The text reads "Turn your nose to the dot", then "Move your head, not just your eyes" after 4 s, and after 12 s offers Skip this point or Retry (a skipped point leaves that screen uncalibrated).
 - Calibration opens with "Found 2 screens", listing each screen's name, size, orientation and place in the display arrangement and the order they will be calibrated in, on every screen at once; each step names its screen ("Screen 2 of 2 - DELL U2723QE - turn to face it"). The menu bar panel says "Calibrated for 2 screens".
-- A five-step tour opens on first launch (welcome, calibrate, three gestures to practise (dictate, send, scroll) shown in 3D scenes with the owner's recorded motion, permissions), can be skipped at any step, and replays from the menu bar panel, the Option-Command-K panel or Settings. While its gesture step is open, gestures only drive the tour and nothing reaches Claude, and the gestures step is one canvas: a flat Claude window with one session focused (blue outline, never filled) and the others as skeletons, reacting to the gesture, with a column on its right edge holding a 3D hand on top and, below it, your own hand's 21 joints as the camera reads them with the gesture it recognises. When you do the gesture, "Pinch detected" (or its kin) appears at the canvas's bottom left; the "Your turn" line below the canvas keeps its height, so the window does not jump. The skeleton holds coordinates only: no frame is stored or sent.
-- Pointing follows your nose when you slide along the desk: Ensemble reads where your head is as well as which way it points, so the screen you aim at stays the one you aim at without recalibrating. It is on by default and can be switched off in Settings, Display, "Correct for where I sit". Calibrations saved before this version keep pointing by angle until you recalibrate.
 
-## 0.1.1
+## 0.2.4 - 2026-10-15
+
+- A missing permission offers Restart Ensemble (quits and reopens itself) and Reset (clears a stale grant and asks again), so nobody has to quit and reopen by hand.
+
+## 0.2.3 - 2026-10-15
+
+- Update automatically (off until you turn it on, Settings, General): checks every 6 hours, downloads in the background and installs only while Ensemble is idle, then reopens.
+
+## 0.2.2 - 2026-10-15
+
+- The nose dot glides at the screen's refresh rate instead of jumping 15 times a second with each head reading.
+- While the tour is open Ensemble acts on nothing in Claude: no focus moves, no raised sessions, no dictation or send; the camera keeps running for the tour's own calibration and practice.
+- Replay tour and Check for Updates are full buttons in the menu panel, beside Calibrate and Settings.
+
+## 0.2.1 - 2026-10-15
+
+- Pointing fits one map per screen and picks the screen from your head's angles, so an angled portrait screen beside a landscape one points correctly.
+
+## 0.2.0 - 2026-10-15
+
+- A five-step tour opens on first launch (welcome, calibrate, three gestures to practise (dictate, send, scroll) shown in 3D scenes with the owner's recorded motion, permissions), can be skipped at any step, and replays from the menu bar panel, the Option-Command-K panel or Settings. While its gesture step is open, gestures only drive the tour and nothing reaches Claude, and the gestures step is one canvas: a flat Claude window with one session focused (blue outline, never filled) and the others as skeletons, reacting to the gesture, with a column on its right edge holding a 3D hand on top and, below it, your own hand's 21 joints as the camera reads them with the gesture it recognises. When you do the gesture, "Pinch detected" (or its kin) appears at the canvas's bottom left; the "Your turn" line below the canvas keeps its height, so the window does not jump. The skeleton holds coordinates only: no frame is stored or sent.
+
+## 0.1.1 - 2026-10-14
 
 - The app is 6.9 MB instead of 19 MB, and the download 5.4 MB instead of 10 MB.
 - The face tracker page is blocked from the internet, and every build checks that no network code or build-machine detail is inside the app.
@@ -88,7 +159,7 @@ Each release and what changed. Back to the [README](../README.md).
 - The menu bar icon is three dots: hollow when off, filled when on.
 - Turning Ensemble off stops any Claude dictation and confirms the microphone is off.
 
-## 0.1.0
+## 0.1.0 - 2026-10-14
 
 First release. Face a session to pick it, double pinch to dictate, hold a thumbs-up to send, pinch and drag to scroll.
 
