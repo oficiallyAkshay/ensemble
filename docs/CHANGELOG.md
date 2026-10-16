@@ -40,7 +40,7 @@ Nothing yet since 0.2.21.
 
 ## 0.2.16 - 2026-10-15
 
-- The log names a camera by its model id, never its device name (which can carry the owner's name, such as "Akshay's iPhone Camera"). The start line says only whether a camera was chosen in Settings, and a newly connected camera is named by its model id too.
+- The log names a camera by its model id, never its device name (which can carry the owner's name). The start line says only whether a camera was chosen in Settings, and a newly connected camera is named by its model id too.
 - Gestures and headphone presses work while Ensemble is paused for the keyboard or mouse: the pause now only holds focus, the highlight and resizes. Before, a double pinch made right after typing landed inside the 2-second quiet time and did nothing, and each pause began or ended by resetting a half-made gesture.
 - Holding an open hand no longer asks for a cancel that nothing acted on: a resting open hand does nothing, and Settings, Actions drops the Cancel row. Saved settings keep their Send and scroll gestures.
 - A face tracker that keeps failing recovers by itself instead of leaving the pointer and focus-follow dead until Ensemble restarts. The first failure retries at once, as before; each later one waits 2, 4, 8, 16, then 30 seconds before the next try and never gives up. The menu panel shows the failure during the wait, and a good head reading or a camera restart starts the count over.
