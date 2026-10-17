@@ -26,38 +26,8 @@ enum SafetyFiles {
         return String(cString: buf)
     }
 
-    static func ensureDirectory() throws {
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
-    }
-
-    /// Write to a temp file, force it to disk, rename over the target, then force the directory entry.
-    static func writeDurably(_ data: Data, to url: URL) throws {
-        try ensureDirectory()
-        let tmp = url.appendingPathExtension("tmp")
-        let fd = open(tmp.path, O_WRONLY | O_CREAT | O_TRUNC, 0o600)
-        guard fd >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
-        var failure: Error?
-        data.withUnsafeBytes { raw in
-            var offset = 0
-            while offset < raw.count {
-                let n = write(fd, raw.baseAddress! + offset, raw.count - offset)
-                if n <= 0 { failure = POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO); return }
-                offset += n
-            }
-        }
-        if failure == nil, fcntl(fd, F_FULLFSYNC) != 0, fsync(fd) != 0 {
-            failure = POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
-        }
-        close(fd)
-        if let failure { unlink(tmp.path); throw failure }
-        guard rename(tmp.path, url.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
-        let dirFD = open(directory.path, O_RDONLY)
-        if dirFD >= 0 { _ = fsync(dirFD); close(dirFD) }
-    }
-
     static func writeEpisode(_ record: EpisodeRecord) throws {
-        try writeDurably(try SafetyRecordCoding.encoder.encode(record), to: episodeURL)
+        try SafetyRecordFile.write(try SafetyRecordCoding.encoder.encode(record), to: episodeURL)
     }
 
     static func readEpisode() -> EpisodeRecord? {
@@ -69,10 +39,10 @@ enum SafetyFiles {
         FileManager.default.fileExists(atPath: episodeURL.path)
     }
 
-    static func deleteEpisode() { try? FileManager.default.removeItem(at: episodeURL) }
+    static func deleteEpisode() { SafetyRecordFile.remove(episodeURL) }
 
     static func writeMutes(_ records: [MuteRecord]) throws {
-        try writeDurably(try SafetyRecordCoding.encoder.encode(records), to: muteURL)
+        try SafetyRecordFile.write(try SafetyRecordCoding.encoder.encode(records), to: muteURL)
     }
 
     static func readMutes() -> [MuteRecord] {
@@ -80,5 +50,5 @@ enum SafetyFiles {
         return (try? SafetyRecordCoding.decoder.decode([MuteRecord].self, from: data)) ?? []
     }
 
-    static func deleteMutes() { try? FileManager.default.removeItem(at: muteURL) }
+    static func deleteMutes() { SafetyRecordFile.remove(muteURL) }
 }
