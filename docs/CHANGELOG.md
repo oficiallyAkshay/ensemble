@@ -6,6 +6,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 - With a face or hand in view, the overlay is refreshed at most once per screen refresh instead of on every camera reading, so the app does less work on its main thread.
 - With another app in front, a hand in view is checked about 8 times a second instead of on every camera frame, unless you are dictating, sending, calibrating or mid-gesture; switching back to Claude restores every frame at once.
+- The dictation safety records can no longer be redirected by a link planted in their folder, the folder is made private to you on every write, and deleting a record is flushed to disk so a crash cannot bring it back.
 
 ## 0.2.21 - 2026-10-15
 

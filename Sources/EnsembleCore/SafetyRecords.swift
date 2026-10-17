@@ -52,6 +52,62 @@ public enum SafetyRecordCoding {
     }()
 }
 
+/// Writes and deletes the safety records. A record exists to stop Claude's dictation after a crash, so neither a link
+/// planted in the folder nor a crash right after a write or delete may leave a different record than the app last chose.
+public enum SafetyRecordFile {
+    /// Write to a fresh temp file nobody could have planted, force it to disk, rename it over `url`, then force the
+    /// folder entry. Throws when the record is not on disk, so the caller does not press Claude's dictation without one.
+    public static func write(_ data: Data, to url: URL) throws {
+        let folder = url.deletingLastPathComponent()
+        try ensureFolder(folder)
+        // Temp files a crash left behind would otherwise pile up, one unique name per write.
+        let prefix = url.lastPathComponent + "."
+        for name in try FileManager.default.contentsOfDirectory(atPath: folder.path)
+        where name.hasPrefix(prefix) && name.hasSuffix(".tmp") {
+            remove(folder.appendingPathComponent(name))
+        }
+        let tmp = folder.appendingPathComponent("\(prefix)\(UUID().uuidString).tmp")
+        let handle = try createExclusive(tmp)
+        do {
+            try handle.write(contentsOf: data)
+            if fcntl(handle.fileDescriptor, F_FULLFSYNC) != 0 { try handle.synchronize() }
+            try handle.close()
+            guard rename(tmp.path, url.path) == 0 else { throw posixError() }
+        } catch {
+            remove(tmp)
+            throw error
+        }
+        syncFolder(folder)
+    }
+
+    /// Delete, then force the folder entry so a crash cannot bring the old record back. A failed delete is not an
+    /// error: the record stays, and the recovery acts on it again.
+    public static func remove(_ url: URL) {
+        guard unlink(url.path) == 0 else { return }
+        syncFolder(url.deletingLastPathComponent())
+    }
+
+    static func syncFolder(_ folder: URL) {
+        let fd = open(folder.path, O_RDONLY)
+        if fd >= 0 { _ = fsync(fd); close(fd) }
+    }
+
+    /// Creating a folder applies its mode only when it is new, so an existing one is tightened every time.
+    static func ensureFolder(_ folder: URL) throws {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path)
+    }
+
+    /// Refuses any file or link already at `url`, so the write cannot be redirected.
+    static func createExclusive(_ url: URL) throws -> FileHandle {
+        let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else { throw posixError() }
+        return FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+    }
+
+    private static func posixError() -> POSIXError { POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+}
+
 /// The safety records an older build left in its own application-support folder are the only trace of a dictation
 /// that build left recording, or of an input device it muted. On launch they are moved into the current folder, where
 /// the normal recovery code finds them, acts on them and deletes them. Nothing is dropped: when both folders hold a
@@ -70,22 +126,23 @@ public enum SafetyFolderMigration {
             guard fm.fileExists(atPath: from.path) else { continue }
             let to = current.appendingPathComponent(name)
             do {
-                try fm.createDirectory(at: current, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                try SafetyRecordFile.ensureFolder(current)
                 if fm.fileExists(atPath: to.path) {
                     let merged = merge(name: name, legacy: try Data(contentsOf: from), current: try Data(contentsOf: to))
-                    try merged.write(to: to, options: .atomic)
-                    try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: to.path)
+                    try SafetyRecordFile.write(merged, to: to)
                     try fm.removeItem(at: from)
                 } else {
                     try fm.moveItem(at: from, to: to)
+                    SafetyRecordFile.syncFolder(current)
                 }
+                SafetyRecordFile.syncFolder(legacy)
                 adopted.append(name)
             } catch {
                 continue
             }
         }
         for name in [episodeName, muteName] {
-            try? fm.removeItem(at: legacy.appendingPathComponent(name + ".tmp"))
+            SafetyRecordFile.remove(legacy.appendingPathComponent(name + ".tmp"))
         }
         if let left = try? fm.contentsOfDirectory(atPath: legacy.path), left.isEmpty {
             try? fm.removeItem(at: legacy)
