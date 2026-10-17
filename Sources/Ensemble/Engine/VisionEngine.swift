@@ -23,6 +23,8 @@ final class VisionEngine {
     var onLight: ((FrameLight) -> Void)?
     var onStatus: ((EngineStatus) -> Void)?
     var onDiagnostic: ((String) -> Void)?
+    /// The cameras with a saved calibration; Automatic starts one of them first.
+    var calibratedCameraIDs: () -> Set<String> = { [] }
 
     private(set) var isRunning = false
     private var trackerRetry = TrackerRetry()
@@ -139,7 +141,7 @@ final class VisionEngine {
     /// A camera (re)appeared. In automatic mode, a camera the owner would now be picked over the one running
     /// (an external camera just plugged in, say) restarts the session onto it.
     private func deviceConnected() {
-        guard isRunning, requestedCamera == nil, let preferred = CameraSession.pick(named: nil), preferred.uniqueID != cameraID else { return }
+        guard isRunning, requestedCamera == nil, let preferred = CameraSession.pick(named: nil, calibratedIDs: calibratedCameraIDs()), preferred.uniqueID != cameraID else { return }
         onDiagnostic?("a camera connected; switching to \(preferred.modelID)")
         start(cameraName: nil)
     }
@@ -177,7 +179,7 @@ final class VisionEngine {
         }
         Task { @MainActor in
             do {
-                let identity = try await camera.start(named: cameraName, token: mine)
+                let identity = try await camera.start(named: cameraName, calibratedIDs: calibratedCameraIDs(), token: mine)
                 guard mine == generation, isRunning else { camera.stop(token: mine); return }
                 cameraLabel = identity.name
                 cameraID = identity.id

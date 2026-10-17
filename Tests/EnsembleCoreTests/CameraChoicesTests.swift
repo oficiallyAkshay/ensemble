@@ -47,6 +47,28 @@ import Testing
         #expect(CameraChoices.rows(connected: cameras, chosen: stored)[0].isCurrent)
     }
 
+    private let desk: [(id: String, kind: CameraKind)] = [("phone", .other), ("builtin", .builtIn), ("webcam", .external)]
+
+    @Test func automaticKeepsTheOldOrderWhenNothingIsCalibrated() {
+        #expect(CameraChoices.automaticPick(desk, calibratedIDs: []) == 2)
+        #expect(CameraChoices.automaticPick(Array(desk.prefix(2)), calibratedIDs: []) == 1)
+        #expect(CameraChoices.automaticPick([desk[0]], calibratedIDs: []) == 0)
+        #expect(CameraChoices.automaticPick([], calibratedIDs: ["webcam"]) == nil)
+    }
+
+    @Test func automaticPrefersACameraWithASavedCalibration() {
+        #expect(CameraChoices.automaticPick(desk, calibratedIDs: ["builtin"]) == 1)
+        #expect(CameraChoices.automaticPick(desk, calibratedIDs: ["phone"]) == 0)
+    }
+
+    @Test func amongCalibratedCamerasTheExternalOneStillWins() {
+        #expect(CameraChoices.automaticPick(desk, calibratedIDs: ["builtin", "webcam"]) == 2)
+    }
+
+    @Test func aCalibratedCameraThatIsNotConnectedChangesNothing() {
+        #expect(CameraChoices.automaticPick(desk, calibratedIDs: ["gone"]) == 2)
+    }
+
     @Test func aCameraPluggedInLaterAppearsOnTheNextBuild() {
         let before = CameraChoices.rows(connected: ["FaceTime HD Camera"], chosen: nil)
         let after = CameraChoices.rows(connected: ["FaceTime HD Camera", "HD Pro Webcam C920"], chosen: nil)

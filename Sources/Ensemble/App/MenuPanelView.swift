@@ -22,6 +22,7 @@ struct MenuPanelView: View {
     @ObservedObject var updates: UpdateController
     let actions: PanelActions
     @State private var showScreens = false
+    @State private var showStuck = false
 
     var body: some View {
         GlassGroup(spacing: 10) {
@@ -104,15 +105,21 @@ struct MenuPanelView: View {
                     Label("Open \(what) settings", systemImage: "gearshape").frame(maxWidth: .infinity)
                 }
                 .ensembleButtonStyle()
-                HStack(spacing: 8) {
-                    Button { Permissions.relaunch() } label: {
-                        Label("Restart Ensemble", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
+                Button("Still stuck?") { withAnimation(.smooth(duration: 0.35)) { showStuck.toggle() } }
+                    .buttonStyle(.link)
+                    .font(.caption)
+                if showStuck {
+                    HStack(spacing: 8) {
+                        Button { Permissions.relaunch() } label: {
+                            Label("Restart Ensemble", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
+                        }
+                        Button { Permissions.resetAndAsk(for: what) } label: {
+                            Label("Reset", systemImage: "arrow.uturn.backward").frame(maxWidth: .infinity)
+                        }
                     }
-                    Button { Permissions.resetAndAsk(for: what) } label: {
-                        Label("Reset", systemImage: "arrow.uturn.backward").frame(maxWidth: .infinity)
-                    }
+                    .ensembleButtonStyle()
+                    .transition(.opacity)
                 }
-                .ensembleButtonStyle()
             }
             if state.muted {
                 row(symbol: "speaker.slash", text: "Sounds muted", tint: .secondary)

@@ -31,7 +31,7 @@ struct TourPermissionsStep: View {
                  action: (title: "Allow\u{2026}", perform: Permissions.requestCamera))
         case .denied:
             card(symbol: "camera.fill", title: "Camera", granted: false,
-                 detail: "Camera access was turned off. Turn Ensemble on in the Camera list, then press Restart Ensemble in the menu bar panel.",
+                 detail: "Camera access was turned off. Turn Ensemble on in the Camera list, then press Still stuck?, then Restart Ensemble, in the menu bar panel.",
                  action: (title: "Open Settings", perform: { Permissions.openSettings(for: "Camera") }))
         }
     }

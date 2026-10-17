@@ -4,6 +4,8 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- Automatic camera now starts a camera that has a saved calibration before one that has none, so a phone camera that appears on its own no longer leaves Ensemble uncalibrated; with no saved calibration the order is unchanged (external, built-in, any other).
+- A missing permission shows one button that opens the right list; Restart Ensemble and Reset sit behind a small "Still stuck?" link.
 - With a face or hand in view, the overlay is refreshed at most once per screen refresh instead of on every camera reading, so the app does less work on its main thread.
 - With another app in front, a hand in view is checked about 8 times a second instead of on every camera frame, unless you are dictating, sending, calibrating or mid-gesture; switching back to Claude restores every frame at once.
 - While the face tracker waits to retry, the panel says it is retrying instead of "Face tracking stopped"; a tracker that recovers is no longer reloaded by the waiting retry, and one failure lengthens the wait only once.

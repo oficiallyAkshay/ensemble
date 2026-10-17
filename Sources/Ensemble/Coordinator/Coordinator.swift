@@ -169,6 +169,7 @@ final class Coordinator: AppCoordinating {
         engine.onLight = { [weak self] in self?.handle(light: $0) }
         engine.onStatus = { [weak self] in self?.health.handle(status: $0) }
         engine.onDiagnostic = { note in EnsembleLog.write("engine: \(note)") }
+        engine.calibratedCameraIDs = { [weak self] in Set(self?.ctx.setup.profiles.cameras.map(\.cameraID) ?? []) }
         SystemEvents.observe(
             interrupt: { [weak self] in self?.interrupt($0) },
             away: { [weak self] reason, on in self?.setAway(reason, on) },
