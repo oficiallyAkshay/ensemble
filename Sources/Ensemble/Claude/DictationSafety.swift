@@ -237,12 +237,10 @@ final class DictationSafety: @unchecked Sendable {
             if stopStartedAt != nil || escalated { stopConfirmed() }
             // The hold can end (an Accessibility stall, the dead-man check) while a start press is still queued or
             // running, and that press can open the microphone after this reading: off settles only once it has landed.
-            let startInFlight = bridge.startPressInFlight
-            offSince = startInFlight ? nil : offSince ?? now
-            if DictationRules.recordMayGo(capture: capture, startInFlight: startInFlight,
-                                          offFor: now.timeIntervalSince(offSince ?? now), settle: DictationRules.settleWindow) {
-                finishEpisode()
-            }
+            let reading = DictationRules.offReading(offSince: offSince, now: now, startInFlight: bridge.startPressInFlight,
+                                                    settle: DictationRules.settleWindow)
+            offSince = reading.offSince
+            if reading.recordMayGo { finishEpisode() }
         case .none:
             // Unreadable is never off. Left alone it could last for ever with nothing stopping or muting, so after a
             // while it is handled as a stop that cannot be confirmed: keep trying to stop, sound the alarm, mute.
@@ -388,7 +386,7 @@ final class DictationSafety: @unchecked Sendable {
         case .some(false):
             // After wake a start press may still be in flight; the standing check then clears the record once it lands.
             await onQueue {
-                if DictationRules.recordMayGo(capture: false, startInFlight: self.bridge.startPressInFlight, offFor: 0, settle: 0) {
+                if DictationRules.offReading(offSince: nil, now: Date(), startInFlight: self.bridge.startPressInFlight, settle: 0).recordMayGo {
                     self.finishEpisode()
                 }
             }

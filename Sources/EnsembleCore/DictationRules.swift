@@ -15,6 +15,15 @@ public enum DictationRules {
         confirmedOff(capture: capture) && !startInFlight && offFor >= settle
     }
 
+    /// A definite "off" reading with the safety record open: when the off period started, and whether the record may
+    /// go. A start press in flight restarts the off count, so the record goes only once the press has landed and
+    /// capture has read off for `settle` seconds since. The launch sweep passes no earlier start and no settle window.
+    public static func offReading(offSince: Date?, now: Date, startInFlight: Bool,
+                                  settle: TimeInterval) -> (offSince: Date?, recordMayGo: Bool) {
+        let since = startInFlight ? nil : offSince ?? now
+        return (since, recordMayGo(capture: false, startInFlight: startInFlight, offFor: now.timeIntervalSince(since ?? now), settle: settle))
+    }
+
     /// What a start press leads to once it has returned.
     public enum AfterStart: Equatable {
         /// The microphone is on and the pose is still held: keep listening.

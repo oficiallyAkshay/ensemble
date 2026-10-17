@@ -102,6 +102,47 @@ import Testing
         #expect(!DictationRules.recordMayGo(capture: nil, startInFlight: false, offFor: 30, settle: 3))
     }
 
+    @Test func theStandingCheckRestartsTheOffCountWhileAStartPressIsInFlight() {
+        let t0 = Date(timeIntervalSinceReferenceDate: 0)
+        let settle = DictationRules.settleWindow
+        var offSince: Date?
+        var mayGo = false
+        // Off for 30 s, all of it with the press in flight: the record stays and the off count never starts.
+        for second in 0...30 {
+            (offSince, mayGo) = DictationRules.offReading(offSince: offSince, now: t0 + Double(second), startInFlight: true, settle: settle)
+            #expect(offSince == nil)
+            #expect(!mayGo)
+        }
+        // The first off reading after the press lands starts the count; the record goes only after the settle window.
+        let landed = t0 + 31
+        (offSince, mayGo) = DictationRules.offReading(offSince: offSince, now: landed, startInFlight: false, settle: settle)
+        #expect(offSince == landed)
+        #expect(!mayGo)
+        (offSince, mayGo) = DictationRules.offReading(offSince: offSince, now: landed + settle - 0.01, startInFlight: false, settle: settle)
+        #expect(!mayGo)
+        (offSince, mayGo) = DictationRules.offReading(offSince: offSince, now: landed + settle, startInFlight: false, settle: settle)
+        #expect(offSince == landed)
+        #expect(mayGo)
+    }
+
+    @Test func aPressInFlightMidwayRestartsTheSettleWindow() {
+        let t0 = Date(timeIntervalSinceReferenceDate: 0)
+        let settle = DictationRules.settleWindow
+        let (since, _) = DictationRules.offReading(offSince: nil, now: t0, startInFlight: false, settle: settle)
+        let (during, keep) = DictationRules.offReading(offSince: since, now: t0 + 2, startInFlight: true, settle: settle)
+        #expect(during == nil)
+        #expect(!keep)
+        let (after, mayGo) = DictationRules.offReading(offSince: during, now: t0 + 4, startInFlight: false, settle: settle)
+        #expect(after == t0 + 4)
+        #expect(!mayGo)
+    }
+
+    @Test func theLaunchSweepClearsAtOnceOnlyWithNoPressInFlight() {
+        let now = Date(timeIntervalSinceReferenceDate: 0)
+        #expect(!DictationRules.offReading(offSince: nil, now: now, startInFlight: true, settle: 0).recordMayGo)
+        #expect(DictationRules.offReading(offSince: nil, now: now, startInFlight: false, settle: 0).recordMayGo)
+    }
+
     // MARK: A new dictation during an unconfirmed stop
 
     @Test func aStartIsRefusedWhileAStopIsOwed() {
