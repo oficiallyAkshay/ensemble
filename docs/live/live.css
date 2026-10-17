@@ -133,6 +133,14 @@ button { font-family: inherit; }
 .step-body strong { color: var(--e-ink); font-weight: 650; }
 .step:not([data-state="current"]) .step-body { visibility: hidden; transition: grid-template-rows 0.55s var(--e-ease), opacity 0.35s ease, visibility 0s 0.55s; }
 
+/* the headphone step's stand-in for the stem, and the unsigned-app note */
+.stem { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: -4px 0 14px; }
+.stem-state { font: 500 11px var(--e-mono); color: var(--e-muted); }
+.step-body a { color: var(--e-blue-ink); text-decoration: underline; text-underline-offset: 2px; }
+.ls-unsigned { margin: 0 0 18px; padding: 12px 14px; border-radius: 14px; border: 1px solid #f4c77d; background: #fff8e8; color: #6b4300; font-size: 14px; }
+.ls-unsigned strong { color: #4a2f00; }
+.ls-unsigned a { color: #6b4300; text-decoration: underline; }
+
 /* ---- what Ensemble sees: a card in the column, dots and lines only, once Ensemble is on ---- */
 .ls-sees { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding: 12px; border-radius: 16px; background: #fff; border: 1px solid var(--e-line); box-shadow: 0 8px 22px rgba(40, 30, 90, 0.1); }
 .ls-app[data-mode="none"] .ls-sees { display: none; }
@@ -175,6 +183,11 @@ button { font-family: inherit; }
 .a-send { fill: var(--e-blue); animation: ls-breathe 1.8s ease-in-out infinite; }
 .a-arrow { fill: var(--e-blue); } .a-arrow.up { animation: a-up 1.6s ease-in-out infinite; } .a-arrow.down { animation: a-down 1.6s ease-in-out infinite; }
 .a-trk2 { fill: none; stroke: #1f2937; stroke-width: 2; }
+.a-pod { fill: #fff; stroke: #1f2937; stroke-width: 2.5; stroke-linejoin: round; } .a-podhole { fill: #e5e5e5; stroke: #1f2937; stroke-width: 2; }
+.a-rip { fill: none; stroke: var(--e-blue); stroke-width: 3; opacity: 0; }
+.a-rip.p1 { animation: a-rip 3.2s ease-out infinite; } .a-rip.p2 { animation: a-rip 3.2s ease-out 1.4s infinite; } .a-rip.p3 { animation: a-rip 3.2s ease-out 1.8s infinite; }
+@keyframes a-rip { 0% { opacity: 0; transform: scale(0.6); } 8% { opacity: 1; } 28%, 100% { opacity: 0; transform: scale(2.6); } }
+.a-dl { fill: none; stroke: var(--e-blue); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; animation: a-up 1.6s ease-in-out infinite; }
 @keyframes a-up { 50% { transform: translateY(-6px); } } @keyframes a-down { 50% { transform: translateY(6px); } }
 
 /* ---- overlays ---- */

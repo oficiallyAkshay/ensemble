@@ -672,3 +672,13 @@ test('real hand recordings: dictation, scroll and send register; rest and look d
   for (const take of ['a/rest', 'a/look']) assert.deepEqual(replayTake(take).intents, [], `${take} does nothing`);
   for (const take of Object.keys(REAL.takes)) assert.equal(replayTake(take).openScrolls, 0, `${take}: no scroll on an open hand`);
 });
+
+test('a headphone press holds dictation without frames, and the stale-frame stop leaves it alone', () => {
+  const m = new GestureMachine();
+  m.pressTalk(true);
+  assert.equal(m.talking, true);
+  assert.deepEqual(m.tick(100), []);
+  assert.equal(m.talking, true);
+  m.pressTalk(false);
+  assert.equal(m.talking, false);
+});

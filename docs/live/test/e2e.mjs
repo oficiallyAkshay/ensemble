@@ -203,7 +203,9 @@ async function mouse() {
     const after = await p.eval("document.querySelector('[data-id=api] .ls-transcript').scrollTop");
     say(`scrollTop ${before} -> ${after}`);
     check('press and drag scrolls that pane', after !== before);
-    check('all four ticked, offer shown', (await p.eval('Object.values(window.__live.done()).every(Boolean)')) && await p.eval("!document.getElementById('done').hidden"));
+    check('all four gestures ticked, the optional headphone step is next', (await p.eval("['looked','dictated','sent','scrolled'].every((k) => window.__live.done()[k])")) && (await p.eval('window.__live.step()')) === 'headphones');
+    await p.eval("document.getElementById('stem-skip').click()");
+    check('then the unsigned-app step, with the offer shown and Apple\'s guide linked', (await p.eval('window.__live.step()')) === 'install' && await p.eval("!document.getElementById('done').hidden && !!document.querySelector('.step[data-k=install] a[href*=\"support.apple.com\"]')"));
     check('finish screen not forced', await p.eval("document.getElementById('finish').hidden"));
     await p.eval("document.getElementById('done').click()");
     await sleep(200);
