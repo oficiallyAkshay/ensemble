@@ -17,6 +17,34 @@ mkdir -p build
 LOG=build/ship.log
 log() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
 
+# A release signed with an expired local certificate breaks updates, and a new certificate resets every user's Camera
+# and Accessibility grants, so the date must never be a surprise (docs/RELEASING.md, "Signing certificate expiry").
+# The date is read from the certificate itself, so it cannot go stale. Developer ID certificates are Apple's and not
+# checked. ENSEMBLE_SIGN_CERT_PEM points the check at a certificate file instead of the keychain, to try it out.
+case "${ENSEMBLE_SIGN_IDENTITY:-}" in
+  "Developer ID Application"*) ;;
+  *)
+    if [ -n "${ENSEMBLE_SIGN_CERT_PEM:-}" ]; then
+      CERT="$(cat "$ENSEMBLE_SIGN_CERT_PEM" 2>/dev/null || true)"
+    elif [ -n "${ENSEMBLE_SIGN_IDENTITY:-}" ]; then
+      CERT="$(security find-certificate -c "$ENSEMBLE_SIGN_IDENTITY" -p 2>/dev/null || true)"
+    else
+      # The same order scripts/bundle.sh signs with: the default identity, then the app's earlier working name.
+      CERT="$(security find-certificate -c "Ensemble Local Signing" -p 2>/dev/null \
+        || security find-certificate -c "Clutch Local Signing" -p 2>/dev/null || true)"
+    fi
+    CERT_END="$(openssl x509 -noout -enddate <<<"$CERT" 2>/dev/null | cut -d= -f2 || true)"
+    if [ -z "$CERT_END" ]; then
+      log "warning: could not read the signing certificate's expiry date; see docs/RELEASING.md, \"Signing certificate expiry\""
+    elif ! openssl x509 -noout -checkend 0 <<<"$CERT" >/dev/null; then
+      log "error: the signing certificate expired on $CERT_END; releases signed with it break updates (docs/RELEASING.md, \"Signing certificate expiry\")"
+      exit 1
+    elif ! openssl x509 -noout -checkend 5184000 <<<"$CERT" >/dev/null; then
+      log "warning: the signing certificate expires on $CERT_END, within 60 days; move to Developer ID signing before then (docs/RELEASING.md, \"Signing certificate expiry\")"
+    fi
+    ;;
+esac
+
 # Only a clean main that matches GitHub ships: the release must be exactly what was merged.
 # Explicit refspecs: a clone made for one branch (the production Mac's job service clone) has no fetch refspec, so a
 # plain fetch would leave origin/gh-pages and the remote tags missing.

@@ -119,6 +119,23 @@ GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `release.ym
 
 Camera and Accessibility grants are tied to the app's signature. Developer ID signatures are stable across releases, so users keep their grants through updates. Moving from the local "Ensemble Local Signing" identity to Developer ID changes the signature once: everyone, including you, re-grants Camera and Accessibility after first installing a Developer ID build. Never distribute ad-hoc signed builds: every build is a new identity and grants reset each time.
 
+## Signing certificate expiry
+
+Releases from this Mac are signed with a self-signed local certificate ("Clutch Local Signing" on the production Mac, the app's earlier working name; "Ensemble Local Signing" elsewhere), without a secure timestamp. Once it expires, releases signed with it break the update path, and signing with a new certificate resets every user's Camera and Accessibility grants.
+
+Expiry date of the production Mac's signing certificate: **TO FILL IN** (read it with `openssl x509 -noout -enddate -in <certificate file>`, from an exported copy of the certificate, never the key).
+
+`scripts/ship-release.sh` reads the expiry date from the certificate in the keychain before anything else, unless the identity is a Developer ID one:
+
+| The certificate | What the script does |
+|---|---|
+| Already expired | Stops with an error, before anything is built or published |
+| Expires within 60 days | Logs a warning with the date and carries on |
+| Expires later | Nothing |
+| Not found or unreadable | Logs a warning and carries on (`scripts/bundle.sh` still refuses a missing identity) |
+
+On the warning: move to Developer ID signing (the one-time setup above) and ship a Developer ID release before the date. That move changes the signature once, so everyone re-grants Camera and Accessibility after installing it: announce it with the release. A new self-signed certificate would cost the same re-grant and only move the date.
+
 ## First Developer ID build: checks nobody has run yet
 
 These need a notarized build on a real Mac and could not be run from the development machine:
