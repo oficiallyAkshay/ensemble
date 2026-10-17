@@ -33,12 +33,15 @@ ENSEMBLE_VERSION="$VERSION" scripts/release.sh 2>&1 | tee -a "$LOG"
 DMG="build/Ensemble-$VERSION.dmg"
 [ -f "$DMG" ] || { log "error: $DMG was not built"; exit 1; }
 
-NOTES="$(mktemp)"
+# scripts/appcast.sh embeds the notes only from a file ending in .md, .html or .txt, and macOS mktemp adds no suffix.
+NOTES_DIR="$(mktemp -d)"
+NOTES="$NOTES_DIR/notes.md"
 PAGES="$(mktemp -d)"
 # The gh-pages checkout is a git worktree: remove it on every exit, or a failed run leaves it registered.
-cleanup() { rm -f "$NOTES"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES"; }
+cleanup() { rm -rf "$NOTES_DIR"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES"; }
 trap cleanup EXIT
-{ echo "Changes since ${PREV:-the first commit}:"; echo; git log --merges --format='- %b' "${PREV:+$PREV..}HEAD" | grep -v '^- $' || true; } > "$NOTES"
+# First parent only: a pull request's merge of main into its branch would add its conflict list as a line.
+{ echo "Changes since ${PREV:-the first commit}:"; echo; git log --first-parent --merges --format='- %b' "${PREV:+$PREV..}HEAD" | grep -v '^- $' || true; } > "$NOTES"
 
 # The appcast lives on gh-pages; extend the published one so older items stay listed. It is built and checked now
 # (scripts/appcast.sh refuses an unsigned item), before anything public exists; the download address is known
@@ -47,7 +50,7 @@ git worktree add --quiet "$PAGES" origin/gh-pages --detach
 rm -rf build/appcast
 mkdir -p build/appcast
 [ ! -f "$PAGES/appcast.xml" ] || cp "$PAGES/appcast.xml" build/appcast/appcast.xml
-ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
+ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
 [ -s build/appcast/appcast.xml ] || { log "error: no appcast was produced; nothing was tagged or published"; exit 1; }
 PAGES_SHA="$(gh api "repos/$REPO/contents/appcast.xml?ref=gh-pages" --jq .sha 2>/dev/null || true)"
 
