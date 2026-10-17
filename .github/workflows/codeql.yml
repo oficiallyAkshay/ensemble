@@ -1,0 +1,48 @@
+# CodeQL static analysis of the Swift sources, on every pull request to main and once a week. Swift needs a real build
+# to be analysed, so the build mode is manual and the build step is the same `swift build` the repository uses. Results
+# appear under Security, Code scanning. This needs the repository's CodeQL default setup to stay off, or GitHub
+# reports a conflict.
+name: codeql
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1"
+
+permissions: {}
+
+# A second push to a pull request supersedes the first, so cancel the run it replaced. Scheduled runs key on the commit.
+concurrency:
+  group: codeql-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    # Liquid Glass (GlassStyle.swift) needs the macOS 26 SDK, so the runner image must carry Xcode 26.
+    runs-on: macos-26
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: swift
+          build-mode: manual
+
+      - name: Build
+        run: swift build
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: /language:swift

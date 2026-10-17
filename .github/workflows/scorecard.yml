@@ -1,0 +1,55 @@
+# OpenSSF Scorecard: scores the repository's security practices (pinned actions, token permissions, branch protection,
+# and so on) once a week and on every push to main. The result is published to the public Scorecard API so a badge can
+# read it, and the findings are uploaded to code scanning. It checks out the repository only to read its settings.
+name: scorecard
+
+on:
+  schedule:
+    - cron: "41 4 * * 2"
+  push:
+    branches: [main]
+
+permissions: {}
+
+# Pushes to main key on the commit, so a rapid second push gets its own group rather than dropping the first run.
+concurrency:
+  group: scorecard-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      # Upload the findings to code scanning.
+      security-events: write
+      # Publish the result to the Scorecard API, which verifies the workflow through its OIDC token.
+      id-token: write
+      contents: read
+      actions: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Keep the results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: results.sarif
