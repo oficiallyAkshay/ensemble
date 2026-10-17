@@ -9,6 +9,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 - While the face tracker waits to retry, the panel says it is retrying instead of "Face tracking stopped"; a tracker that recovers is no longer reloaded by the waiting retry, and one failure lengthens the wait only once.
 - The dictation safety records can no longer be redirected by a link planted in their folder, the folder is made private to you on every write, and deleting a record is flushed to disk so a crash cannot bring it back.
 - With the lid closed, each dictation first moves the Mac's input to a microphone that works (the webcam's, then a wired one, then a Bluetooth headset; never a virtual, aggregate or iPhone microphone) and the old input comes back when the lid opens. With none, the dictation does not start and the island says "No microphone while the lid is closed". The new Settings switch "Use another microphone when the lid is closed" is on by default.
+- The menu panel's camera row opens a choice of Automatic and every connected camera, with the current one ticked, and switches the camera at once; it is the same setting as Settings' Camera picker. A chosen camera that is unplugged stays listed as "(not connected)", in the panel and in Settings, and the list is read again each time the panel opens.
 
 ## 0.2.21 - 2026-10-15
 

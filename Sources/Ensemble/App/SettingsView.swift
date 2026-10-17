@@ -45,8 +45,9 @@ private struct GeneralSettings: View {
             Section {
                 Toggle("Enable Ensemble", isOn: $settings.enabled)
                 Picker("Camera", selection: $settings.cameraName) {
-                    Text("Automatic").tag(String?.none)
-                    ForEach(cameraChoices, id: \.self) { Text($0).tag(String?.some($0)) }
+                    ForEach(CameraChoices.rows(connected: state.cameraNames, chosen: settings.cameraName), id: \.name) {
+                        Text($0.label).tag($0.name)
+                    }
                 }
                 Toggle("Open at login (restarts after a crash)", isOn: Binding(get: { settings.launchAtLogin }, set: { settings.setLaunchAtLogin($0) }))
                 if let error = settings.launchAtLoginError {
@@ -95,12 +96,6 @@ private struct GeneralSettings: View {
             }
         }
         .formStyle(.grouped)
-    }
-
-    private var cameraChoices: [String] {
-        var names = state.cameraNames
-        if let chosen = settings.cameraName, !names.contains(chosen) { names.append(chosen) }
-        return names
     }
 }
 
