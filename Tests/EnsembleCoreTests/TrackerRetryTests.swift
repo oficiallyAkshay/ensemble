@@ -29,4 +29,50 @@ import Testing
         #expect(retry.nextDelay() == 0)
         #expect(retry.nextDelay() == 2)
     }
+
+    @Test func aGoodReadingCancelsTheWaitingRetry() throws {
+        var retry = TrackerRetry()
+        #expect(retry.failed() == 0)
+        #expect(retry.failed() == 2)
+        let waiting = try #require(retry.waiting)
+        retry.reset()
+        #expect(retry.waiting == nil)
+        let due = retry.due(waiting)
+        #expect(!due)
+    }
+
+    @Test func anImmediateRestartLeavesNoEarlierRetryDue() throws {
+        var retry = TrackerRetry()
+        _ = retry.failed()
+        _ = retry.failed()
+        let earlier = try #require(retry.waiting)
+        retry.reset()
+        #expect(retry.failed() == 0)
+        #expect(retry.waiting == nil)
+        let due = retry.due(earlier)
+        #expect(!due)
+    }
+
+    @Test func aWaitingRetryIsDueOnce() throws {
+        var retry = TrackerRetry()
+        _ = retry.failed()
+        _ = retry.failed()
+        let waiting = try #require(retry.waiting)
+        let first = retry.due(waiting)
+        let second = retry.due(waiting)
+        #expect(first)
+        #expect(!second)
+        #expect(retry.waiting == nil)
+    }
+
+    @Test func aSecondReportWhileTheRetryWaitsCountsNothing() throws {
+        var retry = TrackerRetry()
+        _ = retry.failed()
+        #expect(retry.failed() == 2)
+        #expect(retry.failed() == nil)
+        #expect(retry.failures == 2)
+        let due = retry.due(try #require(retry.waiting))
+        #expect(due)
+        #expect(retry.failed() == 4)
+    }
 }

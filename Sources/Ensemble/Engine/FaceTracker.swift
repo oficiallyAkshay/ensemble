@@ -74,13 +74,9 @@ final class FaceTracker: NSObject, WKScriptMessageHandler, WKNavigationDelegate 
         view.load(URLRequest(url: URL(string: "\(AssetSchemeHandler.scheme)://local/head.html")!))
     }
 
+    /// The page is torn down first: a failed page left alive could report a second failure, counted as another.
     private func fail(_ message: String) {
-        startAttempt = nil
-        readyTimeout?.cancel()
-        gate.setOpen(false)
-        // A frame left in the slot would be served to the restarted page as if it were new.
-        frames.clear()
-        isReady = false
+        stop()
         onFailure?(message)
     }
 

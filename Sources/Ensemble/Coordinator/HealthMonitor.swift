@@ -125,7 +125,7 @@ final class HealthMonitor {
         if !accessibilityTrusted { return .needsPermission("Accessibility") }
         if !cameraAllowed { return .needsPermission("Camera") }
         if let problem = cameraProblem { return .error(problem) }
-        if let failure = trackerFailure { return .error("Face tracking stopped: \(failure)") }
+        if let failure = trackerFailure { return .error("Face tracking is retrying: \(failure)") }
         if ctx.cover.covered { return .cameraCovered }
         if !ctx.calibratedHere { return .needsCalibration }
         if !claudeRunning { return .claudeNotRunning }

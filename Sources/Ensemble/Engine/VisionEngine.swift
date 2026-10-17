@@ -26,7 +26,6 @@ final class VisionEngine {
 
     private(set) var isRunning = false
     private var trackerRetry = TrackerRetry()
-    private var pendingTrackerRetry: Task<Void, Never>?
 
     private let camera = CameraSession()
     private let face = FaceTracker()
@@ -108,18 +107,17 @@ final class VisionEngine {
     }
 
     private func trackerFailed(_ message: String) {
-        guard isRunning else { return }
-        let delay = trackerRetry.nextDelay()
+        guard isRunning, let delay = trackerRetry.failed() else { return }
         onDiagnostic?("face tracker failed (\(message)); retry \(trackerRetry.failures) in \(Int(delay)) s")
-        guard delay > 0 else { return restartTracker() }
+        guard let wait = trackerRetry.waiting else { return restartTracker() }
         // The failure stays on the status during the wait, so the panel says why there is no pointer.
         onStatus?(.faceTrackerFailed(message))
         let mine = generation
-        pendingTrackerRetry?.cancel()
-        pendingTrackerRetry = Task { @MainActor [weak self] in
+        Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            // A stop or a camera start since (which starts the tracker itself) changes the generation.
-            guard !Task.isCancelled, let self, self.generation == mine else { return }
+            // A stop or a camera start since (which starts the tracker itself) changes the generation; a good head
+            // reading cancels the wait in `trackerRetry`.
+            guard let self, self.generation == mine, self.trackerRetry.due(wait) else { return }
             self.restartTracker()
         }
     }
