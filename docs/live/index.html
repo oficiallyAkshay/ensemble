@@ -100,11 +100,25 @@
       <div class="guide-art" id="art" aria-hidden="true"></div>
       <span class="guide-hand-cap" id="hand-cap"></span>
     </div>
-    <div class="guide-steps">
+    <div class="guide-tabs" role="tablist" aria-label="What to try">
+      <button type="button" role="tab" class="guide-tab" id="tab-g" aria-selected="true" aria-controls="panel-g">Gestures</button>
+      <button type="button" role="tab" class="guide-tab" id="tab-h" aria-selected="false" aria-controls="panel-h" tabindex="-1">Headphones <small>optional</small></button>
+    </div>
+    <div class="guide-steps" id="panel-g" role="tabpanel" aria-labelledby="tab-g">
       <div class="guide-meter"><b id="meter-text">Step 1 of 7</b><span class="guide-bar"><i id="meter-bar"></i></span></div>
       <ol class="ls-steps" id="steps"><!-- built by live.js --></ol>
       <button type="button" class="ens-btn small primary" id="done" hidden>See the download</button>
       <p class="sr-only" id="prompt" role="status" aria-live="polite"></p>
+    </div>
+    <div class="guide-steps guide-phones" id="panel-h" role="tabpanel" aria-labelledby="tab-h" hidden>
+      <p class="phones-lede">Not needed for the rest of the demo. If you have no headphones handy, skip it.</p>
+      <p class="phones-text">With AirPods or other Bluetooth headphones, press the stem <strong>once</strong> to start or stop dictating, and <strong>twice</strong> to send. Browsers cannot hear your headphones, so this button stands in for the stem.</p>
+      <div class="stem">
+        <button type="button" class="ens-btn small stem-btn" id="stem-btn" aria-describedby="stem-state" disabled>Press the stem</button>
+        <span class="stem-state" id="stem-state" role="status"></span>
+      </div>
+      <p class="phones-note" id="phones-note">Turn Ensemble on first, on the Gestures tab.</p>
+      <button type="button" class="ens-link stem-skip" id="stem-skip">Skip, back to the gestures</button>
     </div>
     <section class="ls-sees" aria-label="What Ensemble sees">
     <h2 id="sees-title" role="button" tabindex="0">What Ensemble sees</h2>

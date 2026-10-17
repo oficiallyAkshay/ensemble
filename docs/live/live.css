@@ -134,6 +134,15 @@ button { font-family: inherit; }
 .step:not([data-state="current"]) .step-body { visibility: hidden; transition: grid-template-rows 0.55s var(--e-ease), opacity 0.35s ease, visibility 0s 0.55s; }
 
 /* the headphone step's stand-in for the stem, and the unsigned-app note */
+.guide-tabs { flex: none; display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: #f0f0f0; }
+.guide-tab { flex: 1; font: 600 13px var(--e-font); letter-spacing: -0.01em; padding: 7px 10px; border: 0; border-radius: 999px; background: none; color: var(--e-muted); cursor: pointer; transition: background 0.25s ease, color 0.25s ease; }
+.guide-tab small { font: 500 10px var(--e-mono); letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.8; }
+.guide-tab[aria-selected="true"] { background: #fff; color: var(--e-ink); box-shadow: 0 1px 4px rgba(10, 10, 10, 0.12); }
+.guide-tab:focus-visible { outline: 2.5px solid var(--e-blue); outline-offset: 2px; }
+.guide-phones { gap: 10px; }
+.guide-phones p { margin: 0; font-size: 13.5px; line-height: 1.5; color: #525252; }
+.phones-lede { color: var(--e-ink) !important; font-weight: 600; }
+.phones-note { font-size: 12px !important; color: var(--e-amber) !important; }
 .stem { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: -4px 0 14px; }
 .stem-state { font: 500 11px var(--e-mono); color: var(--e-muted); }
 .step-body a { color: var(--e-blue-ink); text-decoration: underline; text-underline-offset: 2px; }

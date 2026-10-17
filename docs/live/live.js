@@ -503,6 +503,7 @@ function syncEns() {
   el.menuNote.hidden = S.opened;
   el.menuCamera.disabled = el.menuMouse.disabled = !S.opened;
   el.menuRecentre.hidden = S.mode !== 'camera';
+  $('stem-btn').disabled = !on; $('phones-note').hidden = on;
   el.mbEns.classList.toggle('hint', S.opened && !on);
 }
 
@@ -516,10 +517,10 @@ el.menuStop.addEventListener('click', () => { toggleMenu(false); el.stop.click()
 
 // ---- the guide column: a progressor that collapses finished steps and opens the next, and the hand that shows the gesture ----
 
-const ORDER = ['opened', 'enabled', 'centred', 'looked', 'dictated', 'sent', 'scrolled', 'headphones', 'install'];
-const DONE = { opened: false, enabled: false, centred: false, looked: false, dictated: false, sent: false, scrolled: false, headphones: false, install: false };
+const ORDER = ['opened', 'enabled', 'centred', 'looked', 'dictated', 'sent', 'scrolled', 'install'];
+const DONE = { opened: false, enabled: false, centred: false, looked: false, dictated: false, sent: false, scrolled: false, install: false };
 const APPLE_GUIDE = 'https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac';
-const TITLES = { opened: 'Open Claude', enabled: 'Turn on Ensemble', centred: 'Centre your head', looked: 'Look at a session', dictated: 'Dictate', sent: 'Send', scrolled: 'Scroll', headphones: 'Headphones (optional)', install: 'Install it' };
+const TITLES = { opened: 'Open Claude', enabled: 'Turn on Ensemble', centred: 'Centre your head', looked: 'Look at a session', dictated: 'Dictate', sent: 'Send', scrolled: 'Scroll', install: 'Install it' };
 const both = (t) => ({ camera: t, mouse: t });
 const HINTS = {
   opened: { camera: 'Double-click the <strong>Claude</strong> icon on the desktop.', mouse: 'Double-click the <strong>Claude</strong> icon on the desktop.', touch: 'Double-tap the <strong>Claude</strong> icon on the desktop.' },
@@ -529,7 +530,6 @@ const HINTS = {
   dictated: { camera: '<strong>Double pinch</strong> (thumb and index, twice, quickly) to dictate into the session you are looking at.', mouse: '<strong>Click twice</strong>, quickly, to dictate into the session under the mouse.' },
   sent: { camera: 'Hold a <strong>thumbs-up</strong> to send what was typed.', mouse: 'Press and hold still: that is the <strong>thumbs-up</strong>. It sends.' },
   scrolled: { camera: '<strong>Pinch and drag</strong> up or down to scroll the session you are looking at.', mouse: 'Press and <strong>drag</strong> up or down to scroll the session under the mouse.' },
-  headphones: both('Wearing AirPods or other Bluetooth headphones? Press the stem <strong>once</strong> to start or stop dictating, <strong>twice</strong> to send. Try it with the button below.'),
   install: both(`Last step. Ensemble is <strong>unsigned</strong>: Akshay has not set up an Apple Developer certificate yet, so macOS blocks the first launch. After you download it, <a href="${APPLE_GUIDE}" target="_blank" rel="noopener">Apple's guide shows how to open it anyway</a>.`),
 };
 const SCENE = { dictated: 'dictate', sent: 'send', scrolled: 'scroll' };
@@ -555,16 +555,28 @@ for (const k of ORDER) {
   el.steps.append(li); steps[k] = { li, text: li.querySelector('p'), shown: '' };
 }
 
-// ---- headphones: a press on the stem, one or two. The Mac app hears these from AirPods and other Bluetooth headphones (HeadphoneRemote);
-// the browser cannot, so the step has a button that stands in for the stem, and the media keys do the same where a browser reports them. ----
+// ---- headphones: an optional second tab, never part of the progressor. A press on the stem, one or two. The Mac app hears these from AirPods and
+// other Bluetooth headphones (HeadphoneRemote); the browser cannot, so a button stands in for the stem, and the media keys do the same where reported. ----
 
 const stemDone = { once: false, twice: false };
+const tabs = { gestures: { tab: $('tab-g'), panel: $('panel-g') }, headphones: { tab: $('tab-h'), panel: $('panel-h') } };
+let activeTab = 'gestures';
+function selectTab(name, focus = false) {
+  activeTab = name;
+  for (const [k, t] of Object.entries(tabs)) {
+    const on = k === name;
+    t.tab.setAttribute('aria-selected', String(on)); t.tab.tabIndex = on ? 0 : -1; t.panel.hidden = !on;
+    if (on && focus) t.tab.focus();
+  }
+  renderCoach();
+}
+for (const [k, t] of Object.entries(tabs)) {
+  t.tab.addEventListener('click', () => selectTab(k));
+  t.tab.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); selectTab(k === 'gestures' ? 'headphones' : 'gestures', true); } });
+}
+$('stem-skip').addEventListener('click', () => selectTab('gestures', true));
 {
-  const box = document.createElement('div');
-  box.className = 'stem';
-  box.innerHTML = '<button type="button" class="ens-btn small stem-btn" id="stem-btn" aria-describedby="stem-state">Press the stem</button><span class="stem-state" id="stem-state" role="status"></span><button type="button" class="ens-link stem-skip" id="stem-skip">Skip</button>';
-  steps.headphones.li.querySelector('.step-body > div').append(box);
-  const state = box.querySelector('#stem-state');
+  const state = $('stem-state'), btn = $('stem-btn');
   let timer = 0;
   const paint = () => { state.textContent = stemDone.once || stemDone.twice ? `Once ${stemDone.once ? 'done' : 'to do'}, twice ${stemDone.twice ? 'done' : 'to do'}` : ''; };
   /** One press toggles dictation like the double pinch; two presses send like the thumbs-up. Presses do nothing until Ensemble is on. */
@@ -579,15 +591,11 @@ const stemDone = { once: false, twice: false };
       send(); stemDone.twice = true;
     }
     paint();
-    if (stemDone.once && stemDone.twice) tick_('headphones');
   }
-  const press = () => {
+  btn.addEventListener('click', () => {
     if (timer) { clearTimeout(timer); timer = 0; stem(2); return; }   // a second press inside the window: a double press
     timer = setTimeout(() => { timer = 0; stem(1); }, 320);
-  };
-  box.querySelector('#stem-btn').addEventListener('click', press);
-  box.querySelector('#stem-skip').addEventListener('click', () => tick_('headphones'));
-  // Where a browser reports headphone keys, they count too: play/pause is one press, next track the double press.
+  });
   addEventListener('keydown', (e) => { if (e.key === 'MediaPlayPause') { e.preventDefault(); stem(1); } else if (e.key === 'MediaTrackNext') { e.preventDefault(); stem(2); } });
   S.stem = stem;
 }
@@ -617,7 +625,7 @@ function renderCoach() {
   el.meterBar.style.width = `${Math.round((n / visible.length) * 100)}%`;
   el.prompt.innerHTML = cur ? hintFor(cur) : 'That is everything. Keep playing, or see the download.';
   el.done.hidden = cur !== 'install';
-  showGuide(cur, m);
+  showGuide(activeTab === 'headphones' ? 'headphones' : cur, m);
 }
 
 // ---- the 3D hand: the scene the letter and the Mac app's tour use, hand only, loaded the first time a step is about to need it ----
@@ -807,7 +815,7 @@ requestAnimationFrame(render);
 window.__live = {
   get mode() { return S.mode; }, done: () => ({ ...DONE }), get delegate() { return trackers.delegate; },
   camera: () => S.camera,
-  stem: (n) => S.stem(n),
+  stem: (n) => S.stem(n), tab: () => activeTab,
   opened: () => S.opened, step: () => currentStep(), openClaude, menu: () => ({ open: menuOpen(), state: el.menuState.textContent }),
   dotMoves: () => S.dotMoves,
   stats: () => ({ face: trackers.summary('face'), hand: trackers.summary('hand'), warmed: !trackers.warming, frames: { ...S.frames }, delegate: trackers.delegate, handHz: S.scheduler.handHz, faceHz: S.scheduler.faceHz }),
