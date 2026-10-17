@@ -21,6 +21,7 @@ final class SettingsStore: ObservableObject {
         static let pauseAfterInputSeconds = "pauseAfterInputSeconds"
         static let pauseMediaWhileDictating = "pauseMediaWhileDictating"
         static let headphonePresses = "headphonePresses"
+        static let useAnotherMicrophoneWhenLidClosed = "useAnotherMicrophoneWhenLidClosed"
         static let maximizeByPeace = "maximizeByPeace"
         static let evenOutByScissors = "evenOutByScissors"
         static let fitFocusedSession = "fitFocusedSession"
@@ -74,6 +75,8 @@ final class SettingsStore: ObservableObject {
     }
     @Published var playSounds: Bool { didSet { defaults.set(playSounds, forKey: Key.playSounds) } }
     @Published var pauseMediaWhileDictating: Bool { didSet { defaults.set(pauseMediaWhileDictating, forKey: Key.pauseMediaWhileDictating) } }
+    /// With the lid closed, the default input moves to a microphone that works just before each dictation. On by default.
+    @Published var useAnotherMicrophoneWhenLidClosed: Bool { didSet { defaults.set(useAnotherMicrophoneWhenLidClosed, forKey: Key.useAnotherMicrophoneWhenLidClosed) } }
     /// Stem presses on Bluetooth headphones drive dictation and send. On by default.
     @Published var headphonePresses: Bool { didSet { defaults.set(headphonePresses, forKey: Key.headphonePresses) } }
     /// A held peace sign widens the session you face and narrows the others. On by default.
@@ -121,6 +124,7 @@ final class SettingsStore: ObservableObject {
         playSounds = bool(Key.playSounds, true)
         pauseMediaWhileDictating = bool(Key.pauseMediaWhileDictating, true)
         headphonePresses = bool(Key.headphonePresses, true)
+        useAnotherMicrophoneWhenLidClosed = bool(Key.useAnotherMicrophoneWhenLidClosed, true)
         maximizeByPeace = bool(Key.maximizeByPeace, true)
         evenOutByScissors = bool(Key.evenOutByScissors, true)
         fitFocusedSession = bool(Key.fitFocusedSession, true)

@@ -34,6 +34,7 @@ Nothing leaves the Mac. The app has no analytics, no telemetry and no crash uplo
 | Camera frames | Head pose (MediaPipe in a web view served from inside the app) and hand pose (Apple Vision), analysed in memory | Discarded after analysis; never written to disk, never sent anywhere |
 | Claude desktop's accessibility tree | Finds session panes and presses Claude's dictation, Send and scroll controls, and finds the dividers between panes that the peace sign and scissors drag | Stays in the process |
 | Which apps use the microphone, and the default output device state | Safety checks while Claude is listening, and pausing other audio | Stays in the process |
+| The lid state, the list of audio inputs and the default input | With the lid closed, the default input moves to a working microphone before a dictation starts and is put back when the lid opens (a Settings switch turns it off); device names go to the log | Stays in the process |
 | Keyboard and mouse activity | Only whether a key was pressed or a button clicked since a draft was dictated, to refuse a send | Not stored |
 | Settings (calibration, gesture options) | The app's preferences, domain `dev.ensemble.app` | Stay in the user's Library |
 | Log | Events and numbers, no images and no text of drafts, rolled over at 1 MB, in `~/Library/Logs/Ensemble` | Stay on disk; optional per-frame trace (numbers and states only) only when the user turns it on |

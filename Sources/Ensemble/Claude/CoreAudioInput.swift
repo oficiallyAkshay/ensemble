@@ -1,5 +1,6 @@
 import AppKit
 import CoreAudio
+import EnsembleCore
 import Foundation
 
 /// One entry of the CoreAudio per-process object list (macOS 14.2+).
@@ -84,6 +85,23 @@ enum CoreAudioInput {
     static func device(withUID uid: String) -> AudioObjectID? {
         guard let all = objectIDs(system, address(kAudioHardwarePropertyDevices)) else { return nil }
         return all.first { deviceUID($0) == uid }
+    }
+
+    /// Every device that has an input stream, nil when the device list cannot be read.
+    static func allInputDevices() -> [InputDevice]? {
+        guard let all = objectIDs(system, address(kAudioHardwarePropertyDevices)) else { return nil }
+        return all.compactMap { id in
+            guard let streams = objectIDs(id, address(kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput)), !streams.isEmpty,
+                  let uid = deviceUID(id) else { return nil }
+            return InputDevice(uid: uid, name: deviceName(id) ?? "", transport: uint32(id, address(kAudioDevicePropertyTransportType)) ?? 0)
+        }
+    }
+
+    /// The same setting System Settings, Sound, Input changes. True when macOS accepted the write.
+    static func setDefaultInputDevice(_ id: AudioObjectID) -> Bool {
+        var a = address(kAudioHardwarePropertyDefaultInputDevice)
+        var value = id
+        return AudioObjectSetPropertyData(system, &a, 0, nil, UInt32(MemoryLayout<AudioObjectID>.size), &value) == noErr
     }
 
     // MARK: Mute

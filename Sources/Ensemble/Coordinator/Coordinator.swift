@@ -19,6 +19,7 @@ final class Coordinator: AppCoordinating {
     private let send: SendController
     private let dictation: DictationController
     private let headphone: HeadphoneRemote
+    private let microphone: MicrophoneSwitcher
     /// Return while dictating: the first press stops, a second sends. See `handleKey`.
     private let keyTap = ReturnKeyTap()
     private var returnKeys = ReturnKeys()
@@ -93,6 +94,10 @@ final class Coordinator: AppCoordinating {
         dictation = DictationController(ctx: ctx, focus: focus, send: send)
         headphone = HeadphoneRemote(settingOn: { [weak settings] in (settings?.headphonePresses ?? false) && (settings?.enabled ?? false) },
                                     claudeRunning: { [weak ctx] in ctx?.bridge.claudeIsRunning() ?? false })
+        microphone = MicrophoneSwitcher(settings: settings, overlay: overlay, isIdle: { [weak ctx] in
+            guard let ctx else { return false }
+            return ctx.listening == nil && !ctx.busy
+        })
         headphone.onAction = { [weak self] in self?.apply(headphone: $0); self?.wake() }
         health.relaunchOnGrantAllowed = { [weak self] in !(self?.tourOpen ?? false) }
         ctx.changed = { [weak self] in self?.pushOverlay() }
@@ -111,6 +116,7 @@ final class Coordinator: AppCoordinating {
         focus.frontAppChanged = { [weak self] in self?.updateFaceRate(now: CACurrentMediaTime()); self?.wake() }
         dictation.interrupt = { [weak self] reason in self?.interrupt(reason) }
         dictation.stopResolved = { [weak self] confirmed in self?.stopResolved(confirmed: confirmed) }
+        dictation.prepareMicrophone = { [weak self] in await self?.microphone.prepare() }
         keyTap.onKey = { [weak self] isReturn, modified, isRepeat in
             guard let self else { return false }
             defer { self.wake() }
@@ -296,6 +302,7 @@ final class Coordinator: AppCoordinating {
         engine.stop()
         scroll.cancel()
         dictation.shutdown()
+        microphone.restoreNow()
         EnsembleLog.flush()
     }
 
@@ -693,6 +700,7 @@ final class Coordinator: AppCoordinating {
     private func refreshSessions(notified: Bool = false) {
         wake()
         health.checkPermissions()
+        microphone.restoreIfNeeded()
         let claudeUp = ctx.bridge.claudeIsRunning()
         dictation.dropIfClaudeGone(running: claudeUp)
         guard claudeUp else {

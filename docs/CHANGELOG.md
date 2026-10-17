@@ -8,6 +8,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 - With another app in front, a hand in view is checked about 8 times a second instead of on every camera frame, unless you are dictating, sending, calibrating or mid-gesture; switching back to Claude restores every frame at once.
 - While the face tracker waits to retry, the panel says it is retrying instead of "Face tracking stopped"; a tracker that recovers is no longer reloaded by the waiting retry, and one failure lengthens the wait only once.
 - The dictation safety records can no longer be redirected by a link planted in their folder, the folder is made private to you on every write, and deleting a record is flushed to disk so a crash cannot bring it back.
+- With the lid closed, each dictation first moves the Mac's input to a microphone that works (the webcam's, then a wired one, then a Bluetooth headset; never a virtual, aggregate or iPhone microphone) and the old input comes back when the lid opens. With none, the dictation does not start and the island says "No microphone while the lid is closed". The new Settings switch "Use another microphone when the lid is closed" is on by default.
 
 ## 0.2.21 - 2026-10-15
 

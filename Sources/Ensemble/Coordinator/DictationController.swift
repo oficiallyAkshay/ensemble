@@ -40,6 +40,9 @@ final class DictationController {
     var interrupt: (String) -> Void = { _ in }
     /// Every stop's outcome, by any route: true when the microphone was confirmed off (wired by the Coordinator).
     var stopResolved: (Bool) -> Void = { _ in }
+    /// Runs right before a start, with the lid closed moves the default input to a microphone that works; returns why
+    /// the dictation must not start, or nil (wired by the Coordinator).
+    var prepareMicrophone: () async -> String? = { nil }
 
     init(ctx: CoordinatorContext, focus: FocusController, send: SendController) {
         self.ctx = ctx
@@ -112,7 +115,15 @@ final class DictationController {
                 // stops it. Never start while it is on, and never press a checkbox whose state is unclear.
                 switch ClaudeDictation.talkStep(target: await bridge.micState(session)) {
                 case .start:
-                    break
+                    // Claude's microphone is off and nothing has been written or pressed yet, so this is the one moment
+                    // the default input may change without tripping the input-device check of any dictation.
+                    if let why = await self.prepareMicrophone() {
+                        self.ctx.busy = false
+                        self.startInFlight = false
+                        self.refuseStart(why)
+                        self.ctx.changed()
+                        return
+                    }
                 case .stopRunning:
                     if let why = await self.takeOver(session, reason: "double pinch") {
                         self.ctx.busy = false

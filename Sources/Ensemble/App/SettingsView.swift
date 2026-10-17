@@ -56,6 +56,9 @@ private struct GeneralSettings: View {
                 Toggle("Pause other audio while dictating", isOn: $settings.pauseMediaWhileDictating)
                 Text("Only when the sound comes from speakers the microphone can hear; headphones are left alone.")
                     .font(.caption).foregroundStyle(.secondary)
+                Toggle("Use another microphone when the lid is closed", isOn: $settings.useAnotherMicrophoneWhenLidClosed)
+                Text("Before each dictation with the lid closed, the Mac's input moves to the webcam, a wired or a Bluetooth microphone, and goes back when the lid opens.")
+                    .font(.caption).foregroundStyle(.secondary)
                 LabeledContent("Pause after typing or mouse use") {
                     HStack {
                         Slider(value: $settings.pauseAfterInputSeconds, in: HandsBusy.quietRange, step: 0.5)

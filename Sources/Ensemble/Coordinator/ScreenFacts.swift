@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import IOKit
 
 /// Facts about what is on screen, read without Screen Recording permission (window owner and bounds only).
 enum ScreenFacts {
@@ -25,6 +26,17 @@ enum ScreenFacts {
         if (info["CGSSessionScreenIsLocked"] as? Bool) == true { return true }
         if let onConsole = info[kCGSessionOnConsoleKey as String] as? Bool, !onConsole { return true }
         return false
+    }
+
+    /// Whether the MacBook's lid is closed, from the power manager's registry entry (a plain property read, no private
+    /// API, no permission). nil when the Mac reports none (a desktop Mac). The built-in display going offline is no
+    /// substitute: an external display unplugged with the lid open looks the same.
+    static func lidClosed() -> Bool? {
+        let entry = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard entry != 0 else { return nil }
+        defer { IOObjectRelease(entry) }
+        return IORegistryEntryCreateCFProperty(entry, "AppleClamshellState" as CFString, kCFAllocatorDefault, 0)?
+            .takeRetainedValue() as? Bool
     }
 
     /// A stable description of the current screen arrangement (screen ids and frames).
