@@ -13,10 +13,11 @@
 <link rel="stylesheet" href="live.css">
 </head>
 <body>
-<div class="ls-app" id="app" data-state="gate" data-mode="none">
+<div class="ls-app" id="app" data-state="desk" data-mode="none">
 
   <div class="ls-bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
 
+  <div class="ls-left">
   <header class="ls-top">
     <div class="ls-brand"><b><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</b><a href="../index.html">Back to the letter</a></div>
     <div class="ens-island" id="island" data-mode="idle" role="status" aria-live="polite">
@@ -41,21 +42,71 @@
   </header>
 
   <main class="ls-main">
-    <div class="ls-window" aria-label="A mock Claude desktop window with four Code sessions side by side">
-      <section class="ls-stage" id="stage" aria-label="Four Claude Code sessions"><!-- panes built by live.js --></section>
-      <div class="ls-centre" id="centre" data-state="wait" hidden>
-        <p class="ls-centre-line" id="centre-line" role="status" aria-live="polite">Find the camera</p>
-        <div class="ls-centre-target" aria-hidden="true">
-          <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" id="centre-arc" cx="60" cy="60" r="52"/></svg>
-          <i class="bead"></i>
-        </div>
-        <b class="ls-centre-count" id="centre-count" aria-hidden="true">3</b>
-        <button type="button" class="ens-link ls-centre-skip" id="centre-skip">Skip</button>
+    <div class="ls-mac" id="mac" data-claude="closed" aria-label="A mock Mac desktop with one app on it, Claude">
+      <div class="ls-menubar" aria-hidden="false">
+        <svg class="mb-apple" viewBox="0 0 18 22" aria-hidden="true"><path d="M12.6 0c.1 1.3-.4 2.600-1.200 3.500-.8.9-2 1.600-3.200 1.500-.1-1.200.5-2.500 1.200-3.300C10.200.800 11.500.100 12.600 0zm3.800 7.800c-.1.100-2.200 1.300-2.200 3.900 0 3 2.700 4.100 2.700 4.100s-1.900 5.400-4.600 5.400c-1.200 0-1.900-.8-3.300-.8s-2.100.8-3.300.8C3.200 21.200.5 16.200.5 12c0-4 2.500-6.100 4.900-6.100 1.300 0 2.300.8 3.200.8.700 0 1.900-.9 3.500-.9.600 0 2.600.1 3.900 1.800z"/></svg>
+        <b class="mb-app" id="mb-app">Finder</b>
+        <i class="sk w34"></i><i class="sk w28"></i><i class="sk w40"></i><i class="sk w30"></i>
+        <span class="mb-gap"></span>
+        <button type="button" class="mb-ens" id="mb-ens" aria-haspopup="menu" aria-expanded="false" aria-controls="ens-menu" aria-label="Ensemble, in the menu bar. Off.">
+          <svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
+        </button>
+        <i class="sk w18"></i><i class="sk w22"></i>
+        <span class="mb-clock" id="mb-clock">9:41</span>
       </div>
+
+      <div class="ens-pop ls-menu" id="ens-menu" role="menu" hidden>
+        <div class="menu-head"><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg><b>Ensemble</b><span class="menu-state" id="menu-state">Off</span></div>
+        <p class="menu-note" id="menu-note" role="status">Open Claude first, then come back here.</p>
+        <div class="menu-off" id="menu-off">
+          <button type="button" class="menu-item primary" id="menu-camera" role="menuitem">Turn on Ensemble</button>
+          <button type="button" class="menu-item" id="menu-mouse" role="menuitem">Use the mouse instead</button>
+          <p class="menu-priv"><strong>Your video stays in this tab.</strong> Nothing is uploaded, recorded or shown. About <span id="menu-size">12 MB</span> downloads from this site when you turn it on.</p>
+        </div>
+        <div class="menu-on" id="menu-on" hidden>
+          <button type="button" class="menu-item" id="menu-recentre" role="menuitem">Recentre</button>
+          <button type="button" class="menu-item" id="menu-stop" role="menuitem">Turn off Ensemble</button>
+        </div>
+      </div>
+
+      <div class="ls-desk" id="desk">
+        <button type="button" class="ls-appicon" id="claude-icon" aria-label="Claude. Double-click to open.">
+          <svg class="app-art" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#faf9f5"/><rect x=".75" y=".75" width="62.5" height="62.5" rx="14.5" fill="none" stroke="rgba(10,10,10,.12)" stroke-width="1.5"/><g stroke="#d97757" stroke-width="5.5" stroke-linecap="round"><path d="M32 12v10M32 42v10M12 32h10M42 32h10M18 18l7 7M39 39l7 7M46 18l-7 7M25 39l-7 7"/></g></svg>
+          <span>Claude</span>
+          <i class="icon-hint" aria-hidden="true"></i>
+        </button>
+
+        <div class="ls-window" id="window" aria-label="A mock Claude desktop window with four Code sessions side by side">
+          <section class="ls-stage" id="stage" aria-label="Four Claude Code sessions"><!-- panes built by live.js --></section>
+          <div class="ls-centre" id="centre" data-state="wait" hidden>
+            <p class="ls-centre-line" id="centre-line" role="status" aria-live="polite">Find the camera</p>
+            <div class="ls-centre-target" aria-hidden="true">
+              <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" id="centre-arc" cx="60" cy="60" r="52"/></svg>
+              <i class="bead"></i>
+            </div>
+            <b class="ls-centre-count" id="centre-count" aria-hidden="true">3</b>
+            <button type="button" class="ens-link ls-centre-skip" id="centre-skip">Skip</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ls-dock" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i class="gap"></i><i></i><i></i></div>
     </div>
   </main>
-
-  <aside class="ls-sees" aria-label="What Ensemble sees">
+  </div>
+  <aside class="ls-guide" id="guide" aria-label="How to try it">
+    <div class="guide-hand" id="hand-box">
+      <div class="guide-hand-3d" id="hand" style="position:absolute" role="img" aria-label="A 3D hand shows the gesture for the current step."></div>
+      <div class="guide-art" id="art" aria-hidden="true"></div>
+      <span class="guide-hand-cap" id="hand-cap"></span>
+    </div>
+    <div class="guide-steps">
+      <div class="guide-meter"><b id="meter-text">Step 1 of 7</b><span class="guide-bar"><i id="meter-bar"></i></span></div>
+      <ol class="ls-steps" id="steps"><!-- built by live.js --></ol>
+      <button type="button" class="ens-btn small primary" id="done" hidden>See the download</button>
+      <p class="sr-only" id="prompt" role="status" aria-live="polite"></p>
+    </div>
+    <section class="ls-sees" aria-label="What Ensemble sees">
     <h2 id="sees-title" role="button" tabindex="0">What Ensemble sees</h2>
     <canvas id="sees" width="240" height="180" aria-label="Tracking points drawn on a plain background"></canvas>
     <dl class="ls-readout">
@@ -66,17 +117,11 @@
       <div><dt>Speed</dt><dd id="r-speed">-</dd></div>
     </dl>
     <p class="ls-caption">Only these points are used. The video never leaves this tab and is never shown.</p>
+  </section>
   </aside>
 
-  <footer class="ls-coach" id="coach" hidden>
-    <ul class="ls-ticks" id="ticks">
-      <li data-k="looked">Looked</li><li data-k="dictated">Dictated</li><li data-k="sent">Sent</li><li data-k="scrolled">Scrolled</li>
-    </ul>
-    <p class="ls-prompt" id="prompt" role="status" aria-live="polite"></p>
-    <button type="button" class="ens-btn small primary" id="done" hidden>See the download</button>
-  </footer>
 
-  <section class="ls-gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+  <section class="ls-gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gate-title">
     <div class="ls-card">
       <svg class="ens-mark ls-card-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
       <div class="gate-intro">
