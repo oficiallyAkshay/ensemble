@@ -149,7 +149,7 @@ SwiftPM package with two targets plus a separate benchmark package.
 | `Tests/EnsembleCoreTests` | Swift Testing tests and the recorded gesture fixtures. |
 | `Tools/PerfBench` | Separate package of camera-free micro-benchmarks (synthetic frames and head paths). |
 | `scripts/` | `appcast.sh`, `bundle.sh`, `check-network.sh`, `check-size.sh`, `dev-install.sh`, `dev-update.sh`, `dmg-settings.py`, `make-dmg-background.swift`, `make-icon.swift`, `pack-web.swift`, `release.sh`, `ship-release.sh`. |
-| `docs/` | Guides and references: [gestures](../docs/gestures.md), [safety](../docs/safety.md), [workflows](../docs/workflows.md), [performance](../docs/performance.md), [gotchas](../docs/gotchas.md), [RELEASING.md](../docs/RELEASING.md) and the [changelog](../docs/CHANGELOG.md). |
+| `docs/` | Guides and references: [gestures](../docs/gestures.md), [website review](../docs/website-review.md), [safety](../docs/safety.md), [workflows](../docs/workflows.md), [performance](../docs/performance.md), [gotchas](../docs/gotchas.md), [RELEASING.md](../docs/RELEASING.md) and the [changelog](../docs/CHANGELOG.md). |
 | `.github/workflows` | `ci.yml` (build, test, workflow and secrets checks, coverage, dead code, and the `gate` job), `release.yml` (the later route once a Developer ID exists). Releases ship from the owner's Mac with `scripts/ship-release.sh` after a merge, as [RELEASING.md](../docs/RELEASING.md) describes. |
 
 ### How the pieces fit
