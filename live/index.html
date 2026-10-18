@@ -56,7 +56,8 @@
           <button type="button" class="mp-switch lg" id="mp-power" role="switch" aria-checked="false" aria-label="Ensemble on or off"><i></i></button>
         </div>
         <div class="mp-card mp-status">
-          <div class="mp-row"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="8" r="5.5"/><circle cx="10" cy="8" r="2"/><path d="M6 17.500h8M10 13.500v4"/></svg><span id="mp-camera">Your camera</span></div>
+          <button type="button" class="mp-row pick" id="mp-camera-pick" aria-haspopup="listbox" aria-expanded="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="8" r="5.5"/><circle cx="10" cy="8" r="2"/><path d="M6 17.500h8M10 13.500v4"/></svg><span id="mp-camera">Your camera</span><svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4-4 4 4M6 12l4 4 4-4"/></svg></button>
+          <ul class="mp-cams" id="mp-cams" role="listbox" aria-label="Camera" hidden><li role="option" aria-selected="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10.500 4 4 8-9"/></svg><span id="mp-cam-name">Your camera</span></li></ul>
           <div class="mp-row link"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.500" y="3" width="11" height="8" rx="1.500"/><rect x="8" y="8" width="9.500" height="7.500" rx="1.500"/></svg><span id="mp-screen">Not calibrated</span><svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></div>
         </div>
         <div class="mp-card mp-toggles">
