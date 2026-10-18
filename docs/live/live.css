@@ -2,14 +2,14 @@
    Around the stage: white canvas and gradient shapes bleeding off the edges. Inside the window: Claude desktop's light theme, kept faithful. */
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { background: #fff; color: var(--e-ink); font: 15px/1.45 var(--e-font); -webkit-font-smoothing: antialiased; overflow: hidden; }
+body { background: #e9ebef; color: var(--e-ink); font: 15px/1.45 var(--e-font); -webkit-font-smoothing: antialiased; overflow: hidden; }
 a { color: var(--e-blue-ink); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button { font-family: inherit; }
 
 .ls-app { position: relative; height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) clamp(252px, 20%, 400px); overflow: clip; isolation: isolate; }
 .ls-left { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 0 16px 16px 22px; }
-.ls-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: clip; }
+.ls-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: clip; border-radius: inherit; }  /* the Mac's wallpaper */
 .ls-bg i { position: absolute; display: block; }
 .ls-bg .b1 { width: 560px; height: 480px; left: -200px; top: -170px; border-radius: 58% 42% 61% 39% / 46% 57% 43% 54%; background: conic-gradient(from 210deg at 45% 55%, #ff7aa8, #ffb35c, #ffe27a, #ff7aa8); transform: rotate(-14deg); }
 .ls-bg .b2 { width: 680px; height: 340px; right: -250px; top: -130px; border-radius: 999px; background: linear-gradient(120deg, #7a5cff, #5294ff 48%, #3fd1c4); transform: rotate(-24deg); }
@@ -99,7 +99,7 @@ button { font-family: inherit; }
 
 /* ---- the guide column: the 3D hand, then the progressor, then what Ensemble sees ---- */
 .ls-guide { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 14px 16px 16px; overflow-y: auto; scrollbar-width: thin;
-  background: rgba(255, 255, 255, 0.84); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border-left: 1px solid var(--e-line); }
+  background: #f4f5f7; border-left: 1px solid var(--e-line); }
 .guide-hand { position: relative; flex: none; height: clamp(190px, 32vh, 330px); border-radius: 14px; border: 1px solid var(--e-line); overflow: hidden; background: linear-gradient(180deg, #fff, #f1f4f9); box-shadow: 0 8px 24px rgba(10, 10, 10, 0.07); }
 .guide-hand-3d { position: absolute; inset: 0; opacity: 0; transition: opacity 0.4s ease; }
 .guide-hand-3d.on { opacity: 1; }
