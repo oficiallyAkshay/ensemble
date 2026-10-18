@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import {
   OneEuroFilter, GestureMachine, FocusTracker, sessionAt, FOCUS, observationFromHand, handFromLandmarks, J,
-  HeadPointer, CentreStep, HEAD, pinchMeasure, PinchAdapt, PINCH, AxisSign, anglesFromMatrix, noseOffset, FrameScheduler, NoseGlide, PointerHand, islandMode, wordsTyped, classify,
+  HeadPointer, CentreStep, HEAD, pinchMeasure, PinchAdapt, PINCH, AxisSign, anglesFromMatrix, noseOffset, showsScrollGlyph, FrameScheduler, NoseGlide, PointerHand, islandMode, wordsTyped, classify,
 } from '../logic.js';
 
 const near = (a, b, e = 1e-9) => assert.ok(Math.abs(a - b) <= e, `${a} vs ${b}`);
@@ -634,6 +634,18 @@ test('noise just above the closed value never ends a drag; only a clear open hel
   assert.equal(out.filter(([, ty]) => ty === 'dragScrollEnded').length, 0);
   push(0.3, 0.45); push(0.6, 0.45); push(0.6, 0.45); push(0.6, 0.45); push(0.6, 0.45);
   assert.equal(out.filter(([, ty]) => ty === 'dragScrollEnded').length, 1);
+});
+
+test('the dot shows the scroll symbol exactly while a pinch-drag scrolls and the pinch is held', () => {
+  const { frames, openAt } = dragFrames(30);
+  const m = new GestureMachine();
+  const shown = [];
+  for (const f of frames) { m.push(f); shown.push([f.t, showsScrollGlyph(m.isDragging, m.pinchHeld)]); }
+  assert.ok(shown.some(([t, on]) => t > 0.5 && t < openAt - 0.2 && on), 'on mid-drag');
+  assert.ok(shown.filter(([t]) => t < 0.2).every(([, on]) => !on), 'off before the drag starts');
+  assert.ok(shown.filter(([t]) => t > openAt + 0.3).every(([, on]) => !on), 'off after the pinch opens');
+  assert.equal(showsScrollGlyph(true, false), false);
+  assert.equal(showsScrollGlyph(false, true), false);
 });
 
 const REAL = JSON.parse(readFileSync(new URL('./fixtures/real-hand.json', import.meta.url), 'utf8'));

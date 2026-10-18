@@ -935,6 +935,7 @@ final class Coordinator: AppCoordinating {
         ctx.overlay.setSession(name: acting.map(ctx.name(of:)), switching: focus.switching())
         ctx.overlay.setEdge(dot.overlayEdge(focus: focus))
         ctx.overlay.setHandsOnInput(ctx.handsBusy && !actingThroughPause)
+        ctx.overlay.setScrolling(DotGlyph.showsScroll(scrollActive: scroll.isActive, pinchHeld: gestures.pinchHeld))
         ctx.overlay.update(target: ctx.targetFrame, nose: ctx.nosePoint, listening: state.listening,
                            showNoseDot: settings.showNoseDot, showHighlight: settings.showHighlight)
         health.update()

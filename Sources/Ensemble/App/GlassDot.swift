@@ -35,9 +35,25 @@ final class GlassDot {
         bead.autoresizingMask = [.width, .height]
         root.addSubview(blur)
         root.addSubview(bead)
+        root.addSubview(glyph)
         p.contentView = root
         return p
     }()
+    /// The scroll symbol (the one the Actions tab uses for Scroll), centred on the bead and white like its rim, so
+    /// it reads over the dark blur in light and dark; it is invisible except while a pinch-drag scrolls.
+    private lazy var glyph: NSImageView = {
+        let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .semibold)
+        let image = NSImage(systemSymbolName: "arrow.up.and.down", accessibilityDescription: nil)?.withSymbolConfiguration(config)
+        let v = NSImageView(frame: NSRect(x: 0, y: 0, width: size, height: size))
+        v.image = image
+        v.contentTintColor = .white
+        v.imageAlignment = .alignCenter
+        v.autoresizingMask = [.width, .height]
+        v.wantsLayer = true
+        v.alphaValue = 0
+        return v
+    }()
+    private var showsGlyph = false
     /// The opacity the dot is heading to; an animation runs only when this changes.
     private var target: CGFloat = 0
     /// Head readings arrive 15 to 30 times a second; jumping the window to each one reads as a stepping dot. The
@@ -79,6 +95,19 @@ final class GlassDot {
             ctx.duration = 0.7
             ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             panel.animator().alphaValue = next
+        }
+    }
+
+    /// Fades the scroll symbol in over the bead (and back out) on the same curve as the dot's own fade. The window
+    /// is not resized or moved, so the dot keeps its position.
+    func setScrolling(_ on: Bool) {
+        guard on != showsGlyph else { return }
+        showsGlyph = on
+        guard panel.isVisible else { glyph.alphaValue = on ? 1 : 0; return }
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.3
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            glyph.animator().alphaValue = on ? 1 : 0
         }
     }
 
