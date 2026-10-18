@@ -38,6 +38,13 @@ struct PaneElements {
     var transcript: AXUIElement?
 }
 
+/// An archived session: only looked at (outlined), never pressed, so it holds no mic, composer or buttons.
+struct CachedArchived {
+    var session: ClaudeSession
+    var bar: AXUIElement
+    var pane: AXUIElement
+}
+
 struct CachedSession {
     var session: ClaudeSession
     var elements: PaneElements

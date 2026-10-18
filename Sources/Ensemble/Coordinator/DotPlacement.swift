@@ -48,7 +48,7 @@ final class DotPlacement {
             ctx.nosePoint = ctx.settings.showNoseDot ? dot : nil
         }
         let resized = ctx.resizeFrame.flatMap { $0.id == target?.id ? $0.frame : nil }
-        ctx.targetFrame = ctx.listening?.frame ?? resized ?? target?.frame
+        ctx.targetFrame = ctx.listening?.frame ?? resized ?? target?.highlightFrame
     }
 }
 

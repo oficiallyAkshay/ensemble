@@ -23,6 +23,8 @@ final class ClaudeBridge: @unchecked Sendable {
     private var cache: [String: CachedSession] = [:]
     /// The cached sessions' ids in the order the walk found them.
     private var cacheOrder: [String] = []
+    /// Archived sessions from the last walk, listed beside the cached ones but never looked up by `liveEntry`.
+    private var archivedCache: [CachedArchived] = []
     /// Claude's window list as of the last full walk, and when it ran: the 1 s refresh re-walks only when these
     /// say the layout may have changed (`SessionScan`).
     private var walkedWindows: [WindowCandidate]?
@@ -147,13 +149,16 @@ final class ClaudeBridge: @unchecked Sendable {
         let changes = watched ? watcher.take() : []
         lock.lock()
         let cached = cacheOrder.compactMap { cache[$0] }
+        let cachedArchived = archivedCache
         let walked = walkedWindows
         let sinceWalk = Date().timeIntervalSince(lastFullWalk)
         lock.unlock()
         let setChanged = SessionScan.windowSetChanged(walked, windows)
-        var plan = SessionScan.plan(cached: cached.count, windowSetChanged: setChanged, boundsChanged: walked != windows,
+        var plan = SessionScan.plan(cached: cached.count + cachedArchived.count, windowSetChanged: setChanged,
+                                    boundsChanged: walked != windows,
                                     changes: changes, observing: observing, sinceFullWalk: sinceWalk)
         var refreshed: [CachedSession] = []
+        var refreshedArchived: [CachedArchived] = []
         var recording = Set<String>()
         if case .reread(let frames) = plan {
             for var entry in cached {
@@ -169,22 +174,38 @@ final class ClaudeBridge: @unchecked Sendable {
                 if label == ClaudeLabels.micActive { recording.insert(entry.session.id) }
                 refreshed.append(entry)
             }
+            // An archived pane is checked the way a checkbox is: its note bar must still be there (unarchiving removes
+            // it), or the list is walked again at once.
+            for var entry in cachedArchived where plan != .walk {
+                guard AX.subrole(entry.bar) == Self.noteSubrole else { plan = .walk; break }
+                if frames {
+                    guard let pane = AX.frame(entry.pane), pane.width > 50, pane.height > 50, let bar = AX.frame(entry.bar) else {
+                        plan = .walk; break
+                    }
+                    entry.session.frame = pane
+                    entry.session.archivedBar = bar
+                }
+                refreshedArchived.append(entry)
+            }
         }
         guard plan != .walk else {
             let found = discover(windows: windows)
             let active = found.filter { Self.micLabel($0.elements.mic) == ClaudeLabels.micActive }
-            return (found.map(\.session), Set(active.map(\.session.id)))
+            lock.lock(); let archived = archivedCache.map(\.session); lock.unlock()
+            return (found.map(\.session) + archived, Set(active.map(\.session.id)))
         }
         lock.lock()
         // A stop or send may have re-walked meanwhile; its result wins over these frames.
         if cacheOrder == refreshed.map(\.session.id) {
             for entry in refreshed { cache[entry.session.id]?.session.frame = entry.session.frame }
+            if archivedCache.map(\.session.id) == refreshedArchived.map(\.session.id) { archivedCache = refreshedArchived }
             // The frames now match these window positions: the next check need not read them again.
             if observing, plan == .reread(frames: true) { walkedWindows = windows }
         }
         let current = cacheOrder.compactMap { cache[$0]?.session }
+        let archived = archivedCache.map(\.session)
         lock.unlock()
-        return (current, recording.intersection(current.map(\.id)))
+        return (current + archived, recording.intersection(current.map(\.id)))
     }
 
     func session(at point: CGPoint) -> ClaudeSession? {
@@ -213,6 +234,7 @@ final class ClaudeBridge: @unchecked Sendable {
 
         let cgWindows = given ?? Self.cgWindows(pids: Set(claudeApps.map(\.processIdentifier)))
         var found: [CachedSession] = []
+        var foundArchived: [CachedArchived] = []
         var complete = true
         var shownWindows: [AXUIElement] = []
         var dividers: [AXUIElement] = []
@@ -220,6 +242,7 @@ final class ClaudeBridge: @unchecked Sendable {
         for attempt in 0..<(justEnabled ? 8 : 1) {
             if attempt > 0 { Thread.sleep(forTimeInterval: 0.4) }
             found = []
+            foundArchived = []
             complete = true
             shownWindows = []
             dividers = []
@@ -236,19 +259,20 @@ final class ClaudeBridge: @unchecked Sendable {
                 let walked = sessions(in: window, windowNumber: number, idKey: number != 0 ? number : -(windowIndex + 1),
                                       deadline: deadline)
                 found += walked.sessions
+                foundArchived += walked.archived
                 dividers += walked.dividers
                 shownWindows.append(window)
                 complete = complete && walked.complete
             }
-            if !found.isEmpty { break }
+            if !found.isEmpty || !foundArchived.isEmpty { break }
         }
         lock.lock()
         let previous = cacheOrder.compactMap { cache[$0] }
         lock.unlock()
-        let doubtful = found.isEmpty || !complete
+        let doubtful = (found.isEmpty && foundArchived.isEmpty) || !complete
         let previousAnswer = doubtful && !previous.isEmpty && previous.allSatisfy { Self.isMicCheckbox($0.elements.mic) }
         lock.lock()
-        let keep = listHold.keepPrevious(found: found.count, walkComplete: complete, previous: previous.count,
+        let keep = listHold.keepPrevious(found: found.count + foundArchived.count, walkComplete: complete, previous: previous.count,
                                          previousAnswer: previousAnswer)
         lock.unlock()
         if keep {
@@ -256,14 +280,15 @@ final class ClaudeBridge: @unchecked Sendable {
             lock.lock(); lastFullWalk = .distantPast; lock.unlock()
             return previous
         }
-        replaceCache(found, windows: cgWindows)
+        replaceCache(found, archived: foundArchived, windows: cgWindows)
         watcher.watch(pid: pid, windows: shownWindows, panes: found.map(\.elements.pane), mics: found.map(\.elements.mic),
                       dividers: dividers)
         return found
     }
 
-    private func replaceCache(_ sessions: [CachedSession], windows: [WindowCandidate]?) {
+    private func replaceCache(_ sessions: [CachedSession], archived: [CachedArchived] = [], windows: [WindowCandidate]?) {
         lock.lock(); defer { lock.unlock() }
+        archivedCache = archived
         cache = Dictionary(sessions.map { ($0.session.id, $0) }, uniquingKeysWith: { a, _ in a })
         cacheOrder = []
         for s in sessions where !cacheOrder.contains(s.session.id) { cacheOrder.append(s.session.id) }
@@ -271,12 +296,14 @@ final class ClaudeBridge: @unchecked Sendable {
         lastFullWalk = Date()
     }
 
-    private func sessions(in window: AXUIElement, windowNumber: Int, idKey: Int,
-                          deadline: Date) -> (sessions: [CachedSession], dividers: [AXUIElement], complete: Bool) {
-        let (mics, dividers, complete) = Self.collectMics(in: window, deadline: deadline)
+    private func sessions(in window: AXUIElement, windowNumber: Int, idKey: Int, deadline: Date)
+        -> (sessions: [CachedSession], archived: [CachedArchived], dividers: [AXUIElement], complete: Bool) {
+        let walk = Self.collectMics(in: window, deadline: deadline)
+        let (mics, dividers, complete) = (walk.hits, walk.dividers, walk.complete)
+        let archived = Self.archivedSessions(in: walk, window: window, windowNumber: windowNumber, idKey: idKey)
         var result: [CachedSession] = []
         for (i, mic) in mics.enumerated() {
-            guard Date() < deadline else { return (result, dividers, false) }
+            guard Date() < deadline else { return (result, archived, dividers, false) }
             guard let paneIndex = Self.paneIndex(for: i, among: mics, deadline: deadline),
                   let pane = Optional(mic.path[paneIndex]),
                   let frame = AX.frame(pane) else { continue }
@@ -287,7 +314,7 @@ final class ClaudeBridge: @unchecked Sendable {
                                         modeControl: scan.mode, transcript: scan.transcript)
             result.append(CachedSession(session: ClaudeSession(id: id, frame: frame, windowNumber: windowNumber, title: scan.title), elements: elements))
         }
-        return (result, dividers, complete && Date() < deadline)
+        return (result, archived, dividers, complete && Date() < deadline)
     }
 
     /// Keyed on the window and the mic's order in it, never on the frame, so dragging or resizing a window
@@ -309,6 +336,8 @@ final class ClaudeBridge: @unchecked Sendable {
 
     /// A cached session whose mic checkbox still answers; otherwise rediscover and match by id, then by overlap.
     func liveEntry(_ s: ClaudeSession, rescanPane: Bool = false) -> CachedSession? {
+        // An archived session has nothing to press, and looking for it would walk the whole tree for nothing.
+        if s.archivedBar != nil { return nil }
         lock.lock()
         let cached = cache[s.id]
         lock.unlock()
@@ -358,7 +387,21 @@ final class ClaudeBridge: @unchecked Sendable {
         var element: AXUIElement
         var path: [AXUIElement]       // window ... mic, inclusive
         var roles: [String]
+        /// Only for an archived session's note bar: it holds a button (Unarchive).
+        var hasButton = false
     }
+
+    /// What one walk of a window found.
+    struct WindowWalk {
+        var hits: [MicHit] = []
+        var dividers: [AXUIElement] = []
+        /// The chat messages feeds, and an archived session's note bar (a note group in place of the message box).
+        var feeds: [MicHit] = []
+        var bars: [MicHit] = []
+        var complete = true
+    }
+
+    static let noteSubrole = "AXDocumentNote"
 
     static func isMicLabel(_ s: String?) -> Bool { s == ClaudeLabels.micIdle || s == ClaudeLabels.micActive }
 
@@ -375,33 +418,65 @@ final class ClaudeBridge: @unchecked Sendable {
 
     /// Every dictation checkbox under `window` with its ancestor path, and every divider (`AXSplitter`, for
     /// `ClaudeWatcher`). The transcript is not entered: it holds most of the nodes and never contains a composer.
+    /// The same walk notes the feeds and note bars an archived session is found from (`ArchivedPane`).
     /// `complete` is false when the walk ran out of time before `deadline`.
     static func collectMics(in window: AXUIElement, maxNodes: Int = 12_000,
-                            deadline: Date = .distantFuture) -> (hits: [MicHit], dividers: [AXUIElement], complete: Bool) {
-        var hits: [MicHit] = []
-        var dividers: [AXUIElement] = []
+                            deadline: Date = .distantFuture) -> WindowWalk {
+        var walk = WindowWalk()
         var count = 0
         var outOfTime = false
-        func go(_ el: AXUIElement, _ path: [AXUIElement], _ roles: [String], _ depth: Int) {
+        func go(_ el: AXUIElement, _ path: [AXUIElement], _ roles: [String], _ depth: Int, _ bar: Int?) {
             count += 1
             if count > maxNodes || depth > 70 || outOfTime { return }
             // Checking the clock every 64 nodes keeps the check itself out of the cost.
             if count % 64 == 0, Date() >= deadline { outOfTime = true; return }
-            let v = AX.multi(el, walkAttrs)
+            let v = AX.multi(el, walkAttrs + [kAXSubroleAttribute])
             let role = (v[0] as? String) ?? ""
             let desc = v[1] as? String
             let path = path + [el]
             let roles = roles + [role]
             if role == "AXCheckBox", isMicLabel(desc) {
-                hits.append(MicHit(element: el, path: path, roles: roles))
+                walk.hits.append(MicHit(element: el, path: path, roles: roles))
                 return
             }
-            if role == "AXSplitter" { dividers.append(el) }
-            if desc == ClaudeLabels.transcript { return }
-            for c in (v[3] as? [AXUIElement]) ?? [] { go(c, path, roles, depth + 1) }
+            if role == "AXSplitter" { walk.dividers.append(el) }
+            if desc == ClaudeLabels.transcript {
+                walk.feeds.append(MicHit(element: el, path: path, roles: roles))
+                return
+            }
+            var bar = bar
+            if role == "AXGroup", (v[4] as? String) == noteSubrole {
+                walk.bars.append(MicHit(element: el, path: path, roles: roles))
+                bar = walk.bars.count - 1
+            } else if role == "AXButton", let b = bar {
+                walk.bars[b].hasButton = true
+            }
+            for c in (v[3] as? [AXUIElement]) ?? [] { go(c, path, roles, depth + 1, bar) }
         }
-        go(window, [], [], 0)
-        return (hits, dividers, !outOfTime)
+        go(window, [], [], 0, nil)
+        walk.complete = !outOfTime
+        return walk
+    }
+
+    /// The archived sessions in one window: a note bar holding a button whose pane (the lowest ancestor holding a chat
+    /// messages feed) holds no dictation checkbox. Live sessions are found by their checkbox as before.
+    static func archivedSessions(in walk: WindowWalk, window: AXUIElement, windowNumber: Int, idKey: Int) -> [CachedArchived] {
+        var result: [CachedArchived] = []
+        for bar in walk.bars where bar.hasButton {
+            let lowest = (bar.roles.lastIndex(of: "AXWebArea") ?? 0) + 1
+            let ks = Array(lowest..<max(lowest, bar.path.count - 1))
+            func holds(_ hits: [MicHit], _ k: Int) -> Bool { hits.contains { $0.path.count > k && CFEqual($0.path[k], bar.path[k]) } }
+            let ancestors = ks.map { ArchivedAncestor(hasFeed: holds(walk.feeds, $0), hasMic: holds(walk.hits, $0)) }
+            guard let i = ArchivedPane.index(among: ancestors) else { continue }
+            let pane = bar.path[ks[i]]
+            guard !result.contains(where: { CFEqual($0.pane, pane) }),
+                  let frame = AX.frame(pane), let barFrame = AX.frame(bar.element) else { continue }
+            let id = "w\(idKey)#a\(result.count)"
+            let session = ClaudeSession(id: id, frame: frame, windowNumber: windowNumber, title: scanPane(pane).title,
+                                        archivedBar: barFrame)
+            result.append(CachedArchived(session: session, bar: bar.element, pane: pane))
+        }
+        return result
     }
 
     /// Index into `mics[i].path` of the session's pane. The choice itself is `PaneChoice`; this reads the
