@@ -94,7 +94,7 @@ button { font-family: inherit; }
 
 .ls-desk { position: absolute; inset: 28px 0 0; }
 .ls-appicon { position: absolute; right: 18px; top: 16px; width: 92px; display: grid; justify-items: center; gap: 5px; padding: 4px 0 2px; background: none; border: 0; cursor: pointer; font: 500 12px var(--e-font); color: var(--e-ink); }
-.ls-appicon .app-art { width: 62px; height: 62px; filter: drop-shadow(0 8px 12px rgba(40, 30, 90, 0.3)); border-radius: 15px; }
+.ls-appicon .app-art { width: 62px; height: 62px; filter: drop-shadow(0 8px 12px rgba(40, 30, 90, 0.3)); border-radius: 14px; -webkit-user-drag: none; user-select: none; }
 .ls-appicon span { padding: 1px 7px; border-radius: 5px; }
 .ls-appicon.selected .app-art { background: rgba(82, 148, 255, 0.28); box-shadow: 0 0 0 4px rgba(82, 148, 255, 0.28); }
 .ls-appicon.selected span { background: var(--e-blue); color: #fff; }
@@ -198,7 +198,6 @@ button { font-family: inherit; }
 /* drawn pictures for the steps that have no 3D hand (and for browsers without WebGL) */
 .guide-art svg * { transform-box: fill-box; transform-origin: center; }
 .a-icon { fill: #faf9f5; stroke: #1f2937; stroke-width: 1.5; }
-.a-spark path { stroke: #d97757; stroke-width: 3.5; stroke-linecap: round; }
 .a-cursor { fill: #0a0a0a; stroke: #fff; stroke-width: 1.5; stroke-linejoin: round; animation: a-click 2.4s ease-in-out infinite; }
 .a-ring { fill: none; stroke: var(--e-blue); stroke-width: 2; opacity: 0; animation: a-ring 2.4s ease-out infinite; }
 .a-ring.r2 { animation-delay: 0.32s; }
