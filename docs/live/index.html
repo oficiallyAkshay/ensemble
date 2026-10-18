@@ -17,7 +17,6 @@
 
   <div class="ls-left">
   <header class="ls-top">
-    <div class="ls-brand"><b><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</b><a href="../index.html">Back to the letter</a></div>
     <div class="ens-island" id="island" data-mode="idle" role="status" aria-live="polite">
       <svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
       <span class="ens-glyph" aria-hidden="true">
@@ -54,19 +53,31 @@
         <span class="mb-clock" id="mb-clock">9:41</span>
       </div>
 
-      <div class="ens-pop ls-menu" id="ens-menu" role="menu" hidden>
-        <div class="menu-head"><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg><b>Ensemble</b><span class="menu-state" id="menu-state">Off</span></div>
-        <p class="menu-note" id="menu-note" role="status">Open Claude first, then come back here.</p>
-        <div class="menu-off" id="menu-off">
-          <button type="button" class="menu-item primary" id="menu-camera" role="menuitem">Turn on Ensemble</button>
-          <button type="button" class="menu-item" id="menu-mouse" role="menuitem">Use the mouse instead</button>
-          <p class="menu-priv"><strong>Your video stays in this tab.</strong> Nothing is uploaded, recorded or shown. About <span id="menu-size">12 MB</span> downloads from this site when you turn it on.</p>
+      <!-- The menu-bar panel, laid out as MenuPanelView.swift lays it out: header with the switch, status card, toggles, buttons, footer. -->
+      <div class="ls-menu" id="ens-menu" role="dialog" aria-label="Ensemble" hidden>
+        <div class="mp-card mp-header">
+          <span class="mp-icon"><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></span>
+          <span class="mp-title"><b>Ensemble</b><span id="mp-status">Off</span></span>
+          <button type="button" class="mp-switch lg" id="mp-power" role="switch" aria-checked="false" aria-label="Ensemble on or off"><i></i></button>
         </div>
-        <div class="menu-on" id="menu-on" hidden>
-          <button type="button" class="menu-item" id="menu-recentre" role="menuitem">Recentre</button>
-          <button type="button" class="menu-item" id="menu-stop" role="menuitem">Turn off Ensemble</button>
+        <div class="mp-card mp-status">
+          <div class="mp-row"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="8" r="5.5"/><circle cx="10" cy="8" r="2"/><path d="M6 17.500h8M10 13.500v4"/></svg><span id="mp-camera">Your camera</span></div>
+          <div class="mp-row link"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.500" y="3" width="11" height="8" rx="1.500"/><rect x="8" y="8" width="9.500" height="7.500" rx="1.500"/></svg><span id="mp-screen">Not calibrated</span><svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></div>
         </div>
+        <div class="mp-card mp-toggles">
+          <label class="mp-toggle"><span>Show nose dot</span><button type="button" class="mp-switch sm on" id="mp-dot" role="switch" aria-checked="true" aria-label="Show nose dot"><i></i></button></label>
+          <label class="mp-toggle"><span>Show highlight</span><button type="button" class="mp-switch sm on" id="mp-hl" role="switch" aria-checked="true" aria-label="Show highlight"><i></i></button></label>
+        </div>
+        <div class="mp-buttons">
+          <button type="button" class="mp-btn" id="mp-replay"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.500"/><path d="m8.500 7 4.500 3-4.500 3z"/></svg>Replay tour</button>
+          <button type="button" class="mp-btn" id="mp-update" title="Part of the Mac app"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10a6 6 0 1 1-1.800-4.300M16 3.500v3h-3"/></svg>Check for Updates</button>
+          <button type="button" class="mp-btn" id="mp-calibrate"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3"/><circle cx="10" cy="10" r=".8"/></svg>Calibrate…</button>
+          <button type="button" class="mp-btn" id="mp-settings" title="Part of the Mac app"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.500"/><path d="M10 2.500v2M10 15.500v2M2.500 10h2M15.500 10h2M4.700 4.700l1.400 1.400M13.900 13.900l1.400 1.400M15.300 4.700l-1.400 1.400M6.100 13.900l-1.400 1.400"/></svg>Settings…</button>
+        </div>
+        <div class="mp-foot"><span>Version 0.2.21</span><button type="button" id="mp-quit" aria-label="Quit Ensemble" title="Quit Ensemble"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v7M5.500 6a6 6 0 1 0 9 0"/></svg></button></div>
       </div>
+
+      <div class="ls-tip" id="tip" role="status" aria-live="polite" hidden><span class="tip-text" id="tip-text"></span></div>
 
       <div class="ls-desk" id="desk">
         <button type="button" class="ls-appicon" id="claude-icon" aria-label="Claude. Double-click to open.">
@@ -92,6 +103,9 @@
       <div class="ls-dock" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i class="gap"></i><i></i><i></i></div>
     </div>
   </main>
+  <footer class="ls-bottom">
+    <div class="ls-brand"><b><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</b><a href="../index.html">Back to the letter</a></div>
+  </footer>
   </div>
   <aside class="ls-guide" id="guide" aria-label="How to try it">
     <div class="guide-hand" id="hand-box">

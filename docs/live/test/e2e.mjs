@@ -15,10 +15,10 @@ const DMG = 'https://github.com/oficiallyAkshay/ensemble/releases/latest/downloa
 const FAKE = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'];
 const HEAVY = ['/live/vendor/vision_bundle.js', '/live/vendor/wasm/vision_wasm_internal.js', '/live/vendor/wasm/vision_wasm_internal.wasm.gz', '/live/models/face_landmarker.task.gz', '/live/models/gesture_recognizer.task.gz'];
 // The demo opens on the empty desktop: double-click Claude, then turn Ensemble on from the menu bar.
-const turnOn = async (p, how = 'camera') => {
+const turnOn = async (p) => {
   await p.eval("document.getElementById('claude-icon').dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }))");
   await p.eval("document.getElementById('mb-ens').click()");
-  await p.eval(`document.getElementById('menu-${how}').click()`);
+  await p.eval("document.getElementById('mp-power').click()");   // the switch starts the camera, or the mouse when the visitor chose it
 };
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); say(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ' :: ' + detail : ''}`); };
@@ -39,7 +39,7 @@ async function camera() {
     const pre = w.requests.map((r) => r.url.replace(ORIGIN, ''));
     check('no wasm, model or runtime request before the button', !pre.some((u) => /vendor|models|\.wasm|\.task/.test(u)), pre.join(' '));
     check('the demo opens on the desktop: Claude closed, no gate, one app icon, a skeleton dock', await p.eval("document.getElementById('app').dataset.state === 'desk' && document.getElementById('gate').hidden && document.getElementById('mac').dataset.claude === 'closed' && document.querySelectorAll('.ls-appicon').length === 1 && document.querySelectorAll('.ls-dock i').length >= 6 && getComputedStyle(document.getElementById('window')).visibility === 'hidden'"));
-    check('the guide column is 20% of the page and starts on Open Claude', await p.eval("(() => { const g = document.getElementById('guide').getBoundingClientRect(); return Math.abs(g.width / innerWidth - 0.2) < 0.02 && window.__live.step() === 'opened'; })()"));
+    check('the guide column is 20% of the page, counts three steps, and Open Claude is a tooltip', await p.eval("(() => { const g = document.getElementById('guide').getBoundingClientRect(); return Math.abs(g.width / innerWidth - 0.2) < 0.02 && window.__live.step() === 'opened' && document.querySelectorAll('.step:not(.note)').length === 3 && document.getElementById('tip').textContent.includes('Claude'); })()"));
     check('no video element is visible', await p.eval("[...document.querySelectorAll('video')].every(v => v.closest('#sink') && v.getBoundingClientRect().right < 0)"));
     const mark = w.requests.length;
     say('double-clicking Claude, then Turn on Ensemble in the menu bar');
@@ -62,11 +62,11 @@ async function camera() {
       say(`UI frame rate while tracking: ${fps.toFixed(0)} fps (headless Chrome)`);
       check('UI stays smooth while tracking (>= 30 fps)', fps >= 30, fps.toFixed(0));
       check('sees panel readouts are live', (await p.eval("document.getElementById('r-speed').textContent")) !== '-');
-      check('the centring step is up first: dot, line, countdown, Skip; the outline waits', await p.eval("(() => { const c = document.getElementById('centre'); return !c.hidden && document.querySelector('.step[data-state=current]').dataset.k === 'centred' && !document.getElementById('hl').classList.contains('on') && !!c.querySelector('.bead') && document.getElementById('centre-skip').offsetParent !== null; })()"));
+      check('the centring step is up first: dot, line, countdown, Skip; the outline waits', await p.eval("(() => { const c = document.getElementById('centre'); return !c.hidden && window.__live.step() === 'centred' && !document.getElementById('hl').classList.contains('on') && !!c.querySelector('.bead') && document.getElementById('centre-skip').offsetParent !== null; })()"));
       check('with no face it says "Find the camera"', (await p.eval("document.getElementById('centre-line').textContent")) === 'Find the camera');
       await p.eval("document.getElementById('centre-skip').click()");
       await sleep(700);
-      check('Skip ends the step and the progressor moves on to looking', await p.eval("document.getElementById('centre').hidden && document.querySelector('.step[data-state=current]').dataset.k === 'looked' && document.querySelectorAll('.step[data-state=done]').length === 3"));
+      check('Skip ends the step and the tour moves on to looking (a tooltip, not a counted step)', await p.eval("document.getElementById('centre').hidden && window.__live.step() === 'looked' && !document.getElementById('tip').hidden"));
       check('the progressor shows a first suggestion', (await p.eval("document.getElementById('prompt').textContent")).includes('Look at one'));
 
       say('camera stays on; now bytes downloaded after the button');
@@ -415,8 +415,8 @@ async function letterDenied() {
     check('mouse option goes to live/?mouse=1', (await p.eval('location.search')) === '?mouse=1');
     await p.waitFor("document.readyState === 'complete'", 15000);
     await sleep(500);
-    check('the demo waits on the desktop, and the menu offers only the mouse', (await p.eval('window.__live.mode')) === 'none' && await p.eval("document.getElementById('menu-camera').hidden && !document.getElementById('menu-mouse').hidden"));
-    await turnOn(p, 'mouse');
+    check('the demo waits on the desktop with Ensemble off', (await p.eval('window.__live.mode')) === 'none' && (await p.eval('window.__live.menu().state')) === 'Off');
+    await turnOn(p);
     await sleep(300);
     check('demo is in mouse mode with no gate', (await p.eval('window.__live.mode')) === 'mouse' && await p.eval("document.getElementById('gate').hidden"));
     check('no heavy file loaded for the mouse', !w.requests.some((r) => /\/live\/(models|vendor)\//.test(r.url) && r.type !== 'Other' && false) || true);

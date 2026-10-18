@@ -14,9 +14,9 @@ const $ = (id) => document.getElementById(id);
 const el = {
   app: $('app'), stage: $('stage'), island: $('island'), gate: $('gate'), gateMsg: $('gate-message'), goCamera: $('go-camera'),
   goMouse: $('go-mouse'), progress: $('progress'), bar: $('bar'), progressLabel: $('progress-label'),
-  mac: $('mac'), claudeIcon: $('claude-icon'), mbApp: $('mb-app'), mbEns: $('mb-ens'), menu: $('ens-menu'), menuState: $('menu-state'), menuNote: $('menu-note'),
-  menuOff: $('menu-off'), menuOn: $('menu-on'), menuCamera: $('menu-camera'), menuMouse: $('menu-mouse'), menuRecentre: $('menu-recentre'), menuStop: $('menu-stop'),
-  meterText: $('meter-text'), meterBar: $('meter-bar'), hand: $('hand'), art: $('art'), handCap: $('hand-cap'), menuSize: $('menu-size'),
+  mac: $('mac'), claudeIcon: $('claude-icon'), mbApp: $('mb-app'), mbEns: $('mb-ens'), menu: $('ens-menu'), mpStatus: $('mp-status'), mpPower: $('mp-power'), mpCamera: $('mp-camera'),
+  mpScreen: $('mp-screen'), mpDot: $('mp-dot'), mpHl: $('mp-hl'), mpReplay: $('mp-replay'), mpCalibrate: $('mp-calibrate'), mpQuit: $('mp-quit'), tip: $('tip'), tipText: $('tip-text'),
+  meterText: $('meter-text'), meterBar: $('meter-bar'), hand: $('hand'), art: $('art'), handCap: $('hand-cap'),
   prompt: $('prompt'), steps: $('steps'), done: $('done'), finish: $('finish'), keep: $('keep'), stop: $('stop'), recentre: $('recentre'),
   sink: $('sink'), sees: $('sees'), hl: $('hl'), dot: $('dot'),
   centre: $('centre'), centreLine: $('centre-line'), centreCount: $('centre-count'), centreArc: $('centre-arc'), centreSkip: $('centre-skip'), rPinch: $('r-pinch'),
@@ -68,7 +68,7 @@ const S = {
   faceSeen: null, handSeen: null, headText: 'off', handText: 'off', gestureText: 'none', pointerDot: null,
   frames: { seen: 0, processed: 0, start: 0 },
   glide: new NoseGlide(), dotMoves: 0, camera: null, centring: false, centre: null, centreDoneAt: 0, adapt: new PinchAdapt(), pinchLog: { t: 0, closed: false },
-  step: -1, scrolled: 0, opened: false, preferred: null,
+  step: -1, scrolled: 0, opened: false, preferred: null, showDot: true, showHl: true,
   stream: null, video: null, abort: null, vfc: 0, raf: 0, lastVideoTime: -1,
 };
 S.machine.sendHold = 0.75;
@@ -490,47 +490,98 @@ function openClaude() {
 const menuOpen = () => !el.menu.hidden;
 function toggleMenu(open = !menuOpen()) {
   el.menu.hidden = !open; el.mbEns.setAttribute('aria-expanded', String(open));
-  if (open) { syncEns(); (el.menuCamera.hidden || el.menuCamera.disabled ? el.menuMouse : el.menuCamera).focus({ preventScroll: true }); }
+  if (open) { syncEns(); el.mpPower.focus({ preventScroll: true }); }
+  placeTip();
 }
 
-/** The menu bar icon and its menu follow the state: off, on, and waiting for Claude to be opened. */
+/** Back to the empty desktop with Ensemble off, as the switch or Quit does in the app. */
+function turnOff() {
+  if (S.mode === 'none') return;
+  S.resumeOnShow = false; stopCamera(); S.machine.reset(); endDictation('stopped'); endCentring(null);
+  S.mode = 'none'; S.handSeen = null; S.faceSeen = null;
+  el.app.dataset.mode = 'none'; el.stop.hidden = true; el.recentre.hidden = true;
+  setState('desk'); syncEns();
+}
+
+/** The panel and the menu bar icon follow the state, with the app's own words (AppStatus.title, ScreenLayout.cameraLine). */
 function syncEns() {
   const on = S.mode !== 'none';
   el.mbEns.classList.toggle('on', on);
   el.mbEns.setAttribute('aria-label', `Ensemble, in the menu bar. ${on ? 'On.' : 'Off.'}`);
-  el.menuState.textContent = on ? 'On' : 'Off';
-  el.menuOff.hidden = on; el.menuOn.hidden = !on;
-  el.menuNote.hidden = S.opened;
-  el.menuCamera.disabled = el.menuMouse.disabled = !S.opened;
-  el.menuRecentre.hidden = S.mode !== 'camera';
+  el.mpPower.setAttribute('aria-checked', String(on)); el.mpPower.classList.toggle('on', on);
+  el.mpStatus.textContent = !on ? 'Off' : S.machine.talking ? 'Claude dictation on' : S.centring ? 'Needs calibration' : 'Watching';
+  const fps = Math.round(S.camera?.frameRate || 0);
+  el.mpCamera.textContent = S.mode === 'camera' ? `Your camera${fps ? ` · camera ${fps} fps` : ''}` : S.mode === 'mouse' ? 'No camera' : 'Your camera';
+  el.mpScreen.textContent = on && DONE.centred ? 'Calibrated for this window' : 'Not calibrated';
+  el.mbEns.classList.toggle('hint', S.opened && !on && !menuOpen());
   $('stem-btn').disabled = !on; $('phones-note').hidden = on;
-  el.mbEns.classList.toggle('hint', S.opened && !on);
 }
 
+const flip = (btn, on) => { btn.classList.toggle('on', on); btn.setAttribute('aria-checked', String(on)); };
 el.mbEns.addEventListener('click', () => toggleMenu());
 document.addEventListener('pointerdown', (e) => { if (menuOpen() && !el.menu.contains(e.target) && !el.mbEns.contains(e.target)) toggleMenu(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuOpen()) { toggleMenu(false); el.mbEns.focus(); } });
-el.menuCamera.addEventListener('click', () => { toggleMenu(false); startCamera(); });
-el.menuMouse.addEventListener('click', () => { toggleMenu(false); enterMouse(); });
-el.menuRecentre.addEventListener('click', () => { toggleMenu(false); el.recentre.click(); });
-el.menuStop.addEventListener('click', () => { toggleMenu(false); el.stop.click(); });
+el.mpPower.addEventListener('click', () => {
+  if (S.mode !== 'none') { turnOff(); return; }
+  if (S.preferred === 'mouse' || phone) enterMouse(); else startCamera();
+  toggleMenu(false);
+});
+el.mpQuit.addEventListener('click', () => { turnOff(); toggleMenu(false); });
+el.mpDot.addEventListener('click', () => { S.showDot = !S.showDot; flip(el.mpDot, S.showDot); });
+el.mpHl.addEventListener('click', () => { S.showHl = !S.showHl; flip(el.mpHl, S.showHl); });
+el.mpCalibrate.addEventListener('click', () => { if (S.mode === 'camera') { toggleMenu(false); beginCentring(); } });
+el.mpReplay.addEventListener('click', () => {
+  toggleMenu(false); turnOff();
+  for (const k of Object.keys(DONE)) DONE[k] = false;
+  S.opened = false; S.step = -1; el.mac.dataset.claude = 'closed'; el.mbApp.textContent = 'Finder'; el.claudeIcon.setAttribute('aria-label', 'Claude. Double-click to open.');
+  renderCoach();
+});
+
+// ---- the tour's tooltips: the setup steps (open Claude, turn on Ensemble, look) point at the thing to use and are not counted as steps ----
+
+const tipEl = el.tip;
+const TIPS = {
+  opened: () => ({ at: el.claudeIcon, side: 'left', html: phone ? 'Double-tap <strong>Claude</strong> to open it.' : 'Double-click <strong>Claude</strong> to open it.' }),
+  enabled: () => (menuOpen()
+    ? { at: el.mpPower, edge: el.menu, side: 'left', html: mouseish() ? 'Flip the switch to turn <strong>Ensemble</strong> on. The mouse stands in for your hands.' : 'Flip the switch to turn <strong>Ensemble</strong> on. It asks for your camera; the video stays in this tab, and about 12 MB downloads.' }
+    : { at: el.mbEns, side: 'below', html: 'Click the <strong>Ensemble</strong> icon in the menu bar.' }),
+  looked: () => (S.mode !== 'none' && !S.centring ? { at: null, side: 'top', html: mouseish() ? 'Move the mouse over a session.' : 'Look at a session. The <strong>blue outline</strong> follows your nose.' } : null),
+};
+function placeTip() {
+  const cur = currentStep(), spec = !el.finish.hidden || !el.gate.hidden ? null : TIPS[cur]?.();
+  if (!spec) { tipEl.hidden = true; return; }
+  if (el.tipText.innerHTML !== spec.html) el.tipText.innerHTML = spec.html;
+  tipEl.hidden = false; tipEl.dataset.side = spec.side;
+  const box = el.mac.getBoundingClientRect(), tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+  let x, y, ax = tw / 2;
+  if (!spec.at) { x = (box.width - tw) / 2; y = 40; }
+  else {
+    const r = spec.at.getBoundingClientRect(), cx = r.left + r.width / 2 - box.left, cy = r.top + r.height / 2 - box.top;
+    if (spec.side === 'left') { x = (spec.edge || spec.at).getBoundingClientRect().left - box.left - tw - 14; y = cy - th / 2; }
+    else { x = cx - tw / 2; y = r.bottom - box.top + 12; }
+    const nx = Math.min(Math.max(x, 10), box.width - tw - 10); ax = cx - nx; x = nx;
+  }
+  tipEl.style.setProperty('--ax', `${Math.round(ax)}px`);
+  tipEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+}
 
 // ---- the guide column: a progressor that collapses finished steps and opens the next, and the hand that shows the gesture ----
 
-const ORDER = ['opened', 'enabled', 'centred', 'looked', 'dictated', 'sent', 'scrolled', 'install'];
+const RAIL = ['dictated', 'sent', 'scrolled'];   // the counted steps; opening Claude, turning on, centring and looking are tooltips, install a closing note
+const ORDER = ['opened', 'enabled', 'centred', 'looked', ...RAIL, 'install'];
 const DONE = { opened: false, enabled: false, centred: false, looked: false, dictated: false, sent: false, scrolled: false, install: false };
 const APPLE_GUIDE = 'https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac';
-const TITLES = { opened: 'Open Claude', enabled: 'Turn on Ensemble', centred: 'Centre your head', looked: 'Look at a session', dictated: 'Dictate', sent: 'Send', scrolled: 'Scroll', install: 'Install it' };
+const TITLES = { opened: 'Open Claude', enabled: 'Turn on Ensemble', centred: 'Centre your head', looked: 'Look at a session', dictated: 'Dictate', sent: 'Send', scrolled: 'Scroll', install: 'Before you open it' };
 const both = (t) => ({ camera: t, mouse: t });
 const HINTS = {
   opened: { camera: 'Double-click the <strong>Claude</strong> icon on the desktop.', mouse: 'Double-click the <strong>Claude</strong> icon on the desktop.', touch: 'Double-tap the <strong>Claude</strong> icon on the desktop.' },
-  enabled: { camera: 'Click the three-dot icon in the menu bar, then choose <strong>Turn on Ensemble</strong>.', mouse: 'Click the three-dot icon in the menu bar, then choose <strong>Turn on Ensemble</strong>.' },
+  enabled: both('Click the Ensemble icon in the menu bar, then flip the switch to turn <strong>Ensemble</strong> on.'),
   centred: { camera: 'Point your nose at the glass dot and hold still for three seconds.', mouse: '' },
   looked: { camera: 'Look at one of the sessions. The blue outline follows your nose.', mouse: 'Move the mouse over one of the sessions.' },
   dictated: { camera: '<strong>Double pinch</strong> (thumb and index, twice, quickly) to dictate into the session you are looking at.', mouse: '<strong>Click twice</strong>, quickly, to dictate into the session under the mouse.' },
   sent: { camera: 'Hold a <strong>thumbs-up</strong> to send what was typed.', mouse: 'Press and hold still: that is the <strong>thumbs-up</strong>. It sends.' },
   scrolled: { camera: '<strong>Pinch and drag</strong> up or down to scroll the session you are looking at.', mouse: 'Press and <strong>drag</strong> up or down to scroll the session under the mouse.' },
-  install: both(`Last step. Ensemble is <strong>unsigned</strong>: Akshay has not set up an Apple Developer certificate yet, so macOS blocks the first launch. After you download it, <a href="${APPLE_GUIDE}" target="_blank" rel="noopener">Apple's guide shows how to open it anyway</a>.`),
+  install: both(`Ensemble is <strong>unsigned</strong>: Akshay has not set up an Apple Developer certificate yet, so macOS blocks the first launch. After you download it, <a href="${APPLE_GUIDE}" target="_blank" rel="noopener">Apple's guide shows how to open it anyway</a>.`),
 };
 const SCENE = { dictated: 'dictate', sent: 'send', scrolled: 'scroll' };
 const CAPTION = { dictated: ['Double pinch', 'Double click'], sent: ['Thumbs-up, hold', 'Press and hold'], scrolled: ['Pinch and drag', 'Press and drag'], headphones: ['Press once, press twice', 'Press once, press twice'], install: ['Unsigned app', 'Unsigned app'] };
@@ -548,9 +599,9 @@ const ART = {
 };
 
 const steps = {};
-for (const k of ORDER) {
+for (const k of [...RAIL, 'install']) {
   const li = document.createElement('li');
-  li.className = 'step'; li.dataset.k = k; li.dataset.state = 'todo';
+  li.className = k === 'install' ? 'step note' : 'step'; li.dataset.k = k; li.dataset.state = 'todo';
   li.innerHTML = `<i class="step-dot" aria-hidden="true"></i><h3 class="step-title">${TITLES[k]}</h3><div class="step-body"><div><p></p></div></div>`;
   el.steps.append(li); steps[k] = { li, text: li.querySelector('p'), shown: '' };
 }
@@ -612,20 +663,20 @@ function tick_(k) {
 
 function renderCoach() {
   const cur = currentStep(), m = modeKey();
-  const visible = ORDER.filter((k) => !(k === 'centred' && mouseish()));
-  for (const k of ORDER) {
-    const st = steps[k], hide = !visible.includes(k);
-    st.li.hidden = hide;
-    st.li.dataset.state = DONE[k] || hide ? 'done' : k === cur ? 'current' : 'todo';
+  for (const k of [...RAIL, 'install']) {
+    const st = steps[k];
+    st.li.hidden = k === 'install' && cur !== 'install' && !DONE.install;
+    st.li.dataset.state = DONE[k] ? 'done' : k === cur ? 'current' : 'todo';
     const h = hintFor(k);
     if (st.shown !== h) { st.shown = h; st.text.innerHTML = h; }
   }
-  const n = visible.filter((k) => DONE[k]).length;
-  el.meterText.textContent = cur ? `Step ${n + 1} of ${visible.length}` : 'All done';
-  el.meterBar.style.width = `${Math.round((n / visible.length) * 100)}%`;
+  const n = RAIL.filter((k) => DONE[k]).length;
+  el.meterText.textContent = n === RAIL.length ? 'All 3 done' : RAIL.includes(cur) ? `Step ${n + 1} of 3` : '3 steps';
+  el.meterBar.style.width = `${Math.round((n / RAIL.length) * 100)}%`;
   el.prompt.innerHTML = cur ? hintFor(cur) : 'That is everything. Keep playing, or see the download.';
   el.done.hidden = cur !== 'install';
   showGuide(activeTab === 'headphones' ? 'headphones' : cur, m);
+  placeTip();
 }
 
 // ---- the 3D hand: the scene the letter and the Mac app's tour use, hand only, loaded the first time a step is about to need it ----
@@ -729,7 +780,7 @@ function renderOverlays(t, target) {
   if (S.centring) renderCentre(t);
   // the blue outline follows the focused pane with a spring; it breathes while dictating
   if (t - frameAt > 0.5) { frameAt = t; refreshFrames(); }
-  if (target && el.app.dataset.state === 'running' && !S.centring) {
+  if (target && S.showHl && el.app.dataset.state === 'running' && !S.centring) {
     const f = target.frame, i = 4;
     el.hl.style.width = `${Math.max(f.w - 2 * i, 0)}px`; el.hl.style.height = `${Math.max(f.h - 2 * i, 0)}px`;
     el.hl.style.transform = `translate(${f.x + i}px, ${f.y + i}px)`;
@@ -738,7 +789,7 @@ function renderOverlays(t, target) {
   } else el.hl.classList.remove('on', 'listening');
   // the glass-bead dot is drawn every display frame: the latest tracker sample, its velocity carried forward for at most one sample,
   // and a short glide (NoseGlide), so it moves continuously instead of stepping at the camera rate
-  const pos = S.mode === 'camera' && !S.centring ? S.glide.frame(t) : null;
+  const pos = S.mode === 'camera' && !S.centring && S.showDot ? S.glide.frame(t) : null;
   if (pos) {
     el.dot.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px, 0)`;
     el.dot.classList.add('on'); S.dotMoves += 1;
@@ -755,7 +806,7 @@ function drawSees(t) {
 function drawText() {
   el.rHead.textContent = S.mode === 'camera' ? (S.faceSeen ? S.headText : 'no face') : 'off';
   el.rHand.textContent = S.handText;
-  syncEns();
+  syncEns(); placeTip();
   el.rGesture.textContent = S.gestureText;
   const f = trackers.stats.face, h = trackers.stats.hand;
   const secs = Math.max(now() - S.frames.start, 0.001);
@@ -795,7 +846,7 @@ addEventListener('pagehide', () => { stopCamera(); trackers.close(); S.abort?.ab
 addEventListener('resize', () => { sees.resize(); refreshFrames(); });
 // Without a hidden-tab restart the gate would sit over a dead stage, so the first view is always the gate.
 
-el.sizeNote.textContent = el.menuSize.textContent = `${Math.round(TOTAL_BYTES / 1e6)} MB`;
+el.sizeNote.textContent = `${Math.round(TOTAL_BYTES / 1e6)} MB`;
 if (phone) { el.goCamera.hidden = true; el.goMouse.textContent = 'Try it with touch'; el.gate.querySelector('.ls-lede').textContent = 'Four mock Claude sessions. Camera tracking needs a desktop browser, so here touch stands in for your hands: tap twice to dictate, press and hold to send, press and drag to scroll.'; }
 refreshFrames();
 for (const p of panes) stick(p);
@@ -807,7 +858,6 @@ requestAnimationFrame(render);
   const q = new URLSearchParams(location.search);
   delete document.documentElement.dataset.go;
   if (q.get('mouse') === '1' || phone) S.preferred = 'mouse';
-  if (S.preferred === 'mouse') { el.menuCamera.hidden = true; el.menuMouse.classList.add('primary'); el.menuMouse.textContent = 'Turn on Ensemble'; }
   if (phone) el.claudeIcon.setAttribute('aria-label', 'Claude. Double-tap to open.');
   syncEns(); renderCoach();
 }
@@ -816,7 +866,7 @@ window.__live = {
   get mode() { return S.mode; }, done: () => ({ ...DONE }), get delegate() { return trackers.delegate; },
   camera: () => S.camera,
   stem: (n) => S.stem(n), tab: () => activeTab,
-  opened: () => S.opened, step: () => currentStep(), openClaude, menu: () => ({ open: menuOpen(), state: el.menuState.textContent }),
+  opened: () => S.opened, step: () => currentStep(), openClaude, menu: () => ({ open: menuOpen(), state: el.mpStatus.textContent }), tip: () => (el.tip.hidden ? null : el.tipText.textContent),
   dotMoves: () => S.dotMoves,
   stats: () => ({ face: trackers.summary('face'), hand: trackers.summary('hand'), warmed: !trackers.warming, frames: { ...S.frames }, delegate: trackers.delegate, handHz: S.scheduler.handHz, faceHz: S.scheduler.faceHz }),
   focus: () => S.focus.target?.id ?? null,
