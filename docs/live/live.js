@@ -2,7 +2,7 @@
 // Wiring only; the rules live in logic.js (ported from the Mac app), the models in tracker.js, the skeleton in sees.js.
 
 import {
-  GestureMachine, FocusTracker, FOCUS, sessionAt, HeadPointer, CentreStep, PinchAdapt, FrameScheduler, NoseGlide, PointerHand, islandMode, wordsTyped,
+  GestureMachine, FocusTracker, FOCUS, sessionAt, HeadPointer, CentreStep, PinchAdapt, FrameScheduler, NoseGlide, PointerHand, islandMode, wordsTyped, showsScrollGlyph,
   observationFromHand, handFromLandmarks,
 } from './logic.js';
 import { SESSIONS } from './content.js';
@@ -818,6 +818,7 @@ function renderOverlays(t, target) {
   if (pos) {
     el.dot.style.transform = `translate3d(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px, 0)`;
     el.dot.classList.add('on'); S.dotMoves += 1;
+    el.dot.classList.toggle('scroll', showsScrollGlyph(S.machine.isDragging, S.machine.pinchHeld));
   } else { el.dot.classList.remove('on'); if (S.mode !== 'camera' || S.centring) S.glide.reset(); }
   document.getElementById('app').classList.toggle('talking', S.machine.talking);
 }

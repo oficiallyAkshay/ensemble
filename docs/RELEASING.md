@@ -70,7 +70,7 @@ Until a Developer ID exists, releases are built on the owner's Mac right after a
 scripts/ship-release.sh 0.2.0
 ```
 
-It builds and signs the DMG with the local identity, adds it to the appcast with the update key in this Mac's login keychain (a refusal here stops the run before anything is public), then tags `main`, publishes the GitHub Release, and pushes `appcast.xml` to `gh-pages`, which GitHub Pages serves at the feed address in `UpdateController.swift`. Installed copies then see the version on their next check, or at once with Check for Updates. The release page and the appcast item carry the same notes, the titles of the pull requests merged into `main` with a merge commit since the previous tag (a squash-merged one is not listed), so the update window shows what changed. The update key and feed are set; the private key is also kept outside the keychain by the owner. Copies signed with the local identity update only on this Mac.
+It builds and signs the DMG with the local identity, adds it to the appcast with the update key in this Mac's login keychain (a refusal here stops the run before anything is public), then tags `main`, publishes the GitHub Release, and pushes `appcast.xml` to `gh-pages`, which GitHub Pages serves at the feed address in `UpdateController.swift`. Installed copies then see the version on their next check, or at once with Check for Updates. The release page and the appcast item carry the same notes, the titles of the pull requests merged into `main` since the previous tag, whether by merge commit or by squash, so the update window shows what changed. The update key and feed are set; the private key is also kept outside the keychain by the owner. Copies signed with the local identity update only on this Mac.
 
 ## Cut a release
 
@@ -114,6 +114,7 @@ GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `release.ym
 - The new flow ships in a release, so it takes effect from the update after the one that carries it: installing that release still goes through the old windows.
 - To check for updates by default (Sparkle's standard behavior is a prompt on the second launch), remove the `updaterShouldPromptForPermissionToCheck` override and let Sparkle ask, or set `SUEnableAutomaticChecks` to true in `Info.plist` (no consent step).
 - A build whose `SUPublicEDKey` is still the placeholder, or whose feed URL still says `OWNER`, has updates off: the menu entry explains it and Sparkle never starts.
+- Both updaters on one Mac: a development build from `scripts/dev-update.sh` is made without `SUPublicEDKey`, so its Sparkle never starts and a release never installs over it. If a release copy gets there anyway (installed by hand, or by Sparkle before the development updater was set up), the development updater sees the key in the installed copy and replaces it with its own build on its next run, even when `main` has not moved, waiting while Claude is listening (`docs/gotchas.md`, 14).
 
 ## Permissions survive updates only with a stable signature
 

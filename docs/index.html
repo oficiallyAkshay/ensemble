@@ -55,10 +55,12 @@
   .cap.lit::before { opacity: 1; }
   .cap .ens-mark { position: absolute; left: 50%; bottom: calc(2.2 * var(--u)); translate: -50% 0; width: calc(2.6 * var(--u)); height: calc(2.6 * var(--u)); min-width: 18px; min-height: 18px; color: #fff; opacity: 0; transition: opacity 0.6s ease; z-index: 2; }
   .cap.lit .ens-mark { opacity: 1; }
-  .island-slot { position: absolute; left: calc(60 * var(--u)); top: calc(16 * var(--u)); z-index: 6; rotate: -5deg; scale: 1.22; transform-origin: left center; pointer-events: none; }
+  .island-slot { position: absolute; left: calc(60 * var(--u)); top: calc(16 * var(--u)); z-index: 6; pointer-events: none; }
+  /* straight and at reading size: every line of the island is 14px or more */
+  .island-slot .ens-island:not([data-mode="idle"]) { height: 60px; min-width: 380px; max-width: min(94vw, 470px); }
+  .island-slot .ens-text .l1 { font-size: 15px; }
+  .island-slot .ens-text .l2, .island-slot .ens-hint { font-size: 14px; }
   .hero-bead { transition: left 1s var(--e-spring), top 1s var(--e-spring); margin: calc(-2.2 * var(--u)) 0 0 calc(-2.2 * var(--u)); }
-  .hero-shot { position: absolute; right: calc(3 * var(--u)); bottom: calc(3 * var(--u)); width: calc(19 * var(--u)); min-width: 230px; z-index: 4; rotate: 4deg; margin: 0; }
-  .shot img { display: block; width: 100%; height: auto; border-radius: 16px; border: 1px solid rgba(10, 10, 10, 0.08); background: #faf9f5; }
   .bead-obj { position: absolute; z-index: 5; left: calc(62 * var(--u)); top: calc(22 * var(--u)); width: calc(4.4 * var(--u)); height: calc(4.4 * var(--u)); min-width: 36px; min-height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); -webkit-backdrop-filter: blur(6px) saturate(1.8); backdrop-filter: blur(6px) saturate(1.8);
     box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.8), inset 0 -8px 16px rgba(255, 255, 255, 0.3), 0 14px 26px rgba(20, 40, 120, 0.3); }
   .bead-obj::after { content: ""; position: absolute; left: 22%; top: 15%; width: 32%; height: 19%; border-radius: 50%; background: rgba(255, 255, 255, 0.95); rotate: -30deg; }
@@ -123,6 +125,7 @@
   .mini-top { display: flex; justify-content: center; margin-bottom: 12px; }
   .mini-win { position: relative; background: var(--c-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.12), 0 24px 50px rgba(40, 30, 90, 0.28); }
   .mini-stage { display: grid; }
+  .mini-island .ens-hint { font-size: 12px; }   /* the mini is magnified 1.25 times (mini.js), so this reads at 15px */
   .mini-stage .ls-pane { border-right: 1px solid var(--c-line); }
   .mini-stage .ls-pane:nth-child(2n) { border-right: 0; }
   .mini .ens-highlight { position: absolute; z-index: 5; }
@@ -139,7 +142,7 @@
   /* the animation is the point: it takes the whole row (a little less for the one window that has no 3D scene) */
   .moment .shot { position: relative; margin: 0 auto; width: 100%; max-width: 1180px; }
   .moment .shot.narrow { max-width: 780px; }
-  .moment .shot figcaption { display: inline-block; margin-top: 10px; padding: 3px 9px; border-radius: 8px; background: #fff; font-size: 13px; line-height: 1.35; color: #262626; box-shadow: 0 1px 0 rgba(10, 10, 10, 0.06); }
+  .moment .shot figcaption { display: inline-block; margin-top: 10px; padding: 3px 9px; border-radius: 8px; background: #fff; font-size: 14px; line-height: 1.35; color: #262626; box-shadow: 0 1px 0 rgba(10, 10, 10, 0.06); }
   .moment .card3d.desk { aspect-ratio: 16 / 10; }
   .moment .card3d { border-radius: 20px; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08), 0 30px 60px -20px rgba(40, 30, 90, 0.3); }
   .wave { display: flex; gap: 8px; align-items: center; height: 56px; margin-top: 18px; }
@@ -177,13 +180,12 @@
     .hero h1 { font-size: clamp(40px, calc(12.4 * var(--u)), 84px); }
     .caps { width: calc(74 * var(--u)); right: calc(-16 * var(--u)); top: calc(-6 * var(--u)); opacity: 0.9; }
     .cap { width: calc(10 * var(--u)); }
-    .island-slot { order: 2; position: relative; left: auto; top: auto; align-self: flex-start; margin: 36px 0 0 calc(2 * var(--u)); scale: 1; rotate: -3deg; transform-origin: left center; }
+    .island-slot { order: 2; position: relative; left: auto; top: auto; align-self: flex-start; margin: 36px 0 0 calc(2 * var(--u)); }
     .hero-bead { display: none; }
     .nav-links a:first-child { display: none; }
     .hero .h1 { width: calc(80 * var(--u)); height: calc(66 * var(--u)); left: calc(-30 * var(--u)); top: calc(-26 * var(--u)); }
     .bead-obj { display: none; }
     .hero .h3 { width: calc(60 * var(--u)); height: calc(24 * var(--u)); left: auto; right: calc(-10 * var(--u)); bottom: 0; }
-    .hero-shot { order: 3; position: relative; right: auto; bottom: auto; width: calc(84 * var(--u)); margin: 40px 0 0 calc(6 * var(--u)); }
     .hero .h1 { opacity: 0.9; }
     .dl .giant { font-size: calc(22 * var(--u)); margin-bottom: 18px; }
     .notes { margin-top: 8px; }
@@ -227,8 +229,6 @@
       <i class="ens-edge"></i>
     </div>
   </div>
-  <figure class="hero-shot shot shadowed"><img src="assets/shots/send.webp" width="840" height="1164" alt="The demo in mouse mode: the Ensemble island reads Sending in api-refactor with a blue bar filling along its edge, above the focused Claude session with its drafted message." decoding="async"></figure>
-
   <div class="hero-text">
     <span class="ens-chip">Free &middot; open source &middot; for Mac</span>
     <h1>Run Claude by looking at it.</h1>
@@ -284,28 +284,28 @@
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">01</span><h3>Look.</h3><p>Focus follows your nose. The session you face gets the blue outline.</p></div>
-    <figure class="shot"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four session windows on two monitors, and the window it faces lights up blue."><div class="scene" data-scene="look"></div></div></figure>
+    <figure class="shot"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four session windows on two monitors, and the window it faces lights up blue."><div class="scene" data-scene="look"></div></div><figcaption>Notice: the window the head faces gets the blue outline.</figcaption></figure>
   </div>
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">02</span><h3>Pinch twice.</h3><p>Two quick pinches of thumb and index start Claude's own dictation.</p></div>
-    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches twice beside a Claude window; the island turns to listening and the message types in."><div class="scene" data-scene="dictate"></div></div></figure>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches twice beside a Claude window; the island turns to listening and the message types in."><div class="scene" data-scene="dictate"></div></div><figcaption>Notice: after the second pinch, the window starts listening.</figcaption></figure>
   </div>
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">03</span><h3>Talk.</h3><div><p>Say what you want. The words land in the session you are looking at.</p>
       <div class="wave" id="talk-wave" aria-hidden="true"><i style="--h:30%;--g:linear-gradient(#ffd84d,#ff9a4c)"></i><i style="--h:60%;--g:linear-gradient(#ff9a4c,#ff5fa2)"></i><i style="--h:92%;--g:linear-gradient(#ff5fa2,#b04cff)"></i><i style="--h:56%;--g:linear-gradient(#b04cff,#7a5cff)"></i><i style="--h:100%;--g:linear-gradient(#7a5cff,#5294ff)"></i><i style="--h:64%;--g:linear-gradient(#5294ff,#3fd9c4)"></i><i style="--h:84%;--g:linear-gradient(#3fd9c4,#9be85a)"></i><i style="--h:46%;--g:linear-gradient(#9be85a,#ffd84d)"></i></div></div></div>
-    <figure class="shot narrow"><div class="mini-host" data-mini="talk" role="img" aria-label="A mini Claude window with dictation on: the sentence types into the focused session as it is spoken."></div></figure>
+    <figure class="shot narrow"><div class="mini-host" data-mini="talk" role="img" aria-label="A mini Claude window with dictation on: the sentence types into the focused session as it is spoken."></div><figcaption>Notice: the words appear in the session with the blue outline.</figcaption></figure>
   </div>
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">04</span><h3 style="white-space:nowrap">Thumbs-up.</h3><p>Hold it to send. Then look at the next session.</p></div>
-    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand makes a thumbs-up and holds it beside a Claude window; the island fills while it is held, then reads Sent and the message moves into the transcript."><div class="scene" data-scene="send"></div></div></figure>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand makes a thumbs-up and holds it beside a Claude window; the island fills while it is held, then reads Sent and the message moves into the transcript."><div class="scene" data-scene="send"></div></div><figcaption>Notice: the message only sends once the thumbs-up has been held.</figcaption></figure>
   </div>
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">05</span><h3>Pinch and drag.</h3><p>Pinch, then move your hand up or down to scroll the session you are looking at.</p></div>
-    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches and drags up and down beside a Claude window, and the session in the window scrolls with it."><div class="scene" data-scene="scroll"></div></div></figure>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches and drags up and down beside a Claude window, and the session in the window scrolls with it."><div class="scene" data-scene="scroll"></div></div><figcaption>Notice: the session scrolls only while the pinch is held.</figcaption></figure>
   </div>
 </section>
 

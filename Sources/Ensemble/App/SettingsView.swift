@@ -45,8 +45,9 @@ private struct GeneralSettings: View {
             Section {
                 Toggle("Enable Ensemble", isOn: $settings.enabled)
                 Picker("Camera", selection: $settings.cameraName) {
-                    Text("Automatic").tag(String?.none)
-                    ForEach(cameraChoices, id: \.self) { Text($0).tag(String?.some($0)) }
+                    ForEach(CameraChoices.rows(connected: state.cameraNames, chosen: settings.cameraName), id: \.name) {
+                        Text($0.label).tag($0.name)
+                    }
                 }
                 Toggle("Open at login (restarts after a crash)", isOn: Binding(get: { settings.launchAtLogin }, set: { settings.setLaunchAtLogin($0) }))
                 if let error = settings.launchAtLoginError {
@@ -96,12 +97,6 @@ private struct GeneralSettings: View {
         }
         .formStyle(.grouped)
     }
-
-    private var cameraChoices: [String] {
-        var names = state.cameraNames
-        if let chosen = settings.cameraName, !names.contains(chosen) { names.append(chosen) }
-        return names
-    }
 }
 
 /// Settings, Actions: one row per thing Ensemble can do, with the action's own icon, and on the right the gesture
@@ -143,7 +138,7 @@ private struct ActionSettings: View {
             }
             Section {
                 ActionRow(symbol: "arrow.left.and.right", title: "Maximize session",
-                          detail: "Hold a peace sign for about half a second: the session you face widens and the others in that window narrow.") {
+                          detail: "Hold a peace sign for about half a second: the session you face widens to the chat's default width, and the others in that window give up only the space that needs.") {
                     onOffPicker("Maximize session", gesture: "Peace sign", symbol: "hand.point.up.fill", isOn: $settings.maximizeByPeace)
                 }
                 ActionRow(symbol: "rectangle.split.3x1", title: "Even out sessions",

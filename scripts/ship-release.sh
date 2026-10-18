@@ -69,7 +69,8 @@ PAGES="$(mktemp -d)"
 cleanup() { rm -rf "$NOTES_DIR"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES"; }
 trap cleanup EXIT
 # First parent only: a pull request's merge of main into its branch would add its conflict list as a line.
-{ echo "Changes since ${PREV:-the first commit}:"; echo; git log --first-parent --merges --format='- %b' "${PREV:+$PREV..}HEAD" | grep -v '^- $' || true; } > "$NOTES"
+# A merge commit contributes its body (the pull request title); a squash-merged pull request is an ordinary commit and contributes its subject.
+{ echo "Changes since ${PREV:-the first commit}:"; echo; { git log --first-parent --merges --format='- %b' "${PREV:+$PREV..}HEAD"; git log --first-parent --no-merges --format='- %s' "${PREV:+$PREV..}HEAD"; } | grep -v '^- $' || true; } > "$NOTES"
 
 # The appcast lives on gh-pages; extend the published one so older items stay listed. It is built and checked now
 # (scripts/appcast.sh refuses an unsigned item), before anything public exists; the download address is known

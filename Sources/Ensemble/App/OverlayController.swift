@@ -127,6 +127,7 @@ final class OverlayController {
         glassDotStore = dot
         let visible = !model.listening && (model.showNoseDot || model.gesture != nil)
         dot.show(at: visible ? latestNose : nil, dimmed: model.handsOnInput && model.gesture == nil)
+        dot.setScrolling(scrolling)
     }
 
     /// Re-applies visibility toggles between coordinator updates.
@@ -165,6 +166,13 @@ final class OverlayController {
         model.handsOnInput = on
         syncGlassDot()
     }
+
+    func setScrolling(_ on: Bool) {
+        guard scrolling != on else { return }
+        scrolling = on
+        syncGlassDot()
+    }
+    private var scrolling = false
 
     func showBanner(title: String, body: String, style: OverlayBanner.Style = .info, seconds: Double = 5) {
         guard alarmID == nil else { return }   // an open safety alarm is never covered by a passing message

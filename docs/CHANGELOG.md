@@ -4,11 +4,15 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- Automatic camera now starts a camera that has a saved calibration before one that has none, so a phone camera that appears on its own no longer leaves Ensemble uncalibrated; with no saved calibration the order is unchanged (external, built-in, any other).
+- A missing permission shows one button that opens the right list; Restart Ensemble and Reset sit behind a small "Still stuck?" link.
 - With a face or hand in view, the overlay is refreshed at most once per screen refresh instead of on every camera reading, so the app does less work on its main thread.
 - With another app in front, a hand in view is checked about 8 times a second instead of on every camera frame, unless you are dictating, sending, calibrating or mid-gesture; switching back to Claude restores every frame at once.
 - While the face tracker waits to retry, the panel says it is retrying instead of "Face tracking stopped"; a tracker that recovers is no longer reloaded by the waiting retry, and one failure lengthens the wait only once.
 - The dictation safety records can no longer be redirected by a link planted in their folder, the folder is made private to you on every write, and deleting a record is flushed to disk so a crash cannot bring it back.
 - With the lid closed, each dictation first moves the Mac's input to a microphone that works (the webcam's, then a wired one, then a Bluetooth headset; never a virtual, aggregate or iPhone microphone) and the old input comes back when the lid opens. With none, the dictation does not start and the island says "No microphone while the lid is closed". The new Settings switch "Use another microphone when the lid is closed" is on by default.
+- The menu panel's camera row opens a choice of Automatic and every connected camera, with the current one ticked, and switches the camera at once; it is the same setting as Settings' Camera picker. A chosen camera that is unplugged stays listed as "(not connected)", in the panel and in Settings, and the list is read again each time the panel opens.
+- While you pinch and drag to scroll, the nose dot turns into the up-and-down scroll arrows, and turns back into the dot when the pinch releases; the website demo does the same.
 
 ## 0.2.21 - 2026-10-15
 

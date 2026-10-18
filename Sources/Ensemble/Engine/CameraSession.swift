@@ -30,11 +30,14 @@ final class CameraSession: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
 
     static func names() -> [String] { devices().map(\.localizedName) }
 
-    /// By name when given and present; otherwise the first external camera, else the built-in one.
-    static func pick(named name: String?) -> AVCaptureDevice? {
+    /// By name when given and present; otherwise `CameraChoices.automaticPick`.
+    static func pick(named name: String?, calibratedIDs: Set<String>) -> AVCaptureDevice? {
         let all = devices()
         if let name, let match = all.first(where: { $0.localizedName == name }) { return match }
-        return all.first(where: { $0.deviceType == .external }) ?? all.first(where: { $0.deviceType == .builtInWideAngleCamera }) ?? all.first
+        let kinds = all.map { device -> (id: String, kind: CameraKind) in
+            (device.uniqueID, device.deviceType == .external ? .external : device.deviceType == .builtInWideAngleCamera ? .builtIn : .other)
+        }
+        return CameraChoices.automaticPick(kinds, calibratedIDs: calibratedIDs).map { all[$0] }
     }
 
     static func requestAccess() async -> Bool {
@@ -47,20 +50,20 @@ final class CameraSession: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
 
     /// Builds and starts the session on the camera queue. Returns the camera's name and its stable unique id
     /// (used to tell cameras apart across reconnects, where the name alone is ambiguous for identical models).
-    func start(named name: String?, token: Int) async throws -> (name: String, id: String) {
+    func start(named name: String?, calibratedIDs: Set<String>, token: Int) async throws -> (name: String, id: String) {
         guard await Self.requestAccess() else { throw CameraError.permissionDenied }
         return try await withCheckedThrowingContinuation { continuation in
             queue.async {
-                do { continuation.resume(returning: try self.startOnQueue(named: name, token: token)) }
+                do { continuation.resume(returning: try self.startOnQueue(named: name, calibratedIDs: calibratedIDs, token: token)) }
                 catch { continuation.resume(throwing: error) }
             }
         }
     }
 
-    private func startOnQueue(named name: String?, token: Int) throws -> (name: String, id: String) {
+    private func startOnQueue(named name: String?, calibratedIDs: Set<String>, token: Int) throws -> (name: String, id: String) {
         teardownOnQueue()
         activeToken = token
-        guard let device = Self.pick(named: name) else { throw CameraError.noCamera }
+        guard let device = Self.pick(named: name, calibratedIDs: calibratedIDs) else { throw CameraError.noCamera }
         let session = AVCaptureSession()
         session.beginConfiguration()
         session.sessionPreset = session.canSetSessionPreset(.vga640x480) ? .vga640x480 : .high

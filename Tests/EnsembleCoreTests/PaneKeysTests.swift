@@ -14,48 +14,9 @@ import Testing
         return (PaneKeys.simulate(w, minimum: claudeMin, presses: presses), presses)
     }
 
-    @Test(arguments: [2, 3, 4])
-    func maximizeMakesTheSessionAsWideAsClaudeAllowsInEveryPlace(_ n: Int) throws {
-        let even = Array(repeating: 2520 / Double(n), count: n)
-        for k in 0..<n {
-            let target = try #require(PaneKeys.maximizeWidths(even, focus: k, minimum: claudeMin))
-            let (w, presses) = run(even, to: target)
-            for (i, x) in w.enumerated() {
-                if i == k { #expect(abs(x - (2520 - Double(n - 1) * claudeMin)) < 0.001) } else { #expect(abs(x - claudeMin) < 0.001) }
-            }
-            // One jump per divider, each landing exactly on Claude's limit.
-            #expect(presses.count == n - 1)
-            #expect(presses.allSatisfy { $0.key == .home || $0.key == .end })
-        }
-    }
-
-    @Test func widthReachesTheSessionThroughThePanesBetweenOuterFirst() throws {
-        let even = [630.0, 630, 630, 630]
-        let target = try #require(PaneKeys.maximizeWidths(even, focus: 2, minimum: claudeMin))
-        #expect(run(even, to: target).presses == [.init(0, .home), .init(1, .home), .init(2, .end)])
-        // The far end of the row holds the width: it is passed along three panes to the other end.
-        let skewed = [1572.0, 316, 316, 316]
-        let far = try #require(PaneKeys.maximizeWidths(skewed, focus: 3, minimum: claudeMin))
-        let (w, presses) = run(skewed, to: far)
-        #expect(presses == [.init(0, .home), .init(1, .home), .init(2, .home)])
-        #expect(abs(w[3] - 1572) < 0.001)
-    }
-
-    @Test func aWrongEstimateOfClaudesMinimumStillLandsOnClaudesOwn() throws {
-        let even = [840.0, 840, 840]
-        for estimate in [290.0, 340] {
-            let target = try #require(PaneKeys.maximizeWidths(even, focus: 1, minimum: estimate))
-            let (w, _) = run(even, to: target, estimate: estimate)
-            #expect(abs(w[0] - claudeMin) < 0.001 && abs(w[2] - claudeMin) < 0.001)
-            #expect(abs(w[1] - (2520 - 2 * claudeMin)) < 0.001)
-        }
-    }
-
     @Test(arguments: [0, 1, 2, 3])
-    func evenOutAfterMaximizingReturnsToEqualWidths(_ k: Int) throws {
-        let even = [630.0, 630, 630, 630]
-        let target = try #require(PaneKeys.maximizeWidths(even, focus: k, minimum: claudeMin))
-        let maxed = run(even, to: target).widths
+    func evenOutAfterOneSessionTookTheWidthReturnsToEqualWidths(_ k: Int) throws {
+        let maxed = (0..<4).map { $0 == k ? 2520 - 3 * claudeMin : claudeMin }
         let (w, presses) = run(maxed, to: try #require(PaneKeys.evenWidths(maxed)))
         for x in w { #expect(abs(x - 630) <= PaneKeys.arrow) }
         // A divider jumps to a limit only when its target is nearer that limit than the divider is: from a pane
@@ -64,86 +25,12 @@ import Testing
         if k == 0 || k == 3 { #expect(presses.contains { $0.key == .home || $0.key == .end }) }
     }
 
-    @Test func maximizingAnotherSessionMovesTheWidthAcross() throws {
-        let even = [630.0, 630, 630, 630]
-        let first = run(even, to: try #require(PaneKeys.maximizeWidths(even, focus: 0, minimum: claudeMin))).widths
-        let (w, _) = run(first, to: try #require(PaneKeys.maximizeWidths(first, focus: 3, minimum: claudeMin)))
-        #expect(abs(w[3] - (2520 - 3 * claudeMin)) < 0.001)
-        for x in w.prefix(3) { #expect(abs(x - claudeMin) < 0.001) }
-    }
-
     @Test func aSmallMoveIsShiftStepsAndAFewArrows() {
         // A 104 pt fit: three Shift steps and one arrow, sent as one burst.
         let presses = PaneKeys.plan(from: [728, 896], to: [832, 792], minimum: claudeMin, jumps: false)
         #expect(presses.map(\.key) == [.shiftRight, .shiftRight, .shiftRight, .right])
         #expect(PaneKeys.duration(presses) <= 0.05)
         #expect(abs(PaneKeys.simulate([728, 896], minimum: claudeMin, presses: presses)[0] - 832) <= PaneKeys.arrow / 2)
-    }
-
-    /// Runs maximize sweeps the way the controller does, against a Claude whose Home and End stop where its limits
-    /// put them while they still describe the row as it was when the sweep began. Returns the row and each sweep.
-    private func maximize(_ start: [Double], focus k: Int, estimate: Double) -> (widths: [Double], sweeps: [[PaneKeys.Press]]) {
-        var w = start
-        var sweeps: [[PaneKeys.Press]] = []
-        for _ in 0..<PaneKeys.maximizeSweeps {
-            let others = w.indices.filter { $0 != k }.map { w[$0] }
-            let sweep = PaneKeys.maximizeSweep(w, focus: k, floor: min(estimate, others.min() ?? estimate))
-            if sweep.isEmpty { break }
-            sweeps.append(sweep)
-            w = PaneKeys.simulate(w, minimum: claudeMin, presses: sweep, limitsFrom: w)
-        }
-        return (w, sweeps)
-    }
-
-    @Test(arguments: [2, 3, 4, 5, 6])
-    func maximizeSweepsLeaveEveryOtherPaneAtTheMinimum(_ n: Int) {
-        let total = Double(n) * 640
-        let piled = total - Double(n - 1) * claudeMin
-        let mins = Array(repeating: claudeMin, count: n - 1)
-        let uneven: [Double] = (0..<n).map { i -> Double in i % 2 == 0 ? 740 : 540 }
-        // Even, width piled up at either end, and an uneven row, each scaled to the same total.
-        let raw: [[Double]] = [Array(repeating: 640, count: n), [piled] + mins, mins + [piled], uneven]
-        let rows = raw.map { row -> [Double] in
-            let sum = row.reduce(0, +)
-            return row.map { $0 * total / sum }
-        }
-        for row in rows {
-            for k in 0..<n {
-                for estimate in [claudeMin - 6, claudeMin, claudeMin + 10] {
-                    let (w, sweeps) = maximize(row, focus: k, estimate: estimate)
-                    for i in w.indices where i != k { #expect(w[i] - claudeMin <= PaneKeys.arrow, "n \(n) k \(k) row \(row)") }
-                    #expect(abs(w[k] - piled) <= Double(n - 1) * PaneKeys.arrow)
-                    // Even against limits that lag a whole sweep behind, the sweeps allowed are enough.
-                    #expect(sweeps.count <= PaneKeys.maximizeSweeps)
-                    for sweep in sweeps {
-                        // Each divider once per sweep, and only Home or End.
-                        #expect(Set(sweep.map(\.divider)).count == sweep.count)
-                        #expect(sweep.allSatisfy { $0.key == .home || $0.key == .end })
-                    }
-                }
-            }
-        }
-    }
-
-    @Test func aSweepGoesOutsideIn() {
-        let sweep = PaneKeys.maximizeSweep([640, 640, 640, 640, 640], focus: 2, floor: claudeMin)
-        #expect(sweep == [.init(0, .home), .init(1, .home), .init(3, .end), .init(2, .end)])
-        // A pane at the minimum outside the first wide one is left alone; inside it, it gets width to pass on.
-        #expect(PaneKeys.maximizeSweep([316, 900, 316, 1000], focus: 3, floor: claudeMin) == [.init(1, .home), .init(2, .home)])
-        #expect(PaneKeys.maximizeSweep([900, 316, 1300], focus: 2, floor: claudeMin) == [.init(0, .home), .init(1, .home)])
-        // Already maximized: nothing to press.
-        #expect(PaneKeys.maximizeSweep([316, 1572, 320, 316], focus: 1, floor: claudeMin).isEmpty)
-        #expect(PaneKeys.maximizeSweep([316, 1572], focus: 3, floor: claudeMin).isEmpty)
-    }
-
-    @Test func aClaudeWithStaleLimitsStopsShortOnTheFirstSweep() {
-        // Why one sweep is not enough: the inner pair grew before its End, and Claude's limit was still a share of
-        // the pair as it was.
-        let start = [630.0, 630, 630, 630]
-        let once = PaneKeys.simulate(start, minimum: claudeMin, presses: PaneKeys.maximizeSweep(start, focus: 1, floor: claudeMin),
-                                     limitsFrom: start)
-        #expect(once[2] > claudeMin + PaneKeys.arrow)
-        #expect(maximize(start, focus: 1, estimate: claudeMin).sweeps.count == 2)
     }
 
     @Test func everyPlanVisitsEachDividerOnceWithFewArrows() throws {
@@ -200,9 +87,6 @@ import Testing
         #expect(PaneKeys.plan(from: [850, .nan], to: [850, 850], minimum: claudeMin).isEmpty)
         #expect(PaneKeys.plan(from: [850], to: [850], minimum: claudeMin).isEmpty)
         #expect(PaneKeys.plan(from: [850, 850], to: [900, 800], minimum: .nan).isEmpty)
-        #expect(PaneKeys.maximizeWidths([850, 850], focus: 2, minimum: claudeMin) == nil)
-        // Too narrow a window to leave the others at Claude's minimum: nothing to plan.
-        #expect(PaneKeys.maximizeWidths([300, 300, 300], focus: 0, minimum: claudeMin) == nil)
         #expect(PaneKeys.evenWidths([850]) == nil)
     }
 

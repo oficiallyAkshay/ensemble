@@ -5,7 +5,8 @@
 import { SESSIONS_BASE as SESSIONS } from '../../live/sessions.js';
 import { buildPane } from '../../live/pane.js';
 
-const LW = 600;                       // the window's width in demo pixels; the page scales the whole thing down
+const ZOOM = 1.25;                    // the window is drawn at the demo's size and magnified, never shrunk, so its 11px text reads at 14px or more
+const TWO_PANES = 440;                // below this drawn width one session fills the window instead of two cramped ones
 const TALK_LOOP = 7.2;
 const byId = Object.fromEntries(SESSIONS.map((s) => [s.id, s]));
 // the demo's typing pace (docs/live/logic.js wordsTyped), restated here so this does not pull in the whole gesture engine
@@ -18,23 +19,28 @@ const ISLAND = `<svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><ci
 /** Build the screen inside `host` (already in the page: it measures itself) and return its controller. */
 export function createMini(host, kind, { wave = null } = {}) {
   host.textContent = '';
-  const box = document.createElement('div'); box.className = 'mini'; box.style.width = `${LW}px`;
+  const lw = () => Math.round((host.clientWidth || 600) / ZOOM);
+  const box = document.createElement('div'); box.className = 'mini'; box.style.width = `${lw()}px`;
   const island = document.createElement('div'); island.className = 'ens-island mini-island'; island.dataset.mode = 'dictating'; island.innerHTML = ISLAND;
   const top = document.createElement('div'); top.className = 'mini-top'; top.append(island);
   const win = document.createElement('div'); win.className = 'mini-win';
   const stage = document.createElement('div'); stage.className = 'mini-stage';
-  stage.style.cssText = 'grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:400px';
+  stage.style.cssText = 'grid-template-rows:400px';
   const hl = document.createElement('i'); hl.className = 'ens-highlight mini-hl on listening';
   win.append(stage, hl); box.append(top, win); host.append(box);
   const panes = ['api', 'landing'].map((id, k) => { const p = buildPane(byId[id], k); stage.append(p.el); return p; });
   const a = panes[0];
   island.querySelector('.l2').innerHTML = `in <em>${a.name}</em>`;
   const place = () => { hl.style.width = `${a.el.offsetWidth - 4}px`; hl.style.height = `${a.el.offsetHeight - 4}px`; hl.style.transform = `translate(${a.el.offsetLeft + 2}px, ${a.el.offsetTop + 2}px)`; };
-  place(); a.el.classList.add('dictating');
+  a.el.classList.add('dictating');
   const toBottom = (p) => { p.transcript.scrollTop = p.transcript.scrollHeight; };
-  panes.forEach(toBottom);
 
-  const scaleToHost = () => { const s = host.clientWidth / LW || 1; box.style.transform = `scale(${s})`; host.style.height = `${box.offsetHeight * s}px`; };
+  const scaleToHost = () => {
+    const w = lw(), two = w >= TWO_PANES;
+    box.style.width = `${w}px`; panes[1].el.hidden = !two; stage.style.gridTemplateColumns = `repeat(${two ? 2 : 1},minmax(0,1fr))`;
+    box.style.transform = `scale(${ZOOM})`; host.style.height = `${box.offsetHeight * ZOOM}px`;
+    place(); panes.forEach(toBottom);
+  };
   const ro = 'ResizeObserver' in window ? new ResizeObserver(scaleToHost) : null;
   if (ro) ro.observe(host); else addEventListener('resize', scaleToHost);
   scaleToHost();

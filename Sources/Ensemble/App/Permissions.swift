@@ -46,8 +46,8 @@ enum Permissions {
     /// What to do next, shown under the status. A grant that is listed but does not work is stale after a rebuild.
     static func guidance(for what: String) -> String {
         what == "Accessibility"
-            ? "Turn Ensemble on in the Accessibility list; it restarts by itself. Already on and still stuck? Press Reset, then turn it on again."
-            : "Turn Ensemble on in the \(what) list, then press Restart Ensemble. Already on and still stuck? Press Reset, then turn it on again."
+            ? "Turn Ensemble on in the Accessibility list; it restarts by itself. Already on and still stuck? Press \"Still stuck?\" below."
+            : "Turn Ensemble on in the \(what) list, then press \"Still stuck?\" below and Restart Ensemble."
     }
 
     /// Quits and opens Ensemble again so macOS applies a grant made while it ran. Quitting stops any dictation first

@@ -22,6 +22,7 @@ struct MenuPanelView: View {
     @ObservedObject var updates: UpdateController
     let actions: PanelActions
     @State private var showScreens = false
+    @State private var showStuck = false
 
     var body: some View {
         GlassGroup(spacing: 10) {
@@ -81,7 +82,7 @@ struct MenuPanelView: View {
 
     private var statusCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            row(symbol: "web.camera", text: cameraLine)
+            cameraMenu
             if !state.screenChoices.isEmpty {
                 Button {
                     withAnimation(.smooth(duration: 0.35)) { showScreens.toggle() }
@@ -104,15 +105,21 @@ struct MenuPanelView: View {
                     Label("Open \(what) settings", systemImage: "gearshape").frame(maxWidth: .infinity)
                 }
                 .ensembleButtonStyle()
-                HStack(spacing: 8) {
-                    Button { Permissions.relaunch() } label: {
-                        Label("Restart Ensemble", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
+                Button("Still stuck?") { withAnimation(.smooth(duration: 0.35)) { showStuck.toggle() } }
+                    .buttonStyle(.link)
+                    .font(.caption)
+                if showStuck {
+                    HStack(spacing: 8) {
+                        Button { Permissions.relaunch() } label: {
+                            Label("Restart Ensemble", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
+                        }
+                        Button { Permissions.resetAndAsk(for: what) } label: {
+                            Label("Reset", systemImage: "arrow.uturn.backward").frame(maxWidth: .infinity)
+                        }
                     }
-                    Button { Permissions.resetAndAsk(for: what) } label: {
-                        Label("Reset", systemImage: "arrow.uturn.backward").frame(maxWidth: .infinity)
-                    }
+                    .ensembleButtonStyle()
+                    .transition(.opacity)
                 }
-                .ensembleButtonStyle()
             }
             if state.muted {
                 row(symbol: "speaker.slash", text: "Sounds muted", tint: .secondary)
@@ -149,6 +156,34 @@ struct MenuPanelView: View {
         let click = "Click a screen to recalibrate only that one."
         guard state.calibrationSpots.count > 1, let name = state.calibrationSpots.first(where: { $0.id == state.spotInUse })?.name else { return click }
         return "\(click) Position in use: \(name)."
+    }
+
+    /// The camera row opens the same choice as Settings' Camera picker and writes the same setting; the coordinator
+    /// restarts the camera when it changes. The list is read when the panel becomes the key window (menu bar and
+    /// hotkey panel alike), never per frame.
+    private var cameraMenu: some View {
+        Menu {
+            ForEach(CameraChoices.rows(connected: state.cameraNames, chosen: settings.cameraName), id: \.name) { choice in
+                Button { settings.cameraName = choice.name } label: {
+                    if choice.isCurrent { Label(choice.label, systemImage: "checkmark") } else { Text(choice.label) }
+                }
+            }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                row(symbol: "web.camera", text: cameraLine)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.up.chevron.down").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .help("Choose the camera")
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            let names = VisionEngine.cameraNames()
+            if names != state.cameraNames { state.cameraNames = names }
+        }
     }
 
     private var cameraLine: String {

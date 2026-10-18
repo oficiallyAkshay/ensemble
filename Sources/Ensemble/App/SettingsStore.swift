@@ -79,7 +79,7 @@ final class SettingsStore: ObservableObject {
     @Published var useAnotherMicrophoneWhenLidClosed: Bool { didSet { defaults.set(useAnotherMicrophoneWhenLidClosed, forKey: Key.useAnotherMicrophoneWhenLidClosed) } }
     /// Stem presses on Bluetooth headphones drive dictation and send. On by default.
     @Published var headphonePresses: Bool { didSet { defaults.set(headphonePresses, forKey: Key.headphonePresses) } }
-    /// A held peace sign widens the session you face and narrows the others. On by default.
+    /// A held peace sign widens the session you face to the chat's default width, the others giving up only what that needs. On by default.
     @Published var maximizeByPeace: Bool { didSet { defaults.set(maximizeByPeace, forKey: Key.maximizeByPeace) } }
     /// Scissors (a peace sign closed quickly) gives every session in that window an equal share. On by default.
     @Published var evenOutByScissors: Bool { didSet { defaults.set(evenOutByScissors, forKey: Key.evenOutByScissors) } }
