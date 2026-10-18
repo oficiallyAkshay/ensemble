@@ -114,6 +114,7 @@ GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `release.ym
 - The new flow ships in a release, so it takes effect from the update after the one that carries it: installing that release still goes through the old windows.
 - To check for updates by default (Sparkle's standard behavior is a prompt on the second launch), remove the `updaterShouldPromptForPermissionToCheck` override and let Sparkle ask, or set `SUEnableAutomaticChecks` to true in `Info.plist` (no consent step).
 - A build whose `SUPublicEDKey` is still the placeholder, or whose feed URL still says `OWNER`, has updates off: the menu entry explains it and Sparkle never starts.
+- Both updaters on one Mac: a development build from `scripts/dev-update.sh` is made without `SUPublicEDKey`, so its Sparkle never starts and a release never installs over it. If a release copy gets there anyway (installed by hand, or by Sparkle before the development updater was set up), the development updater sees the key in the installed copy and replaces it with its own build on its next run, even when `main` has not moved, waiting while Claude is listening (`docs/gotchas.md`, 14).
 
 ## Permissions survive updates only with a stable signature
 

@@ -15,7 +15,7 @@
     <!-- Sparkle. The feed URL is UpdateConfig.feedURL in UpdateController.swift (single source of truth). -->
     <!-- Public half of the Sparkle signing key (docs/RELEASING.md). -->
     <key>SUPublicEDKey</key><string>GNSpLhYi6EjQRPyCsrSKMYiopDX8IManqkkc9Elp30M=</string>
-    <!-- Automatic checks are off until the user turns them on in Settings > About; once on, a check every 6 hours (21600 s). -->
+    <!-- Automatic checks are off until the user turns them on in Settings > General; once on, a check every hour (3600 s). -->
     <key>SUScheduledCheckInterval</key><integer>3600</integer>
     <key>NSCameraUsageDescription</key><string>Ensemble watches your head direction and hand gestures to control Claude. Video is analysed on this Mac and never stored or sent.</string>
     <key>NSMicrophoneUsageDescription</key><string>While Claude is listening, Ensemble reads how loud you are speaking to animate the sound bars. Audio is never recorded, stored or sent.</string>
