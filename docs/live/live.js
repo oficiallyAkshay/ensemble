@@ -539,30 +539,34 @@ el.mpReplay.addEventListener('click', () => {
 
 // ---- the tour's tooltips: the setup steps (open Claude, turn on Ensemble, look) point at the thing to use and are not counted as steps ----
 
-const tipEl = el.tip;
+const tipEl = el.tip, spotEl = $('spot');
+/** `at` is what the tooltip points at, `hole` what stays lit (default: `at`), `pad` the lit margin, `radius` its corner. */
 const TIPS = {
-  opened: () => ({ at: el.claudeIcon, side: 'left', html: phone ? 'Double-tap <strong>Claude</strong> to open it.' : 'Double-click <strong>Claude</strong> to open it.' }),
+  opened: () => ({ at: el.claudeIcon, pad: 8, radius: 18, side: 'left', html: phone ? 'Double-tap <strong>Claude</strong> to open it.' : 'Double-click <strong>Claude</strong> to open it.' }),
   enabled: () => (menuOpen()
-    ? { at: el.mpPower, edge: el.menu, side: 'left', html: mouseish() ? 'Flip the switch to turn <strong>Ensemble</strong> on. The mouse stands in for your hands.' : 'Flip the switch to turn <strong>Ensemble</strong> on. It asks for your camera; the video stays in this tab, and about 12 MB downloads.' }
-    : { at: el.mbEns, side: 'below', html: 'Click the <strong>Ensemble</strong> icon in the menu bar.' }),
-  looked: () => (S.mode !== 'none' && !S.centring ? { at: null, side: 'top', html: mouseish() ? 'Move the mouse over a session.' : 'Look at a session. The <strong>blue outline</strong> follows your nose.' } : null),
+    ? { at: el.mpPower, hole: el.menu, pad: 4, radius: 26, side: 'left', html: mouseish() ? 'Flip the switch to turn <strong>Ensemble</strong> on. The mouse stands in for your hands.' : 'Flip the switch to turn <strong>Ensemble</strong> on. It asks for your camera; the video stays in this tab, and about 12 MB downloads.' }
+    : { at: el.mbEns, pad: 6, radius: 10, side: 'below', html: 'Click the <strong>Ensemble</strong> icon in the menu bar.' }),
+  looked: () => (S.mode !== 'none' && !S.centring ? { at: $('window'), pad: 0, radius: 12, side: 'inside', html: mouseish() ? 'Move the mouse over a session.' : 'Look at a session. The <strong>blue outline</strong> follows your nose.' } : null),
 };
 function placeTip() {
   const cur = currentStep(), spec = !el.finish.hidden || !el.gate.hidden ? null : TIPS[cur]?.();
-  if (!spec) { tipEl.hidden = true; return; }
+  if (!spec) { tipEl.hidden = true; spotEl.hidden = true; return; }
   if (el.tipText.innerHTML !== spec.html) el.tipText.innerHTML = spec.html;
-  tipEl.hidden = false; tipEl.dataset.side = spec.side;
-  const box = el.mac.getBoundingClientRect(), tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+  const vw = innerWidth, vh = innerHeight, first = tipEl.hidden || spotEl.hidden;
+  tipEl.hidden = false; spotEl.hidden = false; tipEl.dataset.side = spec.side;
+  const h = (spec.hole || spec.at).getBoundingClientRect(), r = spec.at.getBoundingClientRect(), pad = spec.pad;
+  const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
   let x, y, ax = tw / 2;
-  if (!spec.at) { x = (box.width - tw) / 2; y = 40; }
-  else {
-    const r = spec.at.getBoundingClientRect(), cx = r.left + r.width / 2 - box.left, cy = r.top + r.height / 2 - box.top;
-    if (spec.side === 'left') { x = (spec.edge || spec.at).getBoundingClientRect().left - box.left - tw - 14; y = cy - th / 2; }
-    else { x = cx - tw / 2; y = r.bottom - box.top + 12; }
-    const nx = Math.min(Math.max(x, 10), box.width - tw - 10); ax = cx - nx; x = nx;
-  }
+  if (spec.side === 'left') { x = h.left - pad - tw - 16; y = r.top + r.height / 2 - th / 2; }
+  else if (spec.side === 'below') { x = r.left + r.width / 2 - tw / 2; y = h.bottom + pad + 14; }
+  else { x = h.left + (h.width - tw) / 2; y = h.top + 64; }   // inside the lit window, below the pane titles
+  const nx = Math.min(Math.max(x, 12), vw - tw - 12), ny = Math.min(Math.max(y, 12), vh - th - 12);
+  ax = r.left + r.width / 2 - nx; x = nx; y = ny;
+  const put = (node, tx, ty) => { if (first) { node.style.transition = 'none'; } node.style.transform = `translate(${Math.round(tx)}px, ${Math.round(ty)}px)`; if (first) { void node.offsetWidth; node.style.transition = ''; } };
   tipEl.style.setProperty('--ax', `${Math.round(ax)}px`);
-  tipEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+  put(tipEl, x, y);
+  spotEl.style.width = `${Math.round(h.width + 2 * pad)}px`; spotEl.style.height = `${Math.round(h.height + 2 * pad)}px`; spotEl.style.borderRadius = `${spec.radius}px`;
+  put(spotEl, h.left - pad, h.top - pad);
 }
 
 // ---- the guide column: a progressor that collapses finished steps and opens the next, and the hand that shows the gesture ----
@@ -587,14 +591,9 @@ const SCENE = { dictated: 'dictate', sent: 'send', scrolled: 'scroll' };
 const CAPTION = { dictated: ['Double pinch', 'Double click'], sent: ['Thumbs-up, hold', 'Press and hold'], scrolled: ['Pinch and drag', 'Press and drag'], headphones: ['Press once, press twice', 'Press once, press twice'], install: ['Unsigned app', 'Unsigned app'] };
 
 const ART = {
-  opened: '<svg viewBox="0 0 160 120"><clipPath id="a-clip"><rect x="86" y="18" width="46" height="46" rx="11"/></clipPath><image href="claude-icon.png" x="86" y="18" width="46" height="46" clip-path="url(#a-clip)"/><circle class="a-ring r1" cx="109" cy="41" r="10"/><circle class="a-ring r2" cx="109" cy="41" r="10"/><path class="a-cursor" d="M100 38v26l7-6 5 11 5-2.5-5-10.5h9z"/></svg>',
-  enabled: '<svg viewBox="0 0 160 120"><rect class="a-bar" x="12" y="16" width="136" height="16" rx="4"/><rect class="a-sk" x="20" y="22" width="22" height="4" rx="2"/><rect class="a-sk" x="48" y="22" width="16" height="4" rx="2"/><g class="a-dots"><circle cx="121" cy="21" r="2.2"/><circle cx="117.5" cy="27" r="2.2"/><circle cx="124.5" cy="27" r="2.2"/></g><rect class="a-menu" x="82" y="38" width="66" height="50" rx="8"/><rect class="a-row" x="88" y="44" width="54" height="14" rx="5"/><rect class="a-sk" x="88" y="66" width="38" height="4" rx="2"/><rect class="a-sk" x="88" y="76" width="28" height="4" rx="2"/></svg>',
-  centred: '<svg viewBox="0 0 160 120"><circle class="a-trk" cx="80" cy="60" r="32"/><circle class="a-arc" cx="80" cy="60" r="32"/><circle class="a-bead" cx="80" cy="60" r="12"/></svg>',
-  looked: '<svg viewBox="0 0 160 120"><rect class="a-win" x="10" y="14" width="30" height="40" rx="5"/><rect class="a-win" x="46" y="14" width="30" height="40" rx="5"/><rect class="a-win on" x="82" y="14" width="30" height="40" rx="5"/><rect class="a-win" x="118" y="14" width="30" height="40" rx="5"/><circle class="a-head" cx="80" cy="92" r="14"/><path class="a-nose" d="M80 92 97 58"/><circle class="a-beam" cx="97" cy="58" r="3.5"/></svg>',
   dictated: '<svg viewBox="0 0 160 120"><circle class="a-tip t1" cx="64" cy="60" r="11"/><circle class="a-tip t2" cx="96" cy="60" r="11"/></svg>',
   sent: '<svg viewBox="0 0 160 120"><circle class="a-trk" cx="80" cy="60" r="34"/><path class="a-send" d="M60 62 100 46 90 80 79 66z"/></svg>',
   headphones: '<svg viewBox="0 0 160 120"><circle class="a-rip p1" cx="74" cy="88" r="10"/><circle class="a-rip p2" cx="74" cy="88" r="10"/><circle class="a-rip p3" cx="74" cy="88" r="10"/><path class="a-pod" d="M52 40a24 24 0 0 1 48 0c0 10-5 17-12 20v34a7 7 0 0 1-14 0V60c-12-3-22-9-22-20z"/><circle class="a-podhole" cx="66" cy="40" r="6"/></svg>',
-  install: '<svg viewBox="0 0 160 120"><rect class="a-icon" x="44" y="26" width="72" height="72" rx="16"/><path class="a-dl" d="M80 44v28M68 62l12 12 12-12M64 86h32"/></svg>',
   scrolled: '<svg viewBox="0 0 160 120"><path class="a-arrow up" d="M80 24 66 40h28z"/><rect class="a-trk2" x="72" y="44" width="16" height="32" rx="8"/><path class="a-arrow down" d="M80 96 66 80h28z"/></svg>',
 };
 
@@ -702,21 +701,26 @@ function showArt(k) {
   artKey = k; el.art.innerHTML = k ? ART[k] : ''; el.art.dataset.k = k;
 }
 
-/** Which picture the column shows: the 3D hand for the three gestures, a drawn picture for the other steps and wherever 3D is unavailable. */
+/** The hand panel is for gestures. While the setup tooltips run it previews the first gesture (or stays blank until the files load); drawn pictures are
+ *  only the fallback for the gesture steps and the headphones tab, never a copy of what a tooltip already shows. */
+const ART_STEPS = ['dictated', 'sent', 'scrolled', 'headphones'];
 function showGuide(cur, m) {
-  const scene = SCENE[cur], cap = CAPTION[cur];
-  el.handCap.textContent = cap ? cap[m === 'camera' ? 0 : 1] : cur ? TITLES[cur] : 'That is everything';
-  if (cur === 'enabled' || cur === 'centred') ensureHandLibs();     // warm the files while the visitor is still on the desktop
-  if (!scene) { el.hand.classList.remove('on'); showArt(cur || 'looked'); return; }
+  const setup = ['opened', 'enabled', 'centred', 'looked'].includes(cur);
+  const scene = SCENE[cur] || (setup && cur !== 'opened' ? 'dictate' : cur === 'install' ? 'scroll' : null);
+  const cap = CAPTION[cur] || (setup ? CAPTION.dictated : null);
+  const mi = m === 'camera' ? 0 : 1;
+  el.handCap.textContent = cur === 'install' ? 'All three done' : setup ? (cur === 'opened' ? 'Gestures show up here' : `Coming up: ${cap[mi].toLowerCase()}`) : cap ? cap[mi] : '';
+  if (cur === 'opened' || cur === 'enabled') ensureHandLibs();   // warm the files while the visitor is still on the desktop
+  if (!scene) { el.hand.classList.remove('on'); showArt(ART_STEPS.includes(cur) ? cur : ''); return; }
   ensureHandLibs().then(() => {
-    if (currentStep() !== cur) return;
+    if (currentStep() !== cur && activeTab !== 'headphones') return;
     if (!handInst) {
       handInst = window.EnsembleScene.mount(el.hand, { scene, handOnly: true, reducedMotion: reduce, handUrl: '../assets/3d/hand.glb' });
       handScene = scene;
       if (!handInst.canvas) { handInst = null; throw new Error('no 3D'); }
     } else if (handScene !== scene) { handInst.setScene(scene); handScene = scene; }
     el.hand.classList.add('on'); showArt('');
-  }).catch(() => { el.hand.classList.remove('on'); showArt(cur); });
+  }).catch(() => { el.hand.classList.remove('on'); showArt(ART_STEPS.includes(cur) ? cur : ''); });
 }
 
 function startTutorial() { S.step = 0; renderCoach(); }

@@ -8,7 +8,7 @@ a:hover { text-decoration: underline; }
 button { font-family: inherit; }
 
 .ls-app { position: relative; height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) clamp(252px, 20%, 400px); overflow: clip; isolation: isolate; }
-.ls-left { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; padding: 0 16px 10px 22px; }
+.ls-left { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; padding: 16px 16px 10px 22px; }
 .ls-bottom { display: flex; align-items: center; min-height: 34px; }
 .ls-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: clip; border-radius: inherit; }  /* the Mac's wallpaper */
 .ls-bg i { position: absolute; display: block; }
@@ -19,14 +19,15 @@ button { font-family: inherit; }
 .ls-bg i::after { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0.2; mix-blend-mode: multiply; background-image: var(--grain); }
 
 /* top row: brand, island, controls */
-.ls-top::before { content: ""; }
-.ls-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 12px; min-height: 66px; padding-top: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .ls-brand { display: inline-flex; align-items: center; gap: 14px; }
 .ls-brand b { display: inline-flex; align-items: center; gap: 8px; font: 700 16px var(--e-display); letter-spacing: -0.03em; color: var(--e-ink); }
 .ls-brand .ens-mark { width: 18px; height: 18px; }
 .ls-brand a { color: var(--e-ink); background: rgba(255, 255, 255, 0.85); border-radius: 999px; padding: 3px 11px; font-size: 13px; text-decoration: underline; text-decoration-color: rgba(10, 10, 10, 0.25); text-underline-offset: 3px; }
-.ls-controls { justify-self: end; display: flex; gap: 8px; align-items: center; padding-top: 4px; }
+.ls-controls { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+/* the island sits where the real one does: top centre of the screen, over the menu bar */
+.ls-notch { position: absolute; z-index: 30; left: 0; right: 0; top: 0; display: flex; justify-content: center; pointer-events: none; }
+.ls-notch .ens-island { pointer-events: auto; }
 
 /* ---- the Mac: menu bar, desktop with one app, a skeleton dock, and Claude's window opening from its icon ---- */
 .ls-main { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
@@ -83,8 +84,13 @@ button { font-family: inherit; }
 .mp-foot button { padding: 2px; border: 0; background: none; cursor: pointer; line-height: 0; }
 .mp-foot svg { width: 16px; height: 16px; fill: none; stroke: rgba(60, 60, 67, 0.6); stroke-width: 1.8; stroke-linecap: round; }
 
+/* the tour's spotlight: everything is darkened except the thing to use; the tooltip sits above the dark */
+.ls-spot { position: fixed; z-index: 55; left: 0; top: 0; pointer-events: none; border-radius: 16px; box-shadow: 0 0 0 100vmax rgba(10, 12, 24, 0.62), 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 28px 4px rgba(82, 148, 255, 0.55);
+  transition: transform 0.5s var(--e-ease), width 0.5s var(--e-ease), height 0.5s var(--e-ease), opacity 0.3s ease; }
+@media (prefers-reduced-motion: reduce) { .ls-spot, .ls-tip { transition: none; } }
+
 /* the tour's tooltips */
-.ls-tip { position: absolute; z-index: 40; left: 0; top: 0; max-width: 260px; padding: 11px 14px; border-radius: 14px; background: #0a0a0a; color: #fff; font-size: 13.5px; line-height: 1.4; pointer-events: none; box-shadow: 0 14px 34px rgba(10, 10, 10, 0.35);
+.ls-tip { position: fixed; z-index: 60; left: 0; top: 0; max-width: 260px; padding: 11px 14px; border-radius: 14px; background: #0a0a0a; color: #fff; font-size: 13.5px; line-height: 1.4; pointer-events: none; box-shadow: 0 14px 34px rgba(10, 10, 10, 0.35);
   transition: transform 0.45s var(--e-ease), opacity 0.3s ease; }
 .ls-tip strong { color: var(--e-blue-soft); font-weight: 650; }
 .ls-tip::after { content: ""; position: absolute; width: 12px; height: 12px; background: #0a0a0a; rotate: 45deg; }
@@ -197,26 +203,7 @@ button { font-family: inherit; }
 
 /* drawn pictures for the steps that have no 3D hand (and for browsers without WebGL) */
 .guide-art svg * { transform-box: fill-box; transform-origin: center; }
-.a-icon { fill: #faf9f5; stroke: #1f2937; stroke-width: 1.5; }
-.a-cursor { fill: #0a0a0a; stroke: #fff; stroke-width: 1.5; stroke-linejoin: round; animation: a-click 2.4s ease-in-out infinite; }
-.a-ring { fill: none; stroke: var(--e-blue); stroke-width: 2; opacity: 0; animation: a-ring 2.4s ease-out infinite; }
-.a-ring.r2 { animation-delay: 0.32s; }
-@keyframes a-ring { 0%, 38% { opacity: 0; transform: scale(0.6); } 42% { opacity: 1; transform: scale(0.9); } 70%, 100% { opacity: 0; transform: scale(2.2); } }
-@keyframes a-click { 0%, 30% { transform: translate(14px, 18px); } 38%, 50% { transform: translate(0, 0) scale(0.94); } 100% { transform: translate(0, 0); } }
-.a-bar, .a-menu { fill: #fff; stroke: #d4d4d4; stroke-width: 1.5; }
-.a-sk { fill: rgba(10, 10, 10, 0.14); }
-.a-dots circle { fill: #0a0a0a; }
-.a-row { fill: var(--e-blue); animation: a-fade 2.4s ease-in-out infinite; }
-.a-menu { animation: a-fade 2.4s ease-in-out infinite; }
-@keyframes a-fade { 0%, 25% { opacity: 0; transform: translateY(-4px); } 40%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 .a-trk { fill: none; stroke: rgba(10, 10, 10, 0.12); stroke-width: 5; }
-.a-arc { fill: none; stroke: var(--e-blue); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 201; stroke-dashoffset: 201; rotate: -90deg; animation: a-arc 3s linear infinite; }
-@keyframes a-arc { to { stroke-dashoffset: 0; } }
-.a-bead { fill: rgba(143, 184, 255, 0.55); stroke: rgba(82, 148, 255, 0.9); stroke-width: 2; animation: ls-breathe 2.4s ease-in-out infinite; }
-.a-win { fill: #fff; stroke: #cfcfcf; stroke-width: 2; }
-.a-win.on { stroke: var(--e-blue); stroke-width: 3; animation: a-fade2 3.2s ease-in-out infinite; }
-@keyframes a-fade2 { 0%, 100% { fill: #fff; } 50% { fill: #eaf1ff; } }
-.a-head { fill: #fff; stroke: #1f2937; stroke-width: 2; } .a-nose { stroke: var(--e-blue); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 3 5; } .a-beam { fill: var(--e-blue); }
 .a-tip { fill: var(--e-blue); } .a-tip.t1 { animation: a-pinch1 1.6s ease-in-out infinite; } .a-tip.t2 { animation: a-pinch2 1.6s ease-in-out infinite; }
 @keyframes a-pinch1 { 0%, 100% { transform: none; } 20%, 40% { transform: translateX(14px); } }
 @keyframes a-pinch2 { 0%, 100% { transform: none; } 20%, 40% { transform: translateX(-14px); } }
@@ -227,7 +214,6 @@ button { font-family: inherit; }
 .a-rip { fill: none; stroke: var(--e-blue); stroke-width: 3; opacity: 0; }
 .a-rip.p1 { animation: a-rip 3.2s ease-out infinite; } .a-rip.p2 { animation: a-rip 3.2s ease-out 1.4s infinite; } .a-rip.p3 { animation: a-rip 3.2s ease-out 1.8s infinite; }
 @keyframes a-rip { 0% { opacity: 0; transform: scale(0.6); } 8% { opacity: 1; } 28%, 100% { opacity: 0; transform: scale(2.6); } }
-.a-dl { fill: none; stroke: var(--e-blue); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; animation: a-up 1.6s ease-in-out infinite; }
 @keyframes a-up { 50% { transform: translateY(-6px); } } @keyframes a-down { 50% { transform: translateY(6px); } }
 
 /* ---- overlays ---- */
@@ -265,8 +251,6 @@ html[data-go] .gate-intro { display: none; }
   .ls-app { height: auto; min-height: 100dvh; grid-template-columns: 1fr; }
   .ls-left { padding: 0 12px 12px; }
   .ls-mac { height: 720px; }
-  .ls-top { grid-template-columns: 1fr; justify-items: center; }
-  .ls-controls { order: 3; justify-self: center; }
   .ls-guide { border-left: 0; border-top: 1px solid var(--e-line); padding: 14px 12px 20px; }
   .guide-hand { height: 220px; }
 }
