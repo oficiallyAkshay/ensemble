@@ -94,24 +94,20 @@
   .pop .dots i:nth-child(2) { animation-delay: 0.15s; } .pop .dots i:nth-child(3) { animation-delay: 0.3s; }
   @keyframes pulse { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
 
-  /* ---- spread 2: the letter ---- */
-  .letter-sec { position: relative; padding: clamp(50px, calc(7 * var(--u)), 110px) 0 40px; }
-  .letter-sec .sh1 { width: calc(30 * var(--u)); height: calc(22 * var(--u)); right: calc(-10 * var(--u)); top: calc(2 * var(--u)); --r: 999px; --rot: 28deg; --g: linear-gradient(100deg, #7a5cff, #3a7bff 55%, #2fd3c0); }
-  .letter-sec .sh2 { width: calc(18 * var(--u)); height: calc(18 * var(--u)); left: calc(-7 * var(--u)); top: calc(40 * var(--u)); --r: 44% 56% 38% 62% / 55% 40% 60% 45%; --rot: 20deg; --g: linear-gradient(150deg, #ffe9a6, #ffc79b 55%, #ffaaa0); --dur: 26s; }
-  .how-head .ens-chip, .chip-wrap .ens-chip { background: #fff; }
-  .chip-wrap { position: relative; z-index: 3; padding-left: clamp(20px, calc(8 * var(--u)), 150px); margin-bottom: 20px; }
-  .chip-wrap .ens-chip { rotate: -3deg; font-size: 12px; padding: 8px 14px; box-shadow: 0 8px 18px rgba(80, 60, 160, 0.15); }
-  .lead { position: relative; z-index: 3; margin: 0 0 clamp(30px, calc(4 * var(--u)), 64px); padding: 0 clamp(20px, calc(8 * var(--u)), 150px); max-width: min(1080px, 94vw); font: 700 clamp(28px, calc(3.9 * var(--u)), 62px)/1.06 var(--e-display); letter-spacing: -0.04em; text-wrap: balance; }
+  /* ---- spread 2: the letter. One column of type, nothing floating over it. ---- */
+  :root { --gut: clamp(20px, 5vw, 64px); }
+  .letter-sec { position: relative; padding: clamp(56px, calc(8 * var(--u)), 120px) var(--gut) clamp(24px, 3vw, 48px); }
+  .chip-wrap { margin-bottom: 22px; }
+  .chip-wrap .ens-chip, .how-head .ens-chip { background: #fff; font-size: 12px; padding: 8px 14px; box-shadow: 0 6px 16px rgba(80, 60, 160, 0.12); }
+  .lead { margin: 0 0 clamp(32px, 4vw, 60px); max-width: 16em; font: 700 clamp(30px, calc(4.6 * var(--u)), 72px)/1.04 var(--e-display); letter-spacing: -0.045em; text-wrap: balance; }
   .lead mark { background: none; color: inherit; background-image: linear-gradient(95deg, #ffd84d, #ff9a4c 60%, #ff7f86); background-repeat: no-repeat; background-size: 100% 0.34em; background-position: 0 90%; padding: 0 0.04em; }
   .lead mark.b { background-image: linear-gradient(95deg, #8fb8ff, #5294ff 50%, #7a5cff); }
-  .body { position: relative; z-index: 3; margin-left: clamp(20px, calc(15 * var(--u)), 280px); max-width: 640px; padding-right: 20px; }
-  .body p { margin: 0 0 24px; color: #404040; font-size: clamp(19px, calc(1.7 * var(--u)), 24px); line-height: 1.55; letter-spacing: -0.015em; text-wrap: pretty; }
-  .body p.p2 { font-size: clamp(26px, calc(2.8 * var(--u)), 40px); line-height: 1.12; letter-spacing: -0.035em; color: #0a0a0a; font-weight: 600; font-family: var(--e-display); margin-left: calc(-3 * var(--u)); }
-  .body p.p3 { font-size: clamp(30px, calc(3.6 * var(--u)), 52px); line-height: 1.05; letter-spacing: -0.04em; color: #0a0a0a; font-weight: 700; font-family: var(--e-display); }
-  .body p.p4 { font-size: clamp(20px, calc(2 * var(--u)), 26px); color: #0a0a0a; font-weight: 500; }
-  .float-hand { float: right; width: clamp(290px, calc(36 * var(--u)), 480px); margin: -20px calc(-8 * var(--u)) 44px 24px; position: relative; rotate: 3deg; }
-  .float-hand figcaption { margin-top: 10px; display: inline-block; padding: 3px 9px; border-radius: 8px; background: #fff; font-size: 13px; line-height: 1.35; color: #262626; }
-  .sign { position: relative; z-index: 3; margin: 36px 0 0; padding-left: clamp(20px, calc(15 * var(--u)), 280px); font: 500 12px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: #595959; }
+  .body { max-width: 640px; }
+  .body p { margin: 0 0 22px; color: #404040; font-size: clamp(18px, calc(1.6 * var(--u)), 22px); line-height: 1.55; letter-spacing: -0.012em; text-wrap: pretty; }
+  .body p.p2 { margin-top: 34px; font: 600 clamp(26px, calc(2.8 * var(--u)), 40px)/1.12 var(--e-display); letter-spacing: -0.035em; color: #0a0a0a; }
+  .body p.p3 { font: 700 clamp(30px, calc(3.6 * var(--u)), 52px)/1.06 var(--e-display); letter-spacing: -0.04em; color: #0a0a0a; }
+  .body p.p4 { margin-top: 34px; font-size: clamp(19px, calc(1.8 * var(--u)), 24px); color: #0a0a0a; font-weight: 500; }
+  .sign { margin: 36px 0 0; font: 500 12px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: #595959; }
 
   .reveal { opacity: 0; translate: 0 22px; transition: opacity 0.8s var(--e-ease), translate 0.9s var(--e-spring); }
   .reveal.in { opacity: 1; translate: 0 0; }
@@ -135,31 +131,22 @@
   .mini .ens-highlight { position: absolute; z-index: 5; }
   .mini-host:not(.live) { background: #faf9f5; border-radius: 12px; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08); }
 
-  /* ---- spread 3: how it works, scattered along the scroll ---- */
-  .how { position: relative; padding: clamp(40px, calc(6 * var(--u)), 90px) 0 0; }
-  .how-head { position: relative; z-index: 4; padding-left: clamp(20px, calc(8 * var(--u)), 150px); margin-bottom: 0; }
+  /* ---- spread 3: how it works. Each step is a heading row, then its animation at full width. ---- */
+  .how { position: relative; max-width: 1280px; padding: clamp(56px, 8vw, 110px) var(--gut) 0; }
   .how-head h2 { margin: 16px 0 0; font: 700 clamp(40px, calc(7 * var(--u)), 112px)/0.92 var(--e-display); letter-spacing: -0.05em; }
-  .moment { position: relative; min-height: max(380px, calc(29 * var(--u))); }
-  .moment .txt { position: relative; z-index: 4; max-width: 440px; padding-top: clamp(30px, calc(5 * var(--u)), 80px); }
-  .moment .n { font: 500 13px var(--e-mono); letter-spacing: 0.1em; color: #404040; }
-  .moment h3 { margin: 8px 0 12px; font: 700 clamp(44px, calc(6.4 * var(--u)), 104px)/0.9 var(--e-display); letter-spacing: -0.05em; }
-  .moment p { margin: 0; font-size: clamp(17px, calc(1.5 * var(--u)), 20px); line-height: 1.45; color: #404040; letter-spacing: -0.01em; max-width: 340px; }
-  .moment .shot { position: absolute; z-index: 3; margin: 0; }
-  .moment .shot figcaption { display: inline-block; margin-top: 8px; padding: 3px 9px; border-radius: 8px; background: #fff; font-size: 13px; line-height: 1.35; color: #262626; }
-  .m1 { margin-top: clamp(-30px, calc(-2 * var(--u)), 0px); } .m1 .txt { margin-left: clamp(20px, calc(8 * var(--u)), 150px); }
-  .m2 { margin-top: calc(-2 * var(--u)); } .m2 .txt { margin-left: auto; margin-right: clamp(20px, calc(9 * var(--u)), 160px); }
-  .m3 { margin-top: 0; } .m3 .txt { margin-left: clamp(20px, calc(15 * var(--u)), 280px); }
-  .m4 { margin-top: calc(-1 * var(--u)); } .m4 .txt { margin-left: auto; margin-right: clamp(20px, calc(12 * var(--u)), 220px); }
-  .m1 .bl1 { width: calc(40 * var(--u)); height: calc(34 * var(--u)); right: calc(-9 * var(--u)); top: calc(3 * var(--u)); --r: 56% 44% 48% 52% / 50% 58% 42% 50%; --rot: 12deg; --g: linear-gradient(145deg, #7a5cff, #5294ff 40%, #3fd9c4 80%); opacity: 0.9; }
-  .m1 .shot { right: calc(3 * var(--u)); top: calc(1 * var(--u)); width: calc(42 * var(--u)); min-width: 340px; rotate: -2deg; }
-  .m2 .bl2 { width: calc(34 * var(--u)); height: calc(34 * var(--u)); left: calc(-8 * var(--u)); top: calc(1 * var(--u)); --r: 48% 52% 60% 40% / 56% 42% 58% 44%; --rot: -10deg; --g: linear-gradient(160deg, #ffe9a6, #ffc79b 50%, #ffaaa0); }
-  .m2 .shot { left: calc(3 * var(--u)); top: calc(1 * var(--u)); width: calc(42 * var(--u)); min-width: 340px; rotate: 2deg; }
-  .m3 .bl3 { width: calc(52 * var(--u)); height: calc(17 * var(--u)); right: calc(-9 * var(--u)); top: calc(20 * var(--u)); --r: 999px; --rot: -8deg; --g: linear-gradient(95deg, #2fd3c0, #5294ff 50%, #7a5cff 90%); }
-  .m3 .shot { right: calc(4 * var(--u)); top: calc(1 * var(--u)); width: calc(30 * var(--u)); min-width: 300px; rotate: -2deg; }
-  .m3 .wave { position: absolute; right: calc(37 * var(--u)); top: calc(12 * var(--u)); display: flex; gap: calc(0.7 * var(--u)); align-items: center; height: calc(8 * var(--u)); z-index: 5; }
-  .m3 .wave i { width: calc(1.2 * var(--u)); min-width: 8px; border-radius: 999px; background: var(--g); display: block; height: var(--h); box-shadow: 0 10px 18px -6px rgba(40, 30, 90, 0.35); }
-  .m4 .bl4 { width: calc(34 * var(--u)); height: calc(34 * var(--u)); left: calc(-6 * var(--u)); top: calc(1 * var(--u)); --r: 52% 48% 40% 60% / 46% 55% 45% 54%; --rot: 8deg; --g: linear-gradient(150deg, #ffe9a6, #ffcb9a 50%, #ffaaa0); }
-  .m4 .shot { left: calc(3 * var(--u)); top: calc(1 * var(--u)); width: calc(42 * var(--u)); min-width: 340px; rotate: -2deg; }
+  .moment { margin-top: clamp(56px, 8vw, 110px); }
+  .moment-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 24em); gap: 12px clamp(24px, 4vw, 64px); align-items: end; margin-bottom: clamp(20px, 2.4vw, 32px); }
+  .moment .n { grid-column: 1 / -1; font: 500 13px var(--e-mono); letter-spacing: 0.1em; color: #404040; }
+  .moment h3 { margin: 0; font: 700 clamp(44px, 6.2vw, 96px)/0.92 var(--e-display); letter-spacing: -0.05em; }
+  .moment p { margin: 0; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.45; color: #404040; letter-spacing: -0.01em; text-wrap: pretty; }
+  /* the animation is the point: it takes the whole row (a little less for the one window that has no 3D scene) */
+  .moment .shot { position: relative; margin: 0 auto; width: 100%; max-width: 1180px; }
+  .moment .shot.narrow { max-width: 780px; }
+  .moment .shot figcaption { display: inline-block; margin-top: 10px; padding: 3px 9px; border-radius: 8px; background: #fff; font-size: 13px; line-height: 1.35; color: #262626; box-shadow: 0 1px 0 rgba(10, 10, 10, 0.06); }
+  .moment .card3d.desk { aspect-ratio: 16 / 10; }
+  .moment .card3d { border-radius: 20px; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08), 0 30px 60px -20px rgba(40, 30, 90, 0.3); }
+  .wave { display: flex; gap: 8px; align-items: center; height: 56px; margin-top: 18px; }
+  .wave i { width: 10px; border-radius: 999px; background: var(--g); display: block; height: var(--h); }
 
   /* ---- spread 4: download ---- */
   .dl { position: relative; padding: clamp(70px, calc(10 * var(--u)), 150px) 0 0; }
@@ -188,6 +175,7 @@
     .mac-only { display: flex; }
   }
   @media (max-width: 820px) {
+    .moment-head { grid-template-columns: 1fr; }
     .hero { min-height: 0; padding-bottom: 60px; display: flex; flex-direction: column; }
     .hero-text { order: 1; max-width: none; padding-top: 96px; }
     .hero h1 { font-size: clamp(40px, calc(12.4 * var(--u)), 84px); }
@@ -200,24 +188,7 @@
     .bead-obj { display: none; }
     .hero .h3 { width: calc(60 * var(--u)); height: calc(24 * var(--u)); left: auto; right: calc(-10 * var(--u)); bottom: 0; }
     .hero-shot { order: 3; position: relative; right: auto; bottom: auto; width: calc(84 * var(--u)); margin: 40px 0 0 calc(6 * var(--u)); }
-    .body { margin-left: clamp(20px, calc(6 * var(--u)), 60px); }
     .hero .h1 { opacity: 0.9; }
-    .body p.p2 { margin-left: 0; }
-    .float-hand { float: none; width: calc(84 * var(--u)); margin: 8px 0 28px 0; rotate: 0deg; }
-    .letter-sec .sh1 { width: calc(60 * var(--u)); height: calc(40 * var(--u)); right: calc(-24 * var(--u)); top: 0; }
-    .letter-sec .sh2 { display: none; }
-    .moment { min-height: 0; padding-bottom: 28px; display: flex; flex-direction: column; }
-    .moment .txt, .m1 .txt, .m2 .txt, .m3 .txt, .m4 .txt { margin: 0 20px; max-width: none; padding-top: 24px; order: 1; }
-    .moment .shot, .m1 .shot, .m2 .shot, .m3 .shot, .m4 .shot, .m4 .shot.small { position: relative; order: 2; left: auto; right: auto; top: auto; width: calc(84 * var(--u)); min-width: 0; margin: 24px 0 0 calc(8 * var(--u)); }
-    .m2 .shot { margin-left: calc(14 * var(--u)); }
-    .moment .blob { opacity: 0.8; }
-    .m1 .bl1 { width: 90vw; height: calc(70 * var(--u)); top: auto; bottom: calc(-20 * var(--u)); right: calc(-30 * var(--u)); }
-    .m2 .bl2, .m4 .bl4 { width: calc(80 * var(--u)); height: calc(80 * var(--u)); left: calc(-30 * var(--u)); top: auto; bottom: calc(-26 * var(--u)); }
-    .m3 .bl3 { width: 110vw; height: calc(36 * var(--u)); top: auto; bottom: 0; right: calc(-30 * var(--u)); }
-    .m3 .wave { position: relative; order: 4; right: auto; top: auto; margin: 22px 0 0 24px; height: calc(18 * var(--u)); }
-    .m3 .shot { order: 3; }
-    .m1 .shot { margin-top: 24px; }
-    .moment h3 { font-size: clamp(44px, calc(13 * var(--u)), 80px); }
     .dl .giant { font-size: calc(22 * var(--u)); margin-bottom: 18px; }
     .notes { margin-top: 8px; }
     .dl .d1 { width: calc(60 * var(--u)); height: calc(60 * var(--u)); right: calc(-26 * var(--u)); top: calc(-10 * var(--u)); }
@@ -299,15 +270,10 @@
 </section>
 
 <section class="letter-sec" id="note">
-  <i class="blob sh1 soft" aria-hidden="true"></i><i class="blob sh2" aria-hidden="true"></i>
   <div class="chip-wrap reveal"><span class="ens-chip">A note from the person who made this</span></div>
   <article class="letter">
     <p class="lead reveal">Type to your AI for thirty minutes and it can build <mark>two days</mark> of work. Talk to it for thirty minutes and it can build <mark class="b">two weeks</mark>.</p>
     <div class="body">
-      <figure class="float-hand shadowed">
-        <div class="card3d" role="img" aria-label="A 3D hand pinches and drags up and down beside a Claude window, and the session in the window scrolls with it."><div class="scene" data-scene="scroll"></div></div>
-        <figcaption>Pinch and drag to scroll.</figcaption>
-      </figure>
       <p class="reveal">I learned that the slow way. I talk to my agents now, a lot of them, all at once. A dozen Claude sessions on three screens, each one waiting to hear what I want.</p>
       <p class="p2 reveal">And my night became: find the right window, click it, talk. Find, click, talk.</p>
       <p class="p3 reveal">So I got rid of the find and the click. I look at a session. I pinch. I talk. <span style="white-space:nowrap">Thumbs-up.</span> Next.</p>
@@ -320,29 +286,30 @@
 <section class="how" id="how">
   <div class="how-head reveal"><span class="ens-chip">How it works</span><h2>No find.<br>No click.</h2></div>
 
-  <div class="moment m1">
-    <i class="blob bl1" aria-hidden="true"></i>
-    <div class="txt reveal"><span class="n">01</span><h3>Look.</h3><p>Focus follows your nose. The session you face gets the blue outline.</p></div>
-    <figure class="shot shadowed"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four session windows on two monitors, and the window it faces lights up blue."><div class="scene" data-scene="look"></div></div></figure>
+  <div class="moment">
+    <div class="moment-head reveal"><span class="n">01</span><h3>Look.</h3><p>Focus follows your nose. The session you face gets the blue outline.</p></div>
+    <figure class="shot"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four session windows on two monitors, and the window it faces lights up blue."><div class="scene" data-scene="look"></div></div></figure>
   </div>
 
-  <div class="moment m2">
-    <i class="blob bl2" aria-hidden="true"></i>
-    <figure class="shot shadowed"><div class="card3d" role="img" aria-label="A 3D hand pinches twice beside a Claude window; the island turns to listening and the message types in."><div class="scene" data-scene="dictate"></div></div></figure>
-    <div class="txt reveal"><span class="n">02</span><h3>Pinch twice.</h3><p>Two quick pinches of thumb and index start Claude's own dictation.</p></div>
+  <div class="moment">
+    <div class="moment-head reveal"><span class="n">02</span><h3>Pinch twice.</h3><p>Two quick pinches of thumb and index start Claude's own dictation.</p></div>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches twice beside a Claude window; the island turns to listening and the message types in."><div class="scene" data-scene="dictate"></div></div></figure>
   </div>
 
-  <div class="moment m3">
-    <i class="blob bl3" aria-hidden="true"></i>
-    <div class="txt reveal"><span class="n">03</span><h3>Talk.</h3><p>Say what you want. The words land in the session you are looking at.</p></div>
-    <figure class="shot shadowed"><div class="mini-host" data-mini="talk" role="img" aria-label="A mini Claude window with dictation on: the sentence types into the focused session as it is spoken."></div></figure>
-    <div class="wave" id="talk-wave" aria-hidden="true"><i style="--h:30%;--g:linear-gradient(#ffd84d,#ff9a4c)"></i><i style="--h:60%;--g:linear-gradient(#ff9a4c,#ff5fa2)"></i><i style="--h:92%;--g:linear-gradient(#ff5fa2,#b04cff)"></i><i style="--h:56%;--g:linear-gradient(#b04cff,#7a5cff)"></i><i style="--h:100%;--g:linear-gradient(#7a5cff,#5294ff)"></i><i style="--h:70%;--g:linear-gradient(#5294ff,#2fd3c0)"></i><i style="--h:38%;--g:linear-gradient(#2fd3c0,#9be85a)"></i><i style="--h:80%;--g:linear-gradient(#9be85a,#ffe04d)"></i><i style="--h:44%;--g:linear-gradient(#ffe04d,#ff9a4c)"></i></div>
+  <div class="moment">
+    <div class="moment-head reveal"><span class="n">03</span><h3>Talk.</h3><div><p>Say what you want. The words land in the session you are looking at.</p>
+      <div class="wave" id="talk-wave" aria-hidden="true"><i style="--h:30%;--g:linear-gradient(#ffd84d,#ff9a4c)"></i><i style="--h:60%;--g:linear-gradient(#ff9a4c,#ff5fa2)"></i><i style="--h:92%;--g:linear-gradient(#ff5fa2,#b04cff)"></i><i style="--h:56%;--g:linear-gradient(#b04cff,#7a5cff)"></i><i style="--h:100%;--g:linear-gradient(#7a5cff,#5294ff)"></i><i style="--h:64%;--g:linear-gradient(#5294ff,#3fd9c4)"></i><i style="--h:84%;--g:linear-gradient(#3fd9c4,#9be85a)"></i><i style="--h:46%;--g:linear-gradient(#9be85a,#ffd84d)"></i></div></div></div>
+    <figure class="shot narrow"><div class="mini-host" data-mini="talk" role="img" aria-label="A mini Claude window with dictation on: the sentence types into the focused session as it is spoken."></div></figure>
   </div>
 
-  <div class="moment m4">
-    <i class="blob bl4" aria-hidden="true"></i>
-    <figure class="shot shadowed"><div class="card3d" role="img" aria-label="A 3D hand makes a thumbs-up and holds it beside a Claude window; the island fills while it is held, then reads Sent and the message moves into the transcript."><div class="scene" data-scene="send"></div></div></figure>
-    <div class="txt reveal"><span class="n">04</span><h3 style="white-space:nowrap">Thumbs-up.</h3><p>Hold it to send. Then look at the next session.</p></div>
+  <div class="moment">
+    <div class="moment-head reveal"><span class="n">04</span><h3 style="white-space:nowrap">Thumbs-up.</h3><p>Hold it to send. Then look at the next session.</p></div>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand makes a thumbs-up and holds it beside a Claude window; the island fills while it is held, then reads Sent and the message moves into the transcript."><div class="scene" data-scene="send"></div></div></figure>
+  </div>
+
+  <div class="moment">
+    <div class="moment-head reveal"><span class="n">05</span><h3>Pinch and drag.</h3><p>Pinch, then move your hand up or down to scroll the session you are looking at.</p></div>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches and drags up and down beside a Claude window, and the session in the window scrolls with it."><div class="scene" data-scene="scroll"></div></div></figure>
   </div>
 </section>
 
