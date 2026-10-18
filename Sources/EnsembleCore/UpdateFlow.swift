@@ -103,6 +103,12 @@ extension UpdatePolicy {
         idle && !(secondsSinceKey < offerTypingQuiet)
     }
 
+    /// Whether the menu bar icon carries the upgrade arrow: a newer version has been found and not yet installed. An
+    /// installed update relaunches the app, which starts with no version known.
+    public static func showsUpgradeBadge(available: String?) -> Bool {
+        !(available ?? "").isEmpty
+    }
+
     /// The one alert's question.
     public static func offerMessage(version: String) -> String { "Ensemble \(version) is available. Install now?" }
 

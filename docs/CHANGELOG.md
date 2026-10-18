@@ -13,6 +13,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 - With the lid closed, each dictation first moves the Mac's input to a microphone that works (the webcam's, then a wired one, then a Bluetooth headset; never a virtual, aggregate or iPhone microphone) and the old input comes back when the lid opens. With none, the dictation does not start and the island says "No microphone while the lid is closed". The new Settings switch "Use another microphone when the lid is closed" is on by default.
 - The menu panel's camera row opens a choice of Automatic and every connected camera, with the current one ticked, and switches the camera at once; it is the same setting as Settings' Camera picker. A chosen camera that is unplugged stays listed as "(not connected)", in the panel and in Settings, and the list is read again each time the panel opens.
 - While you pinch and drag to scroll, the nose dot turns into the up-and-down scroll arrows, and turns back into the dot when the pinch releases; the website demo does the same.
+- The menu bar icon gains a small upward arrow beside the three dots while a newer version has been found and not yet installed; with automatic checks off it appears only after you press Check for Updates.
 
 ## 0.2.21 - 2026-10-15
 

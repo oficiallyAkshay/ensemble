@@ -1,12 +1,14 @@
 import AppKit
 import Combine
+import EnsembleCore
 import SwiftUI
 
 @main
 struct EnsembleApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     private let env = AppEnvironment.shared
-    @StateObject private var icon = StatusIconModel(state: AppEnvironment.shared.state, settings: AppEnvironment.shared.settings)
+    @StateObject private var icon = StatusIconModel(state: AppEnvironment.shared.state, settings: AppEnvironment.shared.settings,
+                                                    updates: AppEnvironment.shared.updates)
 
     var body: some Scene {
         MenuBarExtra {
@@ -64,17 +66,19 @@ final class StatusIconModel: ObservableObject {
     private var cancellable: AnyCancellable?
     private var pulse: Timer?
 
-    init(state: AppState, settings: SettingsStore) {
-        cancellable = Publishers.CombineLatest3(state.$status, state.$listening, settings.$enabled)
-            .map { status, listening, enabled in (enabled ? status : .off, listening && enabled) }
+    init(state: AppState, settings: SettingsStore, updates: UpdateController) {
+        cancellable = Publishers.CombineLatest4(state.$status, state.$listening, settings.$enabled, updates.$availableVersion)
+            .map { status, listening, enabled, available in
+                (enabled ? status : .off, listening && enabled, UpdatePolicy.showsUpgradeBadge(available: available))
+            }
             .removeDuplicates { $0 == $1 }
-            .sink { [weak self] status, listening in self?.show(status: status, listening: listening) }
+            .sink { [weak self] status, listening, badge in self?.show(status: status, listening: listening, badge: badge) }
     }
 
-    private func show(status: AppStatus, listening: Bool) {
+    private func show(status: AppStatus, listening: Bool, badge: Bool) {
         pulse?.invalidate(); pulse = nil
-        guard listening else { image = Self.render(Self.look(status)); return }
-        let bright = Self.render(.dictating(bright: true)), dim = Self.render(.dictating(bright: false))
+        guard listening else { image = Self.render(Self.look(status), badge: badge); return }
+        let bright = Self.render(.dictating(bright: true), badge: badge), dim = Self.render(.dictating(bright: false), badge: badge)
         image = bright
         let t = Timer(timeInterval: 0.6, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { guard let self else { return }; self.image = self.image === bright ? dim : bright }
@@ -95,10 +99,11 @@ final class StatusIconModel: ObservableObject {
 
     /// The Ensemble dots: three sessions. Hollow when off, filled when on, the top one blue while dictating,
     /// hollow with an exclamation mark when something needs you. Drawn at draw time, so it follows light and
-    /// dark menu bars.
-    static func render(_ look: Look) -> NSImage {
+    /// dark menu bars. With `badge`, a small upward arrow stands to the right of the dots (after the exclamation mark).
+    static func render(_ look: Look, badge: Bool = false) -> NSImage {
         let attention = look == .attention
-        let size = NSSize(width: attention ? 20 : 16, height: 18)
+        let arrowX: CGFloat = attention ? 20.2 : 14.6
+        let size = NSSize(width: badge ? arrowX + 6 : (attention ? 20 : 16), height: 18)
         let image = NSImage(size: size, flipped: true) { _ in
             // A small, airy formation: 70% of a full glyph, dots a further 10% smaller.
             let r: CGFloat = 2.0
@@ -119,6 +124,16 @@ final class StatusIconModel: ObservableObject {
                 NSColor.labelColor.setFill()
                 NSBezierPath(roundedRect: NSRect(x: 16.4, y: 4.8, width: 1.6, height: 6), xRadius: 0.8, yRadius: 0.8).fill()
                 NSBezierPath(ovalIn: NSRect(x: 16.3, y: 12.2, width: 1.8, height: 1.8)).fill()
+            }
+            if badge {
+                NSColor.labelColor.setFill()
+                let head = NSBezierPath()
+                head.move(to: CGPoint(x: arrowX + 2.7, y: 4.2))
+                head.line(to: CGPoint(x: arrowX + 5.4, y: 8.4))
+                head.line(to: CGPoint(x: arrowX, y: 8.4))
+                head.close()
+                head.fill()
+                NSBezierPath(rect: NSRect(x: arrowX + 1.8, y: 8.2, width: 1.8, height: 5.6)).fill()
             }
             return true
         }

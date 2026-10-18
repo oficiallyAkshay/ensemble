@@ -94,6 +94,12 @@ import Testing
         #expect(UpdatePolicy.offerMessage(version: "0.3.0") == "Ensemble 0.3.0 is available. Install now?")
     }
 
+    @Test func menuBarBadgeShowsOnlyWhileAVersionIsKnown() {
+        #expect(UpdatePolicy.showsUpgradeBadge(available: "0.3.0"))
+        #expect(!UpdatePolicy.showsUpgradeBadge(available: nil))
+        #expect(!UpdatePolicy.showsUpgradeBadge(available: ""))
+    }
+
     @Test func buttonShowsInstallProgressAndWaiting() {
         #expect(UpdatePolicy.buttonTitle(available: "0.3.0", showingUpToDate: false, installing: "0.3.0") == "Installing 0.3.0...")
         #expect(UpdatePolicy.buttonTitle(available: "0.3.0", showingUpToDate: false, installing: "0.3.0", waitingForIdle: true)
