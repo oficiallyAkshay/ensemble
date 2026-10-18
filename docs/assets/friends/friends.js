@@ -30,8 +30,15 @@ if (!root || !items.length) {
     return { el, x: 0, y: 0, vx: 0, vy: 0, rot: base, base, vr: 0, w: 0, h: 0, held: null, z: i + 1 };
   });
 
-  const clampX = (t, x) => Math.min(Math.max(x, 0), Math.max(table.clientWidth - t.w, 0));
-  const clampY = (t, y) => Math.min(Math.max(y, 0), Math.max(table.clientHeight - t.h, 0));
+  // The table is where they land, not a fence: a tile can hang off its edges and be dragged or thrown a good way past them (up to 45% of its width
+  // sideways and 70 px up or down), so it stays grabbable and on the page.
+  const overX = (t) => t.w * 0.45, OVER_Y = 70;
+  // ...but never past the edge of the window itself
+  const minX = (t) => Math.max(-overX(t), 8 - table.getBoundingClientRect().left);
+  const maxX = (t) => Math.min(table.clientWidth - t.w + overX(t), document.documentElement.clientWidth - 8 - table.getBoundingClientRect().left - t.w);
+  const minY = () => -OVER_Y, maxY = (t) => table.clientHeight - t.h + OVER_Y;
+  const clampX = (t, x) => Math.min(Math.max(x, minX(t)), maxX(t));
+  const clampY = (t, y) => Math.min(Math.max(y, minY()), maxY(t));
   const paint = (t) => { t.el.style.transform = `translate3d(${t.x.toFixed(1)}px, ${t.y.toFixed(1)}px, 0) rotate(${t.rot.toFixed(2)}deg)`; t.el.style.zIndex = t.z; };
 
   /** Scatter the tiles across the table in loose rows. On a narrow table they overlap more, like a pile. */
@@ -48,8 +55,10 @@ if (!root || !items.length) {
     seed = 7;
     tiles.forEach((t, i) => {
       const c = i % cols, r = Math.floor(i / cols), offset = r % 2 ? cellW * 0.35 : 0;
-      t.x = clampX(t, (cols === 1 ? (W - t.w) / 2 : c * cellW + offset) + (rnd() - 0.5) * 36);
-      t.y = clampY(t, top + rowTop[r] + (rnd() - 0.5) * 24);
+      // the outer columns start part-way off the table, as if thrown a little too hard
+      const hang = cols === 1 ? (i % 2 ? 1 : -1) * t.w * 0.1 : c === 0 ? -t.w * 0.22 : c === cols - 1 ? t.w * 0.22 : 0;
+      t.x = clampX(t, (cols === 1 ? (W - t.w) / 2 : c * cellW + offset) + hang + (rnd() - 0.5) * 30);
+      t.y = clampY(t, top + rowTop[r] + (rnd() - 0.5) * 24 + (r === rows - 1 ? 34 : 0));
       t.vx = t.vy = t.vr = 0; paint(t);
     });
   }
@@ -66,9 +75,9 @@ if (!root || !items.length) {
       t.x += t.vx * dt; t.y += t.vy * dt; t.rot += t.vr * dt;
       const f = Math.exp(-FRICTION * dt), g = Math.exp(-SPIN_FRICTION * dt);
       t.vx *= f; t.vy *= f; t.vr *= g;
-      const mx = Math.max(table.clientWidth - t.w, 0), my = Math.max(table.clientHeight - t.h, 0);
-      if (t.x < 0) { t.x = 0; t.vx = Math.abs(t.vx) * BOUNCE; t.vr *= -0.6; } else if (t.x > mx) { t.x = mx; t.vx = -Math.abs(t.vx) * BOUNCE; t.vr *= -0.6; }
-      if (t.y < 0) { t.y = 0; t.vy = Math.abs(t.vy) * BOUNCE; } else if (t.y > my) { t.y = my; t.vy = -Math.abs(t.vy) * BOUNCE; }
+      const x0 = minX(t), x1 = maxX(t), y0 = minY(), y1 = maxY(t);
+      if (t.x < x0) { t.x = x0; t.vx = Math.abs(t.vx) * BOUNCE; t.vr *= -0.6; } else if (t.x > x1) { t.x = x1; t.vx = -Math.abs(t.vx) * BOUNCE; t.vr *= -0.6; }
+      if (t.y < y0) { t.y = y0; t.vy = Math.abs(t.vy) * BOUNCE; } else if (t.y > y1) { t.y = y1; t.vy = -Math.abs(t.vy) * BOUNCE; }
       paint(t); moving = true;
     }
     raf = moving ? requestAnimationFrame(frame) : 0;

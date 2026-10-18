@@ -6,13 +6,13 @@
 .friends .lede { margin: 18px 0 0; font: 500 clamp(16px, calc(1.5 * var(--u)), 21px)/1.45 var(--e-font); color: #404040; max-width: 36em; text-wrap: pretty; }
 .friends .hint { margin: 14px 0 0; font: 500 12px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--e-muted); }
 
-.table { position: relative; margin-top: 26px; height: clamp(520px, 54vw, 640px); border-radius: 28px; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none;
+.table { position: relative; margin-top: 26px; height: clamp(520px, 54vw, 640px); border-radius: 28px; touch-action: pan-y; user-select: none; -webkit-user-select: none;
   background:
     radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.5), transparent 60%),
     repeating-linear-gradient(92deg, rgba(120, 80, 40, 0.05) 0 2px, transparent 2px 9px, rgba(120, 80, 40, 0.035) 9px 10px, transparent 10px 23px),
     linear-gradient(180deg, #e9dfd0, #dccdb7);
   box-shadow: inset 0 0 0 1px rgba(90, 60, 30, 0.12), inset 0 10px 40px rgba(90, 60, 30, 0.12), 0 24px 50px -24px rgba(40, 30, 90, 0.35); }
-.table::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.16; mix-blend-mode: multiply; background-image: var(--grain); }
+.table::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0.16; mix-blend-mode: multiply; background-image: var(--grain); }
 
 /* an iOS notification as it looks in dark mode: the contact's avatar with the Messages badge, the sender in bold, the time on the right, the text under it */
 .imsg { position: absolute; left: 0; top: 0; z-index: 1; width: min(420px, calc(100% - 24px)); display: grid; grid-template-columns: 58px 1fr; gap: 12px; padding: 14px 18px 15px 14px; border-radius: 26px; cursor: grab; touch-action: none; will-change: transform;

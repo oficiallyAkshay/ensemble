@@ -13,7 +13,7 @@ export const MESSAGES = [
   { from: 'Cool engineer friend', time: '9:26 PM', text: 'Installation, walkthrough, calibration and gestures. such a fun way to work! :D' },
   { from: 'Friend who texts back fast', time: 'Sat', text: 'Tyty also sick app!! Gonna check it out' },
   { from: 'Cool engineer friend', time: '9:27 PM', text: 'the walkthrough animations are so well done. simple and clear! so polished' },
-  { from: 'Friend on a Windows machine', time: 'Fri', text: 'I really like it. Currently on a windows machine so ported it over. Have a few recs on how to make performance better, (better, faster and more precise tracking and blah blah). But this is really really really good. Honestly could make a company out of this tbh' },
+  { from: 'Friend who wants me to start a company', time: 'Fri', text: 'this is really really really good. Honestly could make a company out of this tbh' },
   { from: 'Cool engineer friend', time: '9:28 PM', text: 'ykw youve inspired me to get back to a personal project I\u2019ve been putting off' },
   { from: 'Friend with a feature request', time: 'Tue', text: 'Also using multiple agents different brands, codex, factory, claude, hermes, etc. would be super cool to be able to track all of them through ensemble eventually' },
   { from: 'Friend with another feature request', time: 'Tue', text: 'Actually think if you could created some ui for tracking all of the sessions at once visually that\'d be super useful too' },
