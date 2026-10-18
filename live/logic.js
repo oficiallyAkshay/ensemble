@@ -526,6 +526,11 @@ export function anglesFromMatrix(m) {
   return { yaw: Math.atan2(m[8], m[10]), pitch: Math.asin(Math.max(-1, Math.min(1, m[9]))) };
 }
 
+/** The nose dot shows the scroll symbol while a pinch-drag scrolls and the pinch is still held (DotGlyph.showsScroll in the app). */
+export function showsScrollGlyph(scrollActive, pinchHeld) {
+  return scrollActive && pinchHeld;
+}
+
 /**
  * Where the nose sits in the face outline, from raw (unmirrored) landmarks, in face widths: the sign of a head
  * turn that does not depend on the transform matrix's axis conventions. 234 and 454 are the cheek edges, 4 the
