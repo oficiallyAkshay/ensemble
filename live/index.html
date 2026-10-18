@@ -8,11 +8,24 @@
 <meta name="color-scheme" content="light">
 <link rel="icon" href="favicon.png">
 <script>if (/[?&](go|mouse)=1/.test(location.search)) document.documentElement.dataset.go = '';</script>
+<script>
+// A phone or tablet has no camera the demo can use. Decide before live.js is requested, so none of the trackers, 3D files or panes load.
+if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (matchMedia('(pointer: coarse)').matches && !matchMedia('(hover: hover)').matches)) document.documentElement.dataset.desktopOnly = '';
+</script>
 <link rel="stylesheet" href="ensemble.css">
 <link rel="stylesheet" href="pane.css">
 <link rel="stylesheet" href="live.css">
 </head>
 <body>
+<section class="ls-desktop-only" id="desktop-only" aria-labelledby="desktop-only-title">
+  <svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
+  <h1 id="desktop-only-title">The demo is available on desktop</h1>
+  <p>It needs a laptop or desktop with a camera to follow your head and hands.</p>
+  <div class="ls-actions">
+    <a class="ens-btn primary" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download for Mac</a>
+    <a class="ens-btn" href="../index.html">Back to the letter</a>
+  </div>
+</section>
 <div class="ls-app" id="app" data-state="desk" data-mode="none">
 
   <div class="ls-left">
@@ -187,7 +200,7 @@
   <div class="ens-dot" id="dot" aria-hidden="true"></div>
   <div class="ls-sink" id="sink" aria-hidden="true"></div>
 </div>
-<script type="module" src="live.js"></script>
+<script>if (!document.documentElement.hasAttribute('data-desktop-only')) import('./live.js');</script>
 <noscript><p style="padding:24px;font-family:system-ui;color:var(--e-ink)">This demo needs JavaScript. <a href="../index.html" >Back to the letter</a></p></noscript>
 </body>
 </html>

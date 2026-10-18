@@ -74,23 +74,21 @@ const S = {
 S.machine.sendHold = 0.75;
 const trackers = new Trackers();
 const sees = new SeesPanel(el.sees);
-const cameraCapable = !matchMedia('(pointer: coarse)').matches || matchMedia('(hover: hover)').matches;
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
-const phone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (!cameraCapable && Math.min(screen.width, screen.height) < 900);
 
 // ---- gate and modes -------------------------------------------------------------------------------------
 
 function setState(state) { el.app.dataset.state = state; }
 
-function showGate(message, { camera = !phone, mouseLabel = 'Use mouse instead' } = {}) {
+function showGate(message) {
   delete document.documentElement.dataset.go;   // a failed hand-over from the letter falls back to the full gate
   if (S.mode === 'camera') { S.tracking = false; }
   endCentring(null);
   S.mode = 'none'; el.app.dataset.mode = 'none';
   el.gate.hidden = false; el.progress.hidden = true; el.finish.hidden = true;
   el.gateMsg.hidden = !message; el.gateMsg.textContent = message || '';
-  el.goCamera.hidden = !camera; el.goCamera.disabled = false; el.goCamera.textContent = trackers.face ? 'Turn camera back on' : 'Turn on camera';
-  el.goMouse.hidden = false; el.goMouse.disabled = false; el.goMouse.textContent = phone ? 'Try it with touch' : mouseLabel;
+  el.goCamera.hidden = false; el.goCamera.disabled = false; el.goCamera.textContent = trackers.face ? 'Turn camera back on' : 'Turn on camera';
+  el.goMouse.hidden = false; el.goMouse.disabled = false; el.goMouse.textContent = 'Use mouse instead';
   setState('gate');
 }
 
@@ -99,13 +97,13 @@ function enterMouse(note) {
   stopCamera(); endCentring(null);
   S.mode = 'mouse'; S.machine.reset(); S.focus.forgetAll();
   el.gate.hidden = true; el.finish.hidden = true;
-  el.stop.hidden = phone; el.stop.textContent = 'Use camera'; el.recentre.hidden = true;
+  el.stop.hidden = false; el.stop.textContent = 'Use camera'; el.recentre.hidden = true;
   setState('running'); el.app.dataset.mode = 'mouse';
   tick_('enabled'); DONE.centred = true;
   if (S.step < 0) startTutorial(); else renderCoach();
   S.pointerDot = null; S.handSeen = null; S.faceSeen = null;
-  S.headText = 'off'; S.handText = phone ? 'touch stands in' : 'mouse stands in'; S.gestureText = 'none';
-  S.seesNote = note || (phone ? 'Camera off. Touch stands in for your hand.' : 'Camera off. The mouse stands in for your hand.');
+  S.headText = 'off'; S.handText = 'mouse stands in'; S.gestureText = 'none';
+  S.seesNote = note || 'Camera off. The mouse stands in for your hand.';
 }
 
 function cameraErrorMessage(e) {
@@ -551,7 +549,7 @@ document.addEventListener('keydown', (e) => {
 });
 el.mpPower.addEventListener('click', () => {
   if (S.mode !== 'none') { turnOff(); return; }
-  if (S.preferred === 'mouse' || phone) enterMouse(); else startCamera();
+  if (S.preferred === 'mouse') enterMouse(); else startCamera();
   toggleMenu(false);
 });
 el.mpQuit.addEventListener('click', () => { turnOff(); toggleMenu(false); });
@@ -570,7 +568,7 @@ el.mpReplay.addEventListener('click', () => {
 const tipEl = el.tip, spotEl = $('spot');
 /** `at` is what the tooltip points at, `hole` what stays lit (default: `at`), `pad` the lit margin, `radius` its corner. */
 const TIPS = {
-  opened: () => ({ at: el.claudeIcon, pad: 8, radius: 18, side: 'left', html: phone ? 'Double-tap <strong>Claude</strong> to open it.' : 'Double-click <strong>Claude</strong> to open it.' }),
+  opened: () => ({ at: el.claudeIcon, pad: 8, radius: 18, side: 'left', html: 'Double-click <strong>Claude</strong> to open it.' }),
   enabled: () => (menuOpen()
     ? { at: el.mpPower, hole: el.menu, also: el.mbEns, pad: 4, radius: 26, side: 'left', html: mouseish() ? 'Flip the switch to turn <strong>Ensemble</strong> on. The mouse stands in for your hands.' : 'Flip the switch to turn <strong>Ensemble</strong> on. It asks for your camera; the video stays in this tab, and about 12 MB downloads.' }
     : { at: el.mbEns, pad: 6, radius: 10, side: 'below', html: 'Click the <strong>Ensemble</strong> icon in the menu bar.' }),
@@ -611,7 +609,7 @@ const APPLE_GUIDE = 'https://support.apple.com/guide/mac-help/open-a-mac-app-fro
 const TITLES = { opened: 'Open Claude', enabled: 'Turn on Ensemble', centred: 'Centre your head', looked: 'Look at a session', dictated: 'Dictate', sent: 'Send', scrolled: 'Scroll', install: 'Before you open it' };
 const both = (t) => ({ camera: t, mouse: t });
 const HINTS = {
-  opened: { camera: 'Double-click the <strong>Claude</strong> icon on the desktop.', mouse: 'Double-click the <strong>Claude</strong> icon on the desktop.', touch: 'Double-tap the <strong>Claude</strong> icon on the desktop.' },
+  opened: { camera: 'Double-click the <strong>Claude</strong> icon on the desktop.', mouse: 'Double-click the <strong>Claude</strong> icon on the desktop.' },
   enabled: both('Click the Ensemble icon in the menu bar, then flip the switch to turn <strong>Ensemble</strong> on.'),
   centred: { camera: 'Point your nose at the glass dot and hold still for three seconds.', mouse: '' },
   looked: { camera: 'Look around the screen to select and activate a session. The blue outline follows your nose.', mouse: 'Move the mouse around the screen to select a session.' },
@@ -683,9 +681,9 @@ $('stem-skip').addEventListener('click', () => selectTab('gestures', true));
   S.stem = stem;
 }
 
-const mouseish = () => S.mode === 'mouse' || S.preferred === 'mouse' || phone;
+const mouseish = () => S.mode === 'mouse' || S.preferred === 'mouse';
 const modeKey = () => (mouseish() ? 'mouse' : 'camera');
-const hintFor = (k) => (phone && HINTS[k].touch) || HINTS[k][modeKey()];
+const hintFor = (k) => HINTS[k][modeKey()];
 const currentStep = () => ORDER.find((k) => !DONE[k] && !(k === 'centred' && mouseish()));
 
 function tick_(k) {
@@ -722,7 +720,7 @@ let handLibs = null, handInst = null, handScene = '', artKey = '';
 /** Three.js and the scene module, in the order they need: the recorded hand motion must be defined before the scene module runs. */
 function ensureHandLibs() {
   if (handLibs) return handLibs;
-  handLibs = phone || saveData || !hasGL()
+  handLibs = saveData || !hasGL()
     ? Promise.reject(new Error('no 3D'))
     : loadJS('../assets/3d/three.min.js').then(() => Promise.all([loadJS('../assets/3d/GLTFLoader.js'), loadJS('../assets/3d/CCDIKSolver.js'), loadJS('../assets/3d/capture-default.js')])).then(() => loadJS('../assets/3d/scene3d.js'));
   handLibs.catch(() => {});
@@ -885,7 +883,6 @@ addEventListener('resize', () => { sees.resize(); refreshFrames(); });
 // Without a hidden-tab restart the gate would sit over a dead stage, so the first view is always the gate.
 
 el.sizeNote.textContent = `${Math.round(TOTAL_BYTES / 1e6)} MB`;
-if (phone) { el.goCamera.hidden = true; el.goMouse.textContent = 'Try it with touch'; el.gate.querySelector('.ls-lede').textContent = 'Four mock Claude sessions. Camera tracking needs a desktop browser, so here touch stands in for your hands: tap twice to dictate, press and hold to send, press and drag to scroll.'; }
 refreshFrames();
 for (const p of panes) stick(p);
 addEventListener('load', () => { for (const p of panes) if (!p.streams && !p.typed) stick(p); });
@@ -895,8 +892,7 @@ requestAnimationFrame(render);
   // the camera is already allowed (no second prompt), and ?mouse=1 that the visitor chose the mouse there, so the menu offers just that.
   const q = new URLSearchParams(location.search);
   delete document.documentElement.dataset.go;
-  if (q.get('mouse') === '1' || phone) S.preferred = 'mouse';
-  if (phone) el.claudeIcon.setAttribute('aria-label', 'Claude. Double-tap to open.');
+  if (q.get('mouse') === '1') S.preferred = 'mouse';
   syncEns(); renderCoach();
 }
 
