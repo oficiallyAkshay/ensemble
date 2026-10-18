@@ -3,6 +3,44 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.23</title>
+            <pubDate>Sun, 18 Oct 2026 16:50:49 -0400</pubDate>
+            <sparkle:version>478</sparkle:version>
+            <sparkle:shortVersionString>0.2.23</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.22:
+
+- Ensemble restarts itself once when Accessibility is granted, so the grant takes effect with no button press
+- The repository has a 1280 by 640 social preview image of the hero, with the command that regenerates it
+- Checks compile the release binary once and run the replay-timeline tests; the contributor guide lists every script and the real release route
+- Home page gets a gallery of eight looping vignettes: incredibly intuitive (#132)
+- Menu bar icon shows an upgrade arrow while a newer version is found (#131)
+- Website browser test takes the Chrome path from an environment variable and starts as root on Linux (#130)
+- Demo page shows only an 'available on desktop' message on phones and tablets (#129)
+- Demo menu panel: the camera row is a picker like the app's (#128)
+- Add the website review runbook and a "Demo available on desktop" button on phones (#127)
+- Website: desktop-first demo, friends section, clean letter and how-it-works (#126)
+- Update schedule text names the General settings and the hourly check; release notes cover both updaters on one Mac (#125)
+- Release notes list pull requests merged by squash as well as by merge commit (#124)
+- The peace sign widens the session to the chat's default width, so other sessions give up only the space that needs (#123)
+- While you pinch and drag to scroll, the nose dot shows the scroll arrows (#122)
+- Website animations are straight and larger, with a caption on each saying what to notice (#121)
+- Automatic camera starts a calibrated camera first; a missing permission shows one button (#120)
+- Choose the camera from the menu bar panel (#119)
+- With the lid closed, each dictation first moves the Mac's input to a microphone that works (#118)
+- Dictation safety records cannot be redirected by a planted link, and a deleted record stays deleted after a crash (#117)
+- Shipping a release warns before the local signing certificate expires and refuses after it (#115)
+- Update (#114)
+- Shorten the README's Security and limits section to one-line promises and a defaults paragraph (#113)
+- README install is two sentences; setup and calibration detail moves to a docs page (#112)
+- Add dependency review, CodeQL and Scorecard workflows (#111)
+- Each release's update feed entry carries the same notes as its release page (#110)
+- The rule that keeps the dictation safety record while a start press is in flight is decided in one tested place (#109)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.23/Ensemble-0.2.23.dmg" length="6404066" type="application/octet-stream" sparkle:edSignature="bXvkT9Uddol0egPmiCwGULTtHRj5ezJUcpk8g2DUCDQujtQl7X2zl2SDfbbJLc46DEM8Y7hWPOiUgqwY4GZ3Cg=="/>
+        </item>
+        <item>
             <title>0.2.22</title>
             <pubDate>Fri, 16 Oct 2026 19:32:39 -0400</pubDate>
             <sparkle:version>447</sparkle:version>
@@ -19,15 +57,6 @@
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.21/Ensemble-0.2.21.dmg" length="6394314" type="application/octet-stream" sparkle:edSignature="+11ZfKn7V7wI0ddHOxsQVUuYiNGvJjUPtdBVS5EDitp0N2h/Dg2Yi3L4L6vAeABWYAFjba83nzylqsdz+wSvDw=="/>
-        </item>
-        <item>
-            <title>0.2.20</title>
-            <pubDate>Thu, 15 Oct 2026 15:15:34 -0400</pubDate>
-            <sparkle:version>434</sparkle:version>
-            <sparkle:shortVersionString>0.2.20</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.20/Ensemble-0.2.20.dmg" length="6391078" type="application/octet-stream" sparkle:edSignature="MBodiBh3M3gBZorFfr6IUm3DXddaFSdjfPlnH+y2Z/J4KmmvAbu+9vKBmG9QOa1ncye9DlK80tLAtiZcFJyCDA=="/>
         </item>
     </channel>
 </rss>
