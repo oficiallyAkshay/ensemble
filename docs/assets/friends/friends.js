@@ -11,7 +11,9 @@ if (!root || !items.length) {
 } else {
   const table = root.querySelector('.table');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const BUBBLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11.1c0 2.5 1.4 4.7 3.6 6.2-.2 1.2-.9 2.400-1.800 3.300 1.900-.1 3.500-.9 4.700-1.800 1.100.3 2.300.5 3.500.5 5.500 0 10-3.600 10-8.100S17.500 3 12 3z"/></svg>';
+  const BUBBLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11.1c0 2.5 1.4 4.7 3.6 6.2-.2 1.2-.9 2.4-1.8 3.3 1.9-.1 3.5-.9 4.7-1.8 1.1.3 2.3.5 3.5.5 5.5 0 10-3.6 10-8.1S17.5 3 12 3z"/></svg>';
+  // the generic contact avatar iOS shows with no photo: head and shoulders on grey. Never a real person's picture.
+  const PERSON = '<svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="20" r="9" fill="#e9e9ee"/><path d="M8 46c1.500-10 9-14 18-14s16.500 4 18 14c-5 5-11 7-18 7s-13-2-18-7z" fill="#e9e9ee"/></svg>';
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // the same scatter every visit: a small seeded generator
@@ -22,7 +24,7 @@ if (!root || !items.length) {
   const tiles = items.map((m, i) => {
     const el = document.createElement('article');
     el.className = 'imsg'; el.tabIndex = 0; el.setAttribute('role', 'group'); el.setAttribute('aria-label', `${m.from}: ${m.text}`);
-    el.innerHTML = `<span class="app">${BUBBLE}</span><div><div class="top"><span class="from">${esc(m.from)}</span><time>${esc(m.time || 'now')}</time></div><p class="body">${esc(m.text)}</p></div>`;
+    el.innerHTML = `<span class="avatar">${PERSON}<span class="badge">${BUBBLE}</span></span><div><div class="top"><span class="from">${esc(m.from)}</span><time>${esc(m.time || 'now')}</time></div><p class="body">${esc(m.text)}</p></div>`;
     table.append(el);
     const base = (rnd() - 0.5) * 16;
     return { el, x: 0, y: 0, vx: 0, vy: 0, rot: base, base, vr: 0, w: 0, h: 0, held: null, z: i + 1 };
@@ -38,8 +40,8 @@ if (!root || !items.length) {
     for (const t of tiles) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
     const cols = Math.max(1, Math.floor(W / (tiles[0].w * 0.92)));
     const rows = Math.ceil(tiles.length / cols);
-    const rowH = Math.max(...tiles.map((t) => t.h)) * 0.86;
-    if (W < 560) table.style.height = `${Math.round(rows * rowH + 120)}px`; else table.style.height = '';
+    const rowH = Math.max(...tiles.map((t) => t.h)) * 0.98;
+    if (W < 560) table.style.height = `${Math.round(rows * rowH + 60)}px`; else table.style.height = '';
     const H = table.clientHeight, cellW = (W - tiles[0].w) / Math.max(cols - 1, 1), top = Math.max((H - ((rows - 1) * rowH + tiles[0].h)) / 2, 8);
     seed = 7;
     tiles.forEach((t, i) => {
