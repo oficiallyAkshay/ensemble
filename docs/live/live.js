@@ -506,6 +506,7 @@ function openClaude() {
 const menuOpen = () => !el.menu.hidden;
 function toggleMenu(open = !menuOpen()) {
   el.menu.hidden = !open; el.mbEns.setAttribute('aria-expanded', String(open));
+  if (!open) { $('mp-cams').hidden = true; $('mp-camera-pick').setAttribute('aria-expanded', 'false'); }
   if (open) { syncEns(); el.mpPower.focus({ preventScroll: true }); }
   placeTip();
 }
@@ -528,6 +529,8 @@ function syncEns() {
   el.mpStatus.textContent = !on ? 'Off' : S.machine.talking ? 'Claude dictation on' : S.centring ? 'Needs calibration' : 'Watching';
   const fps = Math.round(S.camera?.frameRate || 0);
   el.mpCamera.textContent = S.mode === 'camera' ? `Your camera${fps ? ` · camera ${fps} fps` : ''}` : S.mode === 'mouse' ? 'No camera' : 'Your camera';
+  // The browser names the camera only after the visitor has allowed it.
+  $('mp-cam-name').textContent = S.mode === 'camera' ? S.stream?.getVideoTracks()[0]?.label || 'Your camera' : S.mode === 'mouse' ? 'No camera' : 'Your camera';
   el.mpScreen.textContent = on && DONE.centred ? 'Calibrated for this window' : 'Not calibrated';
   el.mbEns.classList.toggle('hint', S.opened && !on && !menuOpen());
   $('stem-btn').disabled = !on; $('phones-note').hidden = on;
@@ -535,8 +538,17 @@ function syncEns() {
 
 const flip = (btn, on) => { btn.classList.toggle('on', on); btn.setAttribute('aria-checked', String(on)); };
 el.mbEns.addEventListener('click', () => toggleMenu());
-document.addEventListener('pointerdown', (e) => { if (menuOpen() && !el.menu.contains(e.target) && !el.mbEns.contains(e.target)) toggleMenu(false); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && menuOpen()) { toggleMenu(false); el.mbEns.focus(); } });
+const camPick = $('mp-camera-pick'), camList = $('mp-cams');
+function toggleCams(open = camList.hidden) { camList.hidden = !open; camPick.setAttribute('aria-expanded', String(open)); }
+camPick.addEventListener('click', () => toggleCams());
+document.addEventListener('pointerdown', (e) => {
+  if (!camList.hidden && !camList.contains(e.target) && !camPick.contains(e.target)) toggleCams(false);
+  if (menuOpen() && !el.menu.contains(e.target) && !el.mbEns.contains(e.target)) { toggleCams(false); toggleMenu(false); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!camList.hidden) { toggleCams(false); camPick.focus(); } else if (menuOpen()) { toggleMenu(false); el.mbEns.focus(); }
+});
 el.mpPower.addEventListener('click', () => {
   if (S.mode !== 'none') { turnOff(); return; }
   if (S.preferred === 'mouse' || phone) enterMouse(); else startCamera();

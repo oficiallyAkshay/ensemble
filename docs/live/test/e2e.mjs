@@ -62,6 +62,12 @@ async function camera() {
       say(`UI frame rate while tracking: ${fps.toFixed(0)} fps (headless Chrome)`);
       check('UI stays smooth while tracking (>= 30 fps)', fps >= 30, fps.toFixed(0));
       check('sees panel readouts are live', (await p.eval("document.getElementById('r-speed').textContent")) !== '-');
+      await p.eval("document.getElementById('mb-ens').click()");
+      await p.eval("document.getElementById('mp-camera-pick').click()");
+      check('the camera row is a picker: a list with a checkmark on the camera by its real name, and the panel stays open', await p.eval("(() => { const l = document.getElementById('mp-cams'); const n = document.getElementById('mp-cam-name').textContent; return !l.hidden && !document.getElementById('ens-menu').hidden && n !== 'Your camera' && n !== '' && !!document.querySelector('#mp-camera-pick .chev') && l.querySelector('[aria-selected=true] svg') !== null; })()"));
+      await p.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+      check('Escape closes the camera list first and leaves the panel open', await p.eval("document.getElementById('mp-cams').hidden && !document.getElementById('ens-menu').hidden"));
+      await p.eval("document.getElementById('mb-ens').click()");
       check('the centring step is up first: dot, line, countdown, Skip; the outline waits', await p.eval("(() => { const c = document.getElementById('centre'); return !c.hidden && window.__live.step() === 'centred' && !document.getElementById('hl').classList.contains('on') && !!c.querySelector('.bead') && document.getElementById('centre-skip').offsetParent !== null; })()"));
       check('with no face it says "Find the camera"', (await p.eval("document.getElementById('centre-line').textContent")) === 'Find the camera');
       await p.eval("document.getElementById('centre-skip').click()");
