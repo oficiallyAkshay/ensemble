@@ -4,14 +4,16 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-export const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+export const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 export const say = (m) => console.log(`[${new Date().toISOString()}] ${m}`);
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function launch({ port, flags = [], size = '1280,800' }) {
   const dir = mkdtempSync(join(tmpdir(), 'live-chrome-'));
+  // Chrome refuses to start as root without this, and cloud sessions run as root; the test browser only opens local pages.
+  const asRoot = process.platform !== 'darwin' && process.getuid?.() === 0 ? ['--no-sandbox'] : [];
   const proc = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check',
-    '--disable-background-timer-throttling', `--window-size=${size}`, ...flags, 'about:blank'], { stdio: 'ignore' });
+    '--disable-background-timer-throttling', `--window-size=${size}`, ...asRoot, ...flags, 'about:blank'], { stdio: 'ignore' });
   for (let i = 0; i < 100; i++) {
     try { const r = await fetch(`http://127.0.0.1:${port}/json/version`); if (r.ok) break; } catch { /* not up yet */ }
     await sleep(100);
