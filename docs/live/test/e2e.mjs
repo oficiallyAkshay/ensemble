@@ -1,4 +1,4 @@
-// End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|prefetch|camera|denied|nodevice|mouse|phone|cpu|nowebgl|modelfail|all]
+// End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|prefetch|camera|denied|nodevice|mouse|phone|tablet|cpu|nowebgl|modelfail|all]
 // It starts its own static server (serve.mjs, which sends the headers GitHub Pages sends and counts requests) and needs Chrome at the usual macOS path.
 // Fake camera: a test pattern with no face or hand.
 import { launch, Page, say, sleep } from './cdp.mjs';
@@ -285,26 +285,30 @@ async function modelfail() {
   } finally { p.close(); await c.close(); }
 }
 
-async function phone() {
-  say('scenario phone: touch emulation');
-  const c = await launch({ port: 9337, flags: [], size: '390,844' });
+// A phone or tablet sees only the message; the page never requests live.js, the trackers, the models or the 3D files.
+async function desktopOnly(name, port, size, userAgent) {
+  say(`scenario ${name}: touch emulation, no hover`);
+  const c = await launch({ port, flags: [], size: `${size.width},${size.height}` });
   const p = await Page.open(c.port); const w = await p.watch();
   try {
-    await p.send('Emulation.setUserAgentOverride', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
-    await p.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+    await p.send('Emulation.setUserAgentOverride', { userAgent });
+    await p.send('Emulation.setDeviceMetricsOverride', { width: size.width, height: size.height, deviceScaleFactor: 2, mobile: true });
     await p.send('Emulation.setTouchEmulationEnabled', { enabled: true });
     await p.send('Page.navigate', { url: URL_ });
     await p.waitFor("document.readyState === 'complete'", 15000);
-    check('phone: no camera button', await p.eval("document.getElementById('go-camera').hidden"));
-    check('phone: touch option', (await p.eval("document.getElementById('go-mouse').textContent")).includes('touch'));
-    check('phone: no horizontal overflow', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1'));
-    await p.eval("document.getElementById('go-mouse').click()");
-    await sleep(300);
-    check('phone: touch mode on', (await p.eval('window.__live.mode')) === 'mouse');
-    check('phone: nothing heavy loaded', !w.requests.some((r) => /models|vendor/.test(r.url)));
-    check('no console errors', real(w).length === 0, real(w).join(' | '));
+    await sleep(500);
+    const shown = (id) => p.eval(`document.getElementById('${id}').offsetParent !== null`);
+    check(`${name}: the desktop message shows, with the heading text`, (await shown('desktop-only')) && (await p.eval("document.querySelector('#desktop-only h1').textContent")) === 'The demo is available on desktop');
+    check(`${name}: links to the letter and the Mac download`, await p.eval(`(() => { const a = [...document.querySelectorAll('#desktop-only a')].map((x) => x.href); return a.includes(${JSON.stringify(LETTER)}) && a.includes(${JSON.stringify(DMG)}); })()`));
+    check(`${name}: no gate, no sessions, nothing else on the page`, !(await shown('gate')) && !(await shown('app')) && (await p.eval("document.querySelectorAll('.ls-pane').length")) === 0);
+    check(`${name}: no horizontal overflow`, await p.eval('document.documentElement.scrollWidth <= innerWidth + 1'));
+    check(`${name}: no model, vendor, 3D or main script request`, !w.requests.some((r) => /\/live\/(live\.js|vendor|models|sessions\.js)|\/assets\/3d\//.test(r.url)), w.requests.map((r) => r.url.replace(ORIGIN, '')).join(' '));
+    check(`${name}: no console errors`, real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
+const phone = () => desktopOnly('phone', 9337, { width: 390, height: 844 }, 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
+// iPadOS reports a desktop Mac user agent, so only the coarse pointer with no hover catches it.
+const tablet = () => desktopOnly('tablet', 9340, { width: 820, height: 1180 }, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15');
 
 
 // ---- the letter page: the popover flow, the prefetch, the star count ----
@@ -810,7 +814,7 @@ async function scrollable() {
 }
 
 const which = process.argv[2] || 'all';
-const all = { scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, cpu, nowebgl, modelfail };
+const all = { scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, tablet, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }

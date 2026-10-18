@@ -258,7 +258,16 @@ button { font-family: inherit; }
 /* arriving from the letter with the camera already allowed: no second ask, just the progress */
 html[data-go] .gate-intro { display: none; }
 
-/* ---- small screens: touch and mouse only ---- */
+/* ---- phones and tablets: only the message; the script in the page head sets the flag and live.js is never requested ---- */
+.ls-desktop-only { display: none; }
+html[data-desktop-only] .ls-desktop-only { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; box-sizing: border-box; min-height: 100dvh; max-width: 520px; margin: 0 auto; padding: 48px 24px; justify-content: center; }
+html[data-desktop-only] .ls-desktop-only .ens-mark { width: 32px; height: 36px; }
+html[data-desktop-only] .ls-desktop-only h1 { margin: 0; font: 650 clamp(24px, 7vw, 32px)/1.15 var(--e-display); letter-spacing: -0.03em; }
+html[data-desktop-only] .ls-desktop-only p { margin: 0 0 8px; color: #525252; }
+html[data-desktop-only] .ls-desktop-only .ls-actions { margin-bottom: 0; }
+html[data-desktop-only] .ls-app { display: none; }
+
+/* ---- small desktop windows: mouse only ---- */
 @media (max-width: 1000px) {
   .ls-stage { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
   .ls-pane { border-bottom: 1px solid var(--c-line); }

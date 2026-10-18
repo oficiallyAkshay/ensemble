@@ -12,7 +12,7 @@ Questions a review agent asks of the website (`docs/index.html`, `docs/live/`, `
 
 ## Setup
 
-- Viewports: 1440x900, 1280x720, 2560x1440, 1000x800, 820x900, 390x844 (touch, mobile user agent).
+- Viewports: 1440x900, 1280x720, 2560x1440, 1000x800, 820x900, 390x844 (touch, mobile user agent). On the touch sizes the demo shows only its "available on desktop" message.
 - Pages and states: the letter page top to bottom, scrolled so every 3D scene loads. The demo: desktop, Claude open, panel open, Ensemble on (mouse mode, and camera mode with a fake camera), each step, the Headphones tab, the install step, the finish card, the error card.
 - Run `node --test docs/live/test/logic.test.mjs`. On a Mac also run `node docs/live/test/e2e.mjs all`.
 - Measure in the page: distinct computed font sizes and weights per section, overlaps between sibling blocks, `scrollWidth - innerWidth`, console errors, every network request.
