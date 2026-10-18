@@ -27,7 +27,16 @@ button { font-family: inherit; }
 .ls-controls { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 /* the island sits where the real one does: top centre of the screen, over the menu bar */
 .ls-notch { position: absolute; z-index: 30; left: 0; right: 0; top: 0; display: flex; justify-content: center; pointer-events: none; }
-.ls-notch .ens-island { pointer-events: auto; }
+.ls-notch .ens-island { pointer-events: auto; border-radius: 0 0 24px 24px; box-shadow: none; transition: min-width 0.55s var(--e-spring), height 0.55s var(--e-spring), border-radius 0.55s var(--e-spring); }
+/* at rest the island IS the MacBook notch: black, hanging from the top edge of the screen, as tall as the menu bar. It grows downward when Ensemble speaks. */
+.ls-notch .ens-island[data-mode="idle"] { min-width: 188px; height: 28px; opacity: 1; transform: none; padding: 0 14px; border-radius: 0 0 14px 14px; justify-content: center; }
+.ls-notch .ens-island[data-mode="idle"] > .ens-mark { display: none; }
+.ls-notch .ens-island:not([data-mode="idle"]) { box-shadow: 0 14px 30px rgba(10, 10, 10, 0.3); }
+/* a ring spreads from the control a gesture pressed */
+.ripple { position: absolute; z-index: 5; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; pointer-events: none; border: 2px solid var(--e-blue); background: rgba(82, 148, 255, 0.22); animation: ls-ripple 0.85s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+.ripple.r2 { animation-delay: 0.14s; opacity: 0; }
+@keyframes ls-ripple { 0% { transform: scale(0.5); opacity: 0.95; } 100% { transform: scale(7); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ripple { animation-duration: 0.01s; } }
 
 /* ---- the Mac: menu bar, desktop with one app, a skeleton dock, and Claude's window opening from its icon ---- */
 .ls-main { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }

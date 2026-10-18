@@ -377,18 +377,33 @@ function intent(i) {
   else if (i.type === 'dragScroll') scrollFocused(i.handDy);
 }
 
+/** A ring spreads from the control a gesture pressed: the microphone for dictation, the composer's right end for send. */
+function ripple(pane, kind) {
+  const root = pane.el, base = root.getBoundingClientRect();
+  const target = kind === 'mic' ? root.querySelector('.ic.mic') : root.querySelector('.ls-composer');
+  if (!target) return;
+  const r = target.getBoundingClientRect();
+  const cx = kind === 'mic' ? r.left + r.width / 2 : r.right - 26, cy = r.top + r.height / 2;
+  for (const cls of ['r1', 'r2']) {
+    const ring = document.createElement('i'); ring.className = `ripple ${cls}`;
+    ring.style.left = `${cx - base.left}px`; ring.style.top = `${cy - base.top}px`;
+    root.append(ring); ring.addEventListener('animationend', () => ring.remove());
+    setTimeout(() => ring.remove(), 1500);
+  }
+}
+
 function beginDictation() {
   const pane = S.focus.target;
   if (!pane) { S.machine.abortTalk(); banner('info', 'No session in focus', 'Look at a session first'); return; }
   S.dict = { pane, start: now(), from: pane.typed };
-  pane.el.classList.add('dictating');
+  pane.el.classList.add('dictating'); ripple(pane, 'mic');
   tick_('dictated');
 }
 
 function endDictation(reason) {
   const d = S.dict;
   if (!d) return;
-  d.pane.el.classList.remove('dictating');
+  d.pane.el.classList.remove('dictating'); if (reason === 'released' || reason === 'stem') ripple(d.pane, 'mic');
   S.dict = null;
   if (reason !== 'switched' && d.pane.draft && !S.sending) banner('stopped', 'Dictation stopped', `Text kept in ${d.pane.name}, thumbs-up to send`, d.pane.name);
 }
@@ -406,6 +421,7 @@ function send() {
   if (!pane || !pane.draft.trim()) { banner('info', 'Nothing to send', 'Dictate into a session first'); return; }
   S.sending = true; endDictation('sent'); S.sending = false;
   const reply = pane.reply;
+  ripple(pane, 'send');
   addLine(pane, 'you', pane.draft.trim());
   setDraft(pane, ''); pane.typed = 0; pane.promptIdx += 1;
   stick(pane);
@@ -544,9 +560,9 @@ const tipEl = el.tip, spotEl = $('spot');
 const TIPS = {
   opened: () => ({ at: el.claudeIcon, pad: 8, radius: 18, side: 'left', html: phone ? 'Double-tap <strong>Claude</strong> to open it.' : 'Double-click <strong>Claude</strong> to open it.' }),
   enabled: () => (menuOpen()
-    ? { at: el.mpPower, hole: el.menu, pad: 4, radius: 26, side: 'left', html: mouseish() ? 'Flip the switch to turn <strong>Ensemble</strong> on. The mouse stands in for your hands.' : 'Flip the switch to turn <strong>Ensemble</strong> on. It asks for your camera; the video stays in this tab, and about 12 MB downloads.' }
+    ? { at: el.mpPower, hole: el.menu, also: el.mbEns, pad: 4, radius: 26, side: 'left', html: mouseish() ? 'Flip the switch to turn <strong>Ensemble</strong> on. The mouse stands in for your hands.' : 'Flip the switch to turn <strong>Ensemble</strong> on. It asks for your camera; the video stays in this tab, and about 12 MB downloads.' }
     : { at: el.mbEns, pad: 6, radius: 10, side: 'below', html: 'Click the <strong>Ensemble</strong> icon in the menu bar.' }),
-  looked: () => (S.mode !== 'none' && !S.centring ? { at: $('window'), pad: 0, radius: 12, side: 'inside', html: mouseish() ? 'Move the mouse over a session.' : 'Look at a session. The <strong>blue outline</strong> follows your nose.' } : null),
+  looked: () => (S.mode !== 'none' && !S.centring ? { at: $('window'), pad: 0, radius: 12, side: 'inside', html: mouseish() ? 'Move the mouse around the screen to select a session.' : 'Look around the screen to select and activate a session. The <strong>blue outline</strong> follows your nose.' } : null),
 };
 function placeTip() {
   const cur = currentStep(), spec = !el.finish.hidden || !el.gate.hidden ? null : TIPS[cur]?.();
@@ -554,7 +570,12 @@ function placeTip() {
   if (el.tipText.innerHTML !== spec.html) el.tipText.innerHTML = spec.html;
   const vw = innerWidth, vh = innerHeight, first = tipEl.hidden || spotEl.hidden;
   tipEl.hidden = false; spotEl.hidden = false; tipEl.dataset.side = spec.side;
-  const h = (spec.hole || spec.at).getBoundingClientRect(), r = spec.at.getBoundingClientRect(), pad = spec.pad;
+  const r = spec.at.getBoundingClientRect(), pad = spec.pad;
+  let h = (spec.hole || spec.at).getBoundingClientRect();
+  if (spec.also) {   // keep the menu-bar item lit together with its panel
+    const o = spec.also.getBoundingClientRect(), l = Math.min(h.left, o.left), t = Math.min(h.top, o.top), rr = Math.max(h.right, o.right), bb = Math.max(h.bottom, o.bottom);
+    h = { left: l, top: t, right: rr, bottom: bb, width: rr - l, height: bb - t };
+  }
   const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
   let x, y, ax = tw / 2;
   if (spec.side === 'left') { x = h.left - pad - tw - 16; y = r.top + r.height / 2 - th / 2; }
@@ -581,7 +602,7 @@ const HINTS = {
   opened: { camera: 'Double-click the <strong>Claude</strong> icon on the desktop.', mouse: 'Double-click the <strong>Claude</strong> icon on the desktop.', touch: 'Double-tap the <strong>Claude</strong> icon on the desktop.' },
   enabled: both('Click the Ensemble icon in the menu bar, then flip the switch to turn <strong>Ensemble</strong> on.'),
   centred: { camera: 'Point your nose at the glass dot and hold still for three seconds.', mouse: '' },
-  looked: { camera: 'Look at one of the sessions. The blue outline follows your nose.', mouse: 'Move the mouse over one of the sessions.' },
+  looked: { camera: 'Look around the screen to select and activate a session. The blue outline follows your nose.', mouse: 'Move the mouse around the screen to select a session.' },
   dictated: { camera: '<strong>Double pinch</strong> (thumb and index, twice, quickly) to dictate into the session you are looking at.', mouse: '<strong>Click twice</strong>, quickly, to dictate into the session under the mouse.' },
   sent: { camera: 'Hold a <strong>thumbs-up</strong> to send what was typed.', mouse: 'Press and hold still: that is the <strong>thumbs-up</strong>. It sends.' },
   scrolled: { camera: '<strong>Pinch and drag</strong> up or down to scroll the session you are looking at.', mouse: 'Press and <strong>drag</strong> up or down to scroll the session under the mouse.' },
@@ -633,7 +654,7 @@ $('stem-skip').addEventListener('click', () => selectTab('gestures', true));
   function stem(n) {
     if (S.mode === 'none') return;
     if (n === 1) {
-      if (S.machine.talking) { S.machine.pressTalk(false); endDictation('stopped'); }
+      if (S.machine.talking) { S.machine.pressTalk(false); endDictation('stem'); }
       else { S.machine.pressTalk(true); beginDictation(); }
       stemDone.once = true;
     } else {
