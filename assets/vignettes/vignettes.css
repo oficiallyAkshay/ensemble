@@ -1,0 +1,116 @@
+/* The "incredibly intuitive" gallery: eight abstract loops drawn in inline SVG, moved by CSS alone.
+   The base style of every shape is the still frame (the telling moment of the story), so a
+   visitor who asks for reduced motion sees stills; the animations are only added when motion is welcome. */
+
+.vigs { position: relative; max-width: 1280px; margin-inline: auto; padding: clamp(56px, 8vw, 110px) var(--gut) 0; }
+.vigs-head .ens-chip { background: #fff; font-size: 12px; padding: 8px 14px; box-shadow: 0 6px 16px rgba(80, 60, 160, 0.12); }
+.vigs h2 { margin: 18px 0 0; font: 700 clamp(40px, 6.2vw, 96px)/0.92 var(--e-display); letter-spacing: -0.05em; text-wrap: balance; }
+.vigs-lede { margin: 14px 0 0; max-width: 30em; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.45; color: #404040; letter-spacing: -0.01em; text-wrap: pretty; }
+.vig-grid { margin-top: clamp(24px, 3vw, 40px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(32px, 4vw, 56px) clamp(20px, 3vw, 40px); }
+.vig h3 { margin: 16px 0 0; font: 700 clamp(22px, 2.2vw, 28px)/1.1 var(--e-display); letter-spacing: -0.03em; }
+.vig p { margin: 8px 0 0; max-width: 30em; font-size: 16px; line-height: 1.5; color: #404040; letter-spacing: -0.01em; text-wrap: pretty; }
+.vig-art { aspect-ratio: 16 / 10; border-radius: 20px; overflow: hidden; background: #faf9f5; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08), 0 30px 60px -20px rgba(40, 30, 90, 0.3); }
+.vig-art svg { display: block; width: 100%; height: 100%; }
+:where(.vig-art svg *) { transform-box: fill-box; transform-origin: center; }
+
+.v-win { fill: #fff; stroke: rgba(10, 10, 10, 0.16); stroke-width: 2; }
+.v-off { fill: none; stroke: #a3a3a3; stroke-width: 2; stroke-dasharray: 6 6; }
+.v-edge { fill: none; stroke: var(--e-blue); stroke-width: 5; stroke-linecap: round; }
+.v-edge-base { stroke: #d4d4d4; stroke-width: 5; stroke-linecap: round; }
+.v-ink { fill: #262626; }
+.v-grey { fill: #c4c4c4; }
+.v-blue { fill: var(--e-blue); }
+.v-ring { fill: none; stroke: #262626; stroke-width: 3; }
+.v-line { fill: none; stroke: #262626; stroke-width: 4; stroke-linecap: round; }
+.v-thin { fill: none; stroke: #a3a3a3; stroke-width: 2; }
+.v-bar { transform-origin: 50% 100%; }
+
+/* still frames: the moment each story turns on */
+.q-keys { opacity: 0.35; }
+.g-gaze, .d-gaze, .s-gaze { translate: 142px 0; }
+.g-edge, .s-no { opacity: 1; }
+.s-edge, .d-mic { opacity: 0; }
+.p-chip-in { translate: 150px 0; }
+.p-chip-out { translate: 62px 0; opacity: 0.7; }
+.p-dot { offset-distance: 60%; }
+.a-wave { opacity: 0; }
+.a-pause, .a-listen { opacity: 1; }
+.l-lid { scale: 1 0.08; }
+.l-dot { translate: 150px 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(.vig-art svg *) { animation-duration: 8s; animation-timing-function: var(--e-ease); animation-iteration-count: infinite; }
+  .vig-art.off svg * { animation-play-state: paused; }
+
+  /* 1: typing hides the highlight and dot; they return when you rest */
+  .q-hl, .q-dot { animation-name: v-rest; }
+  .q-keys { animation-name: v-keys; }
+  .q-key { animation-name: v-press; animation-timing-function: ease-in-out; }
+  .q-key:nth-child(2) { animation-delay: -0.1s; } .q-key:nth-child(3) { animation-delay: -0.2s; } .q-key:nth-child(4) { animation-delay: -0.3s; }
+  .q-key:nth-child(5) { animation-delay: -0.15s; } .q-key:nth-child(6) { animation-delay: -0.25s; }
+  @keyframes v-rest { 0%, 8% { opacity: 1; } 14%, 58% { opacity: 0; } 68%, 100% { opacity: 1; } }
+  @keyframes v-keys { 0%, 8% { opacity: 0.35; } 14%, 58% { opacity: 1; } 68%, 100% { opacity: 0.35; } }
+  @keyframes v-press { 0%, 13%, 18%, 22%, 27%, 31%, 36%, 40%, 45%, 49%, 54%, 100% { translate: 0 0; } 15%, 24%, 33%, 42%, 51% { translate: 0 4px; } }
+
+  /* 2, 3, 4: the gaze leaves for the other window and comes back */
+  .g-gaze, .d-gaze, .s-gaze { animation-name: v-gaze; }
+  .g-edge, .s-no { animation-name: v-on-away; }
+  .s-edge { animation-name: v-off-away; }
+  .g-bar { animation: v-talk 0.9s ease-in-out infinite alternate; }
+  .g-bar:nth-child(2) { animation-delay: -0.2s; } .g-bar:nth-child(3) { animation-delay: -0.45s; } .g-bar:nth-child(4) { animation-delay: -0.1s; } .g-bar:nth-child(5) { animation-delay: -0.6s; }
+  @keyframes v-gaze { 0%, 22% { translate: 0 0; } 36%, 80% { translate: 142px 0; } 94%, 100% { translate: 0 0; } }
+  @keyframes v-on-away { 0%, 24% { opacity: 0; } 36%, 80% { opacity: 1; } 94%, 100% { opacity: 0; } }
+  @keyframes v-off-away { 0%, 24% { opacity: 1; } 36%, 80% { opacity: 0; } 94%, 100% { opacity: 1; } }
+  @keyframes v-talk { from { scale: 1 0.3; } to { scale: 1 1; } }
+
+  /* 3: the words are typed, the microphone stops on the drift, the words stay */
+  .d-line { scale: 1 1; animation-name: v-type; transform-origin: 0 50%; }
+  .d-line:nth-child(2) { animation-delay: -0.3s; } .d-line:nth-child(3) { animation-delay: -0.6s; }
+  .d-mic { animation-name: v-live; }
+  .d-pulse { animation: v-ping 1.4s ease-out infinite; }
+  @keyframes v-type { 0%, 3% { scale: 0 1; } 22%, 96% { scale: 1 1; } 100% { scale: 0 1; } }
+  @keyframes v-live { 0%, 30% { opacity: 1; } 36%, 96% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes v-ping { from { scale: 1; opacity: 0.9; } to { scale: 2.6; opacity: 0; } }
+
+  /* 4: the pinch keeps happening and nothing answers */
+  .s-pinch-a { animation: v-pinch-a 1.2s ease-in-out infinite alternate; }
+  .s-pinch-b { animation: v-pinch-b 1.2s ease-in-out infinite alternate; }
+  @keyframes v-pinch-a { to { translate: 10px 0; } }
+  @keyframes v-pinch-b { to { translate: -10px 0; } }
+
+  /* 5: the narrated message passes the gate; the typed one stops at it */
+  .p-chip-in { animation-name: v-pass; }
+  .p-chip-out { animation-name: v-stop; }
+  .p-bar { animation: v-talk 0.9s ease-in-out infinite alternate; }
+  .p-bar:nth-child(2) { animation-delay: -0.3s; } .p-bar:nth-child(3) { animation-delay: -0.55s; }
+  @keyframes v-pass { 0%, 8% { translate: 0 0; opacity: 0; } 12% { translate: 0 0; opacity: 1; } 40%, 80% { translate: 150px 0; opacity: 1; } 90%, 100% { translate: 150px 0; opacity: 0; } }
+  @keyframes v-stop { 0%, 8% { translate: 0 0; opacity: 0; } 12% { translate: 0 0; opacity: 0.7; } 36%, 44% { translate: 62px 0; opacity: 0.7; } 40% { translate: 54px 0; opacity: 0.7; } 80% { translate: 62px 0; opacity: 0.7; } 90%, 100% { translate: 62px 0; opacity: 0; } }
+
+  /* 6: Ensemble's two required links carry a pulse; the optional one only moves the bars */
+  .p-dot { animation: v-flow 2.4s ease-in-out infinite; }
+  .p-dot.b { animation-delay: -1.2s; }
+  .m-bar { animation: v-talk 0.8s ease-in-out infinite alternate; }
+  .m-bar:nth-child(2) { animation-delay: -0.25s; } .m-bar:nth-child(3) { animation-delay: -0.5s; }
+  .c-ping { animation: v-ping 1.6s ease-out infinite; }
+  @keyframes v-flow { from { offset-distance: 0%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } to { offset-distance: 100%; opacity: 0; } }
+
+  /* 7: the speaker's music pauses while the microphone listens, then resumes */
+  .a-wave { animation-name: v-sound; }
+  .a-ripple { animation: v-ripple 1.4s ease-in-out infinite alternate; }
+  .a-pause { animation-name: v-quiet; }
+  .a-listen { animation-name: v-quiet; }
+  .a-ring { animation: v-ping 1.6s ease-out infinite; }
+  @keyframes v-sound { 0%, 24% { opacity: 1; } 30%, 72% { opacity: 0; } 78%, 100% { opacity: 1; } }
+  @keyframes v-quiet { 0%, 24% { opacity: 0; } 30%, 72% { opacity: 1; } 78%, 100% { opacity: 0; } }
+  @keyframes v-ripple { from { opacity: 0.45; } to { opacity: 1; } }
+
+  /* 8: the lid shuts, the input hops to the other microphone, and back when the lid opens */
+  .l-lid { animation-name: v-lid; transform-origin: 50% 100%; }
+  .l-dot { animation-name: v-hop; }
+  @keyframes v-lid { 0%, 14% { scale: 1 1; } 24%, 70% { scale: 1 0.08; } 80%, 100% { scale: 1 1; } }
+  @keyframes v-hop { 0%, 26% { translate: 0 0; } 40%, 72% { translate: 150px 0; } 88%, 100% { translate: 0 0; } }
+}
+
+@media (max-width: 700px) {
+  .vig-grid { grid-template-columns: minmax(0, 1fr); }
+}
