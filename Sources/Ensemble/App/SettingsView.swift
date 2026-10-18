@@ -138,7 +138,7 @@ private struct ActionSettings: View {
             }
             Section {
                 ActionRow(symbol: "arrow.left.and.right", title: "Maximize session",
-                          detail: "Hold a peace sign for about half a second: the session you face widens and the others in that window narrow.") {
+                          detail: "Hold a peace sign for about half a second: the session you face widens to the chat's default width, and the others in that window give up only the space that needs.") {
                     onOffPicker("Maximize session", gesture: "Peace sign", symbol: "hand.point.up.fill", isOn: $settings.maximizeByPeace)
                 }
                 ActionRow(symbol: "rectangle.split.3x1", title: "Even out sessions",

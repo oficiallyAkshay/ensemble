@@ -124,7 +124,7 @@ public enum GestureIntent: Equatable, Sendable {
     case scroll(dy: Double)                 // points for this frame; negative = up the transcript, positive = down
     case dragScroll(handDy: Double)         // pinch and drag: points of hand travel this frame, positive = hand moved up
     case dragScrollEnded                    // the pinch opened or the hand left: scrolling stops now
-    case maximizeSession                    // peace sign held: the session under the nose takes most of the window width
+    case maximizeSession                    // peace sign held: the session under the nose widens to the chat's default width
     case evenOutSessions                    // scissors: every session in that row gets an equal share again
 }
 

@@ -31,6 +31,29 @@ import Testing
         #expect(abs(w[0] - 915.2) < 0.001)
     }
 
+    /// The peace sign asks for the same width as the rest on a narrow session, with no earlier fit held (`floors: []`).
+    @Test(arguments: [
+        ([700.0, 1820], 0, [915.2, 1604.8]),
+        ([600.0, 600, 1320], 0, [915.2, 600, 1004.8]),
+        ([630.0, 630, 630, 630], 3, [630, 630, 344.8, 915.2]),
+    ] as [([Double], Int, [Double])])
+    func thePeaceSignWidensToTheChatWidthAndTakesNoMoreThanItNeeds(_ row: [Double], _ k: Int, _ planned: [Double]) throws {
+        let want = SessionFit.fitWidth(paneColumn: 832)
+        let w = try #require(SessionFit.restingFit(current: row, focus: k, width: want, keep: 832, minimum: 316, floors: []))
+        for (a, b) in zip(w, planned) { #expect(abs(a - b) < 0.001, "\(w)") }
+        #expect(abs(w.reduce(0, +) - row.reduce(0, +)) < 0.001)
+        #expect(w.enumerated().allSatisfy { $0.offset == k || $0.element >= 316 })
+        // The keys land the session within one arrow of the plan.
+        let presses = PaneKeys.plan(from: row, to: w, minimum: 316)
+        #expect(abs(PaneKeys.simulate(row, minimum: 316, presses: presses)[k] - want) <= PaneKeys.arrow)
+    }
+
+    @Test func thePeaceSignDoesNothingToASessionAlreadyWiderThanTheChatWidth() {
+        for (row, k) in [([1000.0, 1520], 0), ([1000.0, 500, 1020], 0), ([1000.0, 500, 500, 520], 0)] {
+            #expect(SessionFit.restingFit(current: row, focus: k, width: 915.2, keep: 832, minimum: 316, floors: []) == nil)
+        }
+    }
+
     @Test func theWiderSideGivesWhenBothNeighboursCould() throws {
         let w = try #require(SessionFit.widths(current: [1000, 400, 1400], focus: 1, width: 900, keep: 832))
         #expect(w == [1000, 900, 900])

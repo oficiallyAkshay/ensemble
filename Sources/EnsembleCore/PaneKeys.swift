@@ -45,9 +45,6 @@ public enum PaneKeys {
     public static let safeInterval: Double = 0.01
     /// Claude's minimum pane width when its dividers report no limits (the limits read 24 percent of a 1320 pt pair).
     public static let fallbackMinimum: Double = 316
-    /// How many sweeps a maximize may take. Claude can stop a Home or End short of the minimum while its limits still
-    /// describe the pair as it was before the sweep widened it, so a sweep is repeated until nothing is left to move.
-    public static let maximizeSweeps = 5
 
     /// Claude's minimum pane width from its dividers. Each reports its pair's limits in whole percent of the pair's
     /// width; the largest reading is used so a planned width is never one Claude refuses.
@@ -59,34 +56,10 @@ public enum PaneKeys {
         return readings.max() ?? fallbackMinimum
     }
 
-    /// Pane `k` as wide as Claude allows, every other pane in its row at Claude's minimum.
-    public static func maximizeWidths(_ widths: [Double], focus k: Int, minimum: Double) -> [Double]? {
-        guard widths.count >= 2, widths.indices.contains(k), valid(widths), minimum.isFinite, minimum > 0 else { return nil }
-        let total = widths.reduce(0, +)
-        let rest = Double(widths.count - 1) * minimum
-        guard total - rest > minimum else { return nil }
-        return widths.indices.map { $0 == k ? total - rest : minimum }
-    }
-
     /// Every pane the same width.
     public static func evenWidths(_ widths: [Double]) -> [Double]? {
         guard widths.count >= 2, valid(widths) else { return nil }
         return Array(repeating: widths.reduce(0, +) / Double(widths.count), count: widths.count)
-    }
-
-    /// One maximize sweep toward pane `k`: Home on each divider left of it from the far left inward, so every pane
-    /// there drops to the minimum and passes its width on to the right, and End on each divider right of it from the
-    /// far right inward, the same toward the left; the target takes what is left. The sweep on each side starts at
-    /// the outermost pane wider than one arrow over `floor` (the narrowest Claude allows, as far as it is known):
-    /// panes outside it are already at the minimum, and every pane inside it receives width from the one before, so
-    /// a row that is already maximized gets no keys. Repeat with fresh widths until it is empty (`maximizeSweeps`).
-    public static func maximizeSweep(_ widths: [Double], focus k: Int, floor: Double) -> [Press] {
-        guard widths.count >= 2, widths.indices.contains(k), valid(widths), floor.isFinite, floor > 0 else { return [] }
-        let wide = { (i: Int) in widths[i] > floor + arrow }
-        var out: [Press] = []
-        if let first = (0..<k).first(where: wide) { out += (first..<k).map { Press($0, .home) } }
-        if let last = (k + 1..<widths.count).last(where: wide) { out += (k + 1...last).reversed().map { Press($0 - 1, .end) } }
-        return out
     }
 
     /// The presses that take the row from `widths` toward `target`, each divider once in an order where every move
@@ -136,24 +109,16 @@ public enum PaneKeys {
     /// How long the keys take at `pace`, not counting the moves of the keyboard from one divider to the next.
     public static func duration(_ presses: [Press], pace: Double = interval) -> Double { Double(presses.count) * pace }
 
-    /// What the presses do to a row whose panes cannot go below `minimum`, as Claude does it. With `limitsFrom`,
-    /// Home and End stop where Claude's limits put them while they still describe the row as `limitsFrom` had it:
-    /// each pair's limit is the minimum as a share of the pair it was then, so a pair that has grown since stops
-    /// short of the minimum.
-    public static func simulate(_ widths: [Double], minimum: Double, presses: [Press], limitsFrom: [Double]? = nil) -> [Double] {
+    /// What the presses do to a row whose panes cannot go below `minimum`, as Claude does it.
+    public static func simulate(_ widths: [Double], minimum: Double, presses: [Press]) -> [Double] {
         var w = widths
         for p in presses where p.divider >= 0 && p.divider + 1 < w.count {
             let pair = w[p.divider] + w[p.divider + 1]
             guard pair >= 2 * minimum else { continue }
-            var limit = minimum
-            if let old = limitsFrom, old.count == w.count {
-                let then = old[p.divider] + old[p.divider + 1]
-                if then >= 2 * minimum { limit = min(max(minimum, pair * minimum / then), pair / 2) }
-            }
             let left: Double
             switch p.key {
-            case .home: left = limit
-            case .end: left = pair - limit
+            case .home: left = minimum
+            case .end: left = pair - minimum
             default: left = min(max(w[p.divider] + (p.key.step ?? 0), minimum), pair - minimum)
             }
             w[p.divider] = left

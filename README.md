@@ -21,7 +21,7 @@
 
 <p align="center"><b>Scroll with one hand</b><br>Pinch and drag to scroll the session, and flick for momentum.</p>
 
-<p align="center"><b>Fits the chat column</b><br>A session you look at widens enough to read, a peace sign makes it as wide as Claude allows, and scissors share the window evenly.</p>
+<p align="center"><b>Fits the chat column</b><br>A session you look at widens enough to read, a peace sign widens it to the chat's default width and no further, and scissors share the window evenly.</p>
 
 <p align="center"><b>Always shows its state</b><br>A capsule at the top of the screen names the state and the session, so nothing happens by surprise.</p>
 
