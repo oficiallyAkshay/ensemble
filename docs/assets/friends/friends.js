@@ -40,14 +40,16 @@ if (!root || !items.length) {
     for (const t of tiles) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
     const cols = Math.max(1, Math.floor(W / (tiles[0].w * 0.92)));
     const rows = Math.ceil(tiles.length / cols);
-    const rowH = (tiles.reduce((n, t) => n + t.h, 0) / tiles.length) * 0.9;   // by the average tile, so a few tall ones do not spread the rest apart
-    table.style.height = `${Math.max(Math.round(rows * rowH + 120), W < 560 ? 0 : 520)}px`;   // tall enough for every tile; they may overlap a little, like a pile
-    const H = table.clientHeight, cellW = (W - tiles[0].w) / Math.max(cols - 1, 1), top = Math.max((H - ((rows - 1) * rowH + tiles[0].h)) / 2, 8);
+    // each row is as tall as its tallest tile (a little overlapped), so a long text never lands on the row below it
+    const rowTop = [0];
+    for (let r = 0; r < rows; r++) rowTop.push(rowTop[r] + Math.max(...tiles.slice(r * cols, r * cols + cols).map((t) => t.h)) * 0.9);
+    table.style.height = `${Math.max(Math.round(rowTop[rows] + 70), W < 560 ? 0 : 520)}px`;
+    const H = table.clientHeight, cellW = (W - tiles[0].w) / Math.max(cols - 1, 1), top = Math.max((H - rowTop[rows]) / 2, 8);
     seed = 7;
     tiles.forEach((t, i) => {
       const c = i % cols, r = Math.floor(i / cols), offset = r % 2 ? cellW * 0.35 : 0;
       t.x = clampX(t, (cols === 1 ? (W - t.w) / 2 : c * cellW + offset) + (rnd() - 0.5) * 36);
-      t.y = clampY(t, top + r * rowH + (rnd() - 0.5) * 30);
+      t.y = clampY(t, top + rowTop[r] + (rnd() - 0.5) * 24);
       t.vx = t.vy = t.vr = 0; paint(t);
     });
   }
