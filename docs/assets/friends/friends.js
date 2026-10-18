@@ -40,8 +40,8 @@ if (!root || !items.length) {
     for (const t of tiles) { t.w = t.el.offsetWidth; t.h = t.el.offsetHeight; }
     const cols = Math.max(1, Math.floor(W / (tiles[0].w * 0.92)));
     const rows = Math.ceil(tiles.length / cols);
-    const rowH = Math.max(...tiles.map((t) => t.h)) * 0.98;
-    if (W < 560) table.style.height = `${Math.round(rows * rowH + 60)}px`; else table.style.height = '';
+    const rowH = (tiles.reduce((n, t) => n + t.h, 0) / tiles.length) * 0.9;   // by the average tile, so a few tall ones do not spread the rest apart
+    table.style.height = `${Math.max(Math.round(rows * rowH + 120), W < 560 ? 0 : 520)}px`;   // tall enough for every tile; they may overlap a little, like a pile
     const H = table.clientHeight, cellW = (W - tiles[0].w) / Math.max(cols - 1, 1), top = Math.max((H - ((rows - 1) * rowH + tiles[0].h)) / 2, 8);
     seed = 7;
     tiles.forEach((t, i) => {
@@ -112,6 +112,9 @@ if (!root || !items.length) {
     });
   }
 
+  // longer texts start on top of the pile, so the most to read is not the most buried
+  [...tiles].sort((a, b) => a.el.textContent.length - b.el.textContent.length).forEach((t, i) => { t.z = i + 1; });
+  z = tiles.length;
   root.hidden = false;
   layout();
   let width = table.clientWidth;
