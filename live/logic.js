@@ -306,8 +306,12 @@ export class GestureMachine {
     return null;
   }
 
+  /** A headphone press starts or stops dictation with no hand, so the stale-frame stop does not apply to it.
+   *  (The Mac app handles stem presses in HeadphoneRemote, outside its gesture machine; this is the demo's stand-in.) */
+  pressTalk(on) { this.talking = on; this.remote = on; this.lastTapEnd = null; }
+
   reset() {
-    this.talking = false;
+    this.talking = false; this.remote = false;
     this.pinchIsClosed = false; this.pinchClosedAt = null; this.lastTapEnd = null;
     this.pinchToggled = false; this.dragging = false; this.isDragging = false; this.closeSince = null; this.openSince = null; this.lastPinchT = null;
     this.pinchSuspect = false; this.lastSendPoseT = -Infinity;
@@ -317,7 +321,7 @@ export class GestureMachine {
 
   /** The caller refused the dictation this machine announced: forget it so the next double tap starts again. */
   abortTalk() {
-    this.talking = false;
+    this.talking = false; this.remote = false;
     this.lastTapEnd = null;
     this.lastToggleAt = -Infinity;
   }
@@ -368,7 +372,7 @@ export class GestureMachine {
 
   /** Call on a timer. Ends a dictation hold when the camera stopped delivering frames. */
   tick(now) {
-    if (!this.talking || this.lastPushT === null || now - this.lastPushT < GestureMachine.staleHold) return [];
+    if (!this.talking || this.remote || this.lastPushT === null || now - this.lastPushT < GestureMachine.staleHold) return [];
     const intents = [];
     this.endTalk('stale', now, intents);
     return intents;
@@ -468,7 +472,7 @@ export class GestureMachine {
   }
 
   endTalk(reason, t, intents) {
-    this.talking = false;
+    this.talking = false; this.remote = false;
     this.lastTalkEndT = t;
     if (reason !== 'released') this.run = null;
     intents.push({ type: 'talkEnded', reason });

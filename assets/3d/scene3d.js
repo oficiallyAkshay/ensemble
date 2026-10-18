@@ -2,7 +2,8 @@
  * Needs three.js r128 globals (THREE, THREE.GLTFLoader, THREE.CCDIKSolver).
  * Hand model: WebXR generic hand (MIT), loaded from opts.handUrl (default 'assets/hand.glb').
  *
- *   window.EnsembleScene.mount(el, { scene, reducedMotion, onFrame, handUrl }) -> { setScene, destroy, canvas }
+ *   window.EnsembleScene.mount(el, { scene, reducedMotion, onFrame, handUrl, handOnly }) -> { setScene, destroy, canvas }
+ *   handOnly (gesture scenes only): the 3D hand fills el and no Claude window is drawn.
  *   The welcome and calibrate scenes fill el with one 3D canvas (desk, head, monitors). The gesture scenes (dictate,
  *   send, scroll) mount the frame layout instead: a flat 2D Claude window with one focused session, and over its
  *   right COLUMN share a top panel holding the 3D hand alone. The bottom half of that column is left empty for the
@@ -1723,8 +1724,15 @@
     renderer.setClearColor(0xffffff, frameMode ? 0 : 1);
     renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
     if (!container.style.position) container.style.position = 'relative';
-    var sizeBox = container, frameView = null, frameCanvas = null, column = null;
-    if (frameMode) {
+    var sizeBox = container, frameView = null, frameCanvas = null, column = null, panel0 = null;
+    if (frameMode && opts.handOnly) {
+      // The hand alone, filling the container: the website's demo draws its own Claude window and keeps this panel for the gesture.
+      panel0 = document.createElement('div');
+      panel0.style.cssText = 'position:absolute;inset:0;overflow:hidden;background:linear-gradient(180deg,#ffffff,#f1f4f9)';
+      panel0.appendChild(renderer.domElement);
+      container.appendChild(panel0);
+      sizeBox = panel0;
+    } else if (frameMode) {
       frameCanvas = document.createElement('canvas');
       frameCanvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block';
       frameView = makeFrameView(frameCanvas);
@@ -1805,7 +1813,7 @@
       var extra = {};
       if (isHand) {
         loadHand();
-        frameView.draw(stateFor(name, t), name, t);
+        if (frameView) frameView.draw(stateFor(name, t), name, t);
         if (hand) {
           hand.pivot.visible = true;
           var ctk = capTake(name);
@@ -1847,7 +1855,7 @@
         if (ro) ro.disconnect(); else window.removeEventListener('resize', resize);
         disposables.forEach(function (d) { if (d && d.dispose) d.dispose(); });
         renderer.dispose();
-        [renderer.domElement, frameCanvas, column].forEach(function (el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
+        [renderer.domElement, frameCanvas, column, panel0].forEach(function (el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
         if (lastInstance === handle) lastInstance = null;
       },
       _seek: function (name, t) {

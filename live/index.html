@@ -13,49 +13,127 @@
 <link rel="stylesheet" href="live.css">
 </head>
 <body>
-<div class="ls-app" id="app" data-state="gate" data-mode="none">
+<div class="ls-app" id="app" data-state="desk" data-mode="none">
 
-  <div class="ls-bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+  <div class="ls-left">
 
-  <header class="ls-top">
-    <div class="ls-brand"><b><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</b><a href="../index.html">Back to the letter</a></div>
-    <div class="ens-island" id="island" data-mode="idle" role="status" aria-live="polite">
-      <svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
-      <span class="ens-glyph" aria-hidden="true">
-        <svg class="g-look" viewBox="0 0 26 18"><circle class="ring" cx="13" cy="9" r="6.5"/><circle class="pip" cx="13" cy="9" r="2.2"/></svg>
-        <svg class="g-pinch" viewBox="0 0 26 18"><circle class="tip a" cx="9" cy="9" r="3.2"/><circle class="tip b" cx="17" cy="9" r="3.2"/></svg>
-        <svg class="g-mic" viewBox="0 0 26 18"><rect x="10" y="1.5" width="6" height="10" rx="3"/><path d="M7 8.5a6 6 0 0 0 12 0M13 14.5v2" fill="none"/></svg>
-        <svg class="g-send" viewBox="0 0 26 18"><path d="M5 9 21 3l-4 12-4-5z"/></svg>
-        <svg class="g-switch" viewBox="0 0 26 18"><path d="M4 6h14m-3-3 3 3-3 3M22 12H8m3-3-3 3 3 3" fill="none"/></svg>
-        <svg class="g-check" viewBox="0 0 26 18"><path d="m6 9 4 4 9-9" fill="none"/></svg>
-      </span>
-      <span class="ens-text"><b class="l1"></b><span class="l2"></span></span>
-      <span class="ens-hint"></span>
-      <i class="ens-edge" aria-hidden="true"></i>
+  <main class="ls-main">
+    <div class="ls-mac" id="mac" data-claude="closed" aria-label="A mock Mac desktop with one app on it, Claude">
+      <div class="ls-bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+      <div class="ls-notch">
+      <div class="ens-island" id="island" data-mode="idle" role="status" aria-live="polite">
+    <svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
+    <span class="ens-glyph" aria-hidden="true">
+      <svg class="g-look" viewBox="0 0 26 18"><circle class="ring" cx="13" cy="9" r="6.5"/><circle class="pip" cx="13" cy="9" r="2.2"/></svg>
+      <svg class="g-pinch" viewBox="0 0 26 18"><circle class="tip a" cx="9" cy="9" r="3.2"/><circle class="tip b" cx="17" cy="9" r="3.2"/></svg>
+      <svg class="g-mic" viewBox="0 0 26 18"><rect x="10" y="1.5" width="6" height="10" rx="3"/><path d="M7 8.5a6 6 0 0 0 12 0M13 14.5v2" fill="none"/></svg>
+      <svg class="g-send" viewBox="0 0 26 18"><path d="M5 9 21 3l-4 12-4-5z"/></svg>
+      <svg class="g-switch" viewBox="0 0 26 18"><path d="M4 6h14m-3-3 3 3-3 3M22 12H8m3-3-3 3 3 3" fill="none"/></svg>
+      <svg class="g-check" viewBox="0 0 26 18"><path d="m6 9 4 4 9-9" fill="none"/></svg>
+    </span>
+    <span class="ens-text"><b class="l1"></b><span class="l2"></span></span>
+    <span class="ens-hint"></span>
+    <i class="ens-edge" aria-hidden="true"></i>
+  </div>
+      </div>
+      <div class="ls-menubar" aria-hidden="false">
+        <svg class="mb-apple" viewBox="0 0 18 22" aria-hidden="true"><path d="M12.6 0c.1 1.3-.4 2.600-1.200 3.500-.8.9-2 1.600-3.200 1.500-.1-1.200.5-2.500 1.200-3.300C10.200.800 11.500.100 12.600 0zm3.800 7.800c-.1.100-2.200 1.300-2.200 3.900 0 3 2.700 4.100 2.700 4.100s-1.900 5.400-4.600 5.400c-1.200 0-1.900-.8-3.300-.8s-2.100.8-3.300.8C3.200 21.200.5 16.200.5 12c0-4 2.500-6.100 4.900-6.100 1.300 0 2.300.8 3.200.8.700 0 1.900-.9 3.500-.9.600 0 2.600.1 3.900 1.800z"/></svg>
+        <b class="mb-app" id="mb-app">Finder</b>
+        <i class="sk w34"></i><i class="sk w28"></i><i class="sk w40"></i><i class="sk w30"></i>
+        <span class="mb-gap"></span>
+        <button type="button" class="mb-ens" id="mb-ens" aria-haspopup="menu" aria-expanded="false" aria-controls="ens-menu" aria-label="Ensemble, in the menu bar. Off.">
+          <svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
+        </button>
+        <i class="sk w18"></i><i class="sk w22"></i>
+        <span class="mb-clock" id="mb-clock">9:41</span>
+      </div>
+
+      <!-- The menu-bar panel, laid out as MenuPanelView.swift lays it out: header with the switch, status card, toggles, buttons, footer. -->
+      <div class="ls-menu" id="ens-menu" role="dialog" aria-label="Ensemble" hidden>
+        <div class="mp-card mp-header">
+          <span class="mp-icon"><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></span>
+          <span class="mp-title"><b>Ensemble</b><span id="mp-status">Off</span></span>
+          <button type="button" class="mp-switch lg" id="mp-power" role="switch" aria-checked="false" aria-label="Ensemble on or off"><i></i></button>
+        </div>
+        <div class="mp-card mp-status">
+          <div class="mp-row"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="8" r="5.5"/><circle cx="10" cy="8" r="2"/><path d="M6 17.500h8M10 13.500v4"/></svg><span id="mp-camera">Your camera</span></div>
+          <div class="mp-row link"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.500" y="3" width="11" height="8" rx="1.500"/><rect x="8" y="8" width="9.500" height="7.500" rx="1.500"/></svg><span id="mp-screen">Not calibrated</span><svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></div>
+        </div>
+        <div class="mp-card mp-toggles">
+          <label class="mp-toggle"><span>Show nose dot</span><button type="button" class="mp-switch sm on" id="mp-dot" role="switch" aria-checked="true" aria-label="Show nose dot"><i></i></button></label>
+          <label class="mp-toggle"><span>Show highlight</span><button type="button" class="mp-switch sm on" id="mp-hl" role="switch" aria-checked="true" aria-label="Show highlight"><i></i></button></label>
+        </div>
+        <div class="mp-buttons">
+          <button type="button" class="mp-btn" id="mp-replay"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.500"/><path d="m8.500 7 4.500 3-4.500 3z"/></svg>Replay tour</button>
+          <button type="button" class="mp-btn" id="mp-update" title="Part of the Mac app"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10a6 6 0 1 1-1.800-4.300M16 3.500v3h-3"/></svg>Check for Updates</button>
+          <button type="button" class="mp-btn" id="mp-calibrate"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3"/><circle cx="10" cy="10" r=".8"/></svg>Calibrate…</button>
+          <button type="button" class="mp-btn" id="mp-settings" title="Part of the Mac app"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.500"/><path d="M10 2.500v2M10 15.500v2M2.500 10h2M15.500 10h2M4.700 4.700l1.400 1.400M13.900 13.900l1.400 1.400M15.300 4.700l-1.400 1.400M6.100 13.900l-1.400 1.400"/></svg>Settings…</button>
+        </div>
+        <div class="mp-foot"><span>Version 0.2.21</span><button type="button" id="mp-quit" aria-label="Quit Ensemble" title="Quit Ensemble"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v7M5.500 6a6 6 0 1 0 9 0"/></svg></button></div>
+      </div>
+
+      <div class="ls-desk" id="desk">
+        <button type="button" class="ls-appicon" id="claude-icon" aria-label="Claude. Double-click to open.">
+          <img class="app-art" src="claude-icon.png" alt="" width="62" height="62" draggable="false">
+          <span>Claude</span>
+          <i class="icon-hint" aria-hidden="true"></i>
+        </button>
+
+        <div class="ls-window" id="window" aria-label="A mock Claude desktop window with four Code sessions side by side">
+          <section class="ls-stage" id="stage" aria-label="Four Claude Code sessions"><!-- panes built by live.js --></section>
+          <div class="ls-centre" id="centre" data-state="wait" hidden>
+            <p class="ls-centre-line" id="centre-line" role="status" aria-live="polite">Find the camera</p>
+            <div class="ls-centre-target" aria-hidden="true">
+              <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" id="centre-arc" cx="60" cy="60" r="52"/></svg>
+              <i class="bead"></i>
+            </div>
+            <b class="ls-centre-count" id="centre-count" aria-hidden="true">3</b>
+            <button type="button" class="ens-link ls-centre-skip" id="centre-skip">Skip</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ls-dock" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i class="gap"></i><i></i><i></i></div>
     </div>
+  </main>
+  <footer class="ls-bottom">
+    <div class="ls-brand"><b><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</b><a href="../index.html">Back to the letter</a></div>
     <div class="ls-controls">
       <button type="button" class="ens-btn small" id="recentre" hidden>Recentre</button>
       <button type="button" class="ens-btn small" id="stop" hidden>Stop camera</button>
       <a class="ens-btn small ls-download-corner" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download for Mac</a>
     </div>
-  </header>
-
-  <main class="ls-main">
-    <div class="ls-window" aria-label="A mock Claude desktop window with four Code sessions side by side">
-      <section class="ls-stage" id="stage" aria-label="Four Claude Code sessions"><!-- panes built by live.js --></section>
-      <div class="ls-centre" id="centre" data-state="wait" hidden>
-        <p class="ls-centre-line" id="centre-line" role="status" aria-live="polite">Find the camera</p>
-        <div class="ls-centre-target" aria-hidden="true">
-          <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="arc" id="centre-arc" cx="60" cy="60" r="52"/></svg>
-          <i class="bead"></i>
-        </div>
-        <b class="ls-centre-count" id="centre-count" aria-hidden="true">3</b>
-        <button type="button" class="ens-link ls-centre-skip" id="centre-skip">Skip</button>
-      </div>
+  </footer>
+  </div>
+  <div class="ls-spot" id="spot" aria-hidden="true" hidden></div>
+  <div class="ls-tip" id="tip" role="status" aria-live="polite" hidden><span class="tip-text" id="tip-text"></span></div>
+  <aside class="ls-guide" id="guide" aria-label="How to try it">
+    <div class="guide-hand" id="hand-box">
+      <div class="guide-hand-3d" id="hand" style="position:absolute" role="img" aria-label="A 3D hand shows the gesture for the current step."></div>
+      <div class="guide-art" id="art" aria-hidden="true"></div>
+      <span class="guide-hand-cap" id="hand-cap"></span>
     </div>
-  </main>
-
-  <aside class="ls-sees" aria-label="What Ensemble sees">
+    <div class="guide-tabs" role="tablist" aria-label="What to try">
+      <button type="button" role="tab" class="guide-tab" id="tab-g" aria-selected="true" aria-controls="panel-g">Gestures</button>
+      <button type="button" role="tab" class="guide-tab" id="tab-h" aria-selected="false" aria-controls="panel-h" tabindex="-1">Headphones <small>optional</small></button>
+    </div>
+    <div class="guide-steps" id="panel-g" role="tabpanel" aria-labelledby="tab-g">
+      <div class="guide-meter"><b id="meter-text">Step 1 of 7</b><span class="guide-bar"><i id="meter-bar"></i></span></div>
+      <ol class="ls-steps" id="steps"><!-- built by live.js --></ol>
+      <button type="button" class="ens-btn small primary" id="done" hidden>See the download</button>
+      <p class="sr-only" id="prompt" role="status" aria-live="polite"></p>
+    </div>
+    <div class="guide-steps guide-phones" id="panel-h" role="tabpanel" aria-labelledby="tab-h" hidden>
+      <p class="phones-lede">Not needed for the rest of the demo. If you have no headphones handy, skip it.</p>
+      <p class="phones-text">With AirPods or other Bluetooth headphones, press the stem <strong>once</strong> to start or stop dictating, and <strong>twice</strong> to send. Browsers cannot hear your headphones, so this button stands in for the stem.</p>
+      <div class="stem">
+        <button type="button" class="ens-btn small stem-btn" id="stem-btn" aria-describedby="stem-state" disabled>Press the stem</button>
+        <span class="stem-state" id="stem-state" role="status"></span>
+      </div>
+      <p class="phones-note" id="phones-note">Turn Ensemble on first, on the Gestures tab.</p>
+      <button type="button" class="ens-link stem-skip" id="stem-skip">Skip, back to the gestures</button>
+    </div>
+    <section class="ls-sees" aria-label="What Ensemble sees">
     <h2 id="sees-title" role="button" tabindex="0">What Ensemble sees</h2>
     <canvas id="sees" width="240" height="180" aria-label="Tracking points drawn on a plain background"></canvas>
     <dl class="ls-readout">
@@ -66,17 +144,11 @@
       <div><dt>Speed</dt><dd id="r-speed">-</dd></div>
     </dl>
     <p class="ls-caption">Only these points are used. The video never leaves this tab and is never shown.</p>
+  </section>
   </aside>
 
-  <footer class="ls-coach" id="coach" hidden>
-    <ul class="ls-ticks" id="ticks">
-      <li data-k="looked">Looked</li><li data-k="dictated">Dictated</li><li data-k="sent">Sent</li><li data-k="scrolled">Scrolled</li>
-    </ul>
-    <p class="ls-prompt" id="prompt" role="status" aria-live="polite"></p>
-    <button type="button" class="ens-btn small primary" id="done" hidden>See the download</button>
-  </footer>
 
-  <section class="ls-gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+  <section class="ls-gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gate-title">
     <div class="ls-card">
       <svg class="ens-mark ls-card-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
       <div class="gate-intro">
@@ -101,7 +173,8 @@
       <svg class="ens-mark ls-card-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
       <img class="ls-app-icon" src="icon.png" alt="" width="72" height="72">
       <h1 id="finish-title">That is Ensemble</h1>
-      <p class="ls-lede">Look to focus, pinch twice to dictate, hold a thumbs-up to send, pinch and drag to scroll. The Mac app does this with Claude desktop, all on your Mac.</p>
+      <p class="ls-lede">Look to focus, pinch twice to dictate, hold a thumbs-up to send, pinch and drag to scroll, and press the stem of your AirPods once to dictate or twice to send. The Mac app does this with Claude desktop, all on your Mac.</p>
+      <p class="ls-unsigned"><strong>Before you open it: the app is unsigned.</strong> Akshay has not set up an Apple Developer certificate yet, so macOS blocks the first launch. <a href="https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac" target="_blank" rel="noopener">Apple's guide to opening it anyway</a> takes about a minute.</p>
       <div class="ls-actions">
         <a class="ens-btn primary" id="download" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download for Mac</a>
       </div>
