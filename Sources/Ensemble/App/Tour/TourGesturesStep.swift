@@ -60,7 +60,8 @@ struct TourGesturesStep: View {
 
 /// The gestures canvas: a flat Claude window with one focused session (drawn by the web page, which also draws
 /// the 3D hand in the top half of the right-hand column), and the live skeleton of the owner's own hand as Vision
-/// reads it in the bottom half. A gesture's success shows as a small widget at the canvas's bottom left. The
+/// reads it in the bottom half (on the Dictate tab the page's hand panel takes the whole column and there is no live
+/// skeleton). A gesture's success shows as a small widget at the canvas's bottom left. The
 /// scene is created once for the step, so switching tabs changes its animation without reloading the page.
 private struct TabIllustration: View {
     @ObservedObject var model: TourModel
@@ -79,7 +80,8 @@ private struct TabIllustration: View {
                 if tab == .headphones {
                     // Covers the page, which keeps its last scene underneath.
                     HeadphoneIllustration()
-                } else {
+                } else if tab != .dictate {
+                    // Dictate shows the animation alone: the page gives its hand panel the whole column, so no live panel goes here.
                     TourGestureColumn { TourHandInset(model: model.handInset) }
                 }
                 TourSuccessBadge(text: tab.successText)
@@ -97,7 +99,7 @@ private struct TabIllustration: View {
     }
 }
 
-/// One AirPod with a stem, pressed once (one ripple) and twice (two ripples), in the tour's light style.
+/// One AirPod with a stem, pressed once (one ripple) and twice (two ripples), in the tour's palette.
 private struct HeadphoneIllustration: View {
     var body: some View {
         HStack(spacing: 56) {
@@ -106,7 +108,7 @@ private struct HeadphoneIllustration: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
+        .background(Color.tourSurface)
     }
 }
 
@@ -173,7 +175,7 @@ private struct TourSuccessBadge: View {
         .font(.caption.weight(.semibold))
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Capsule().fill(Color.white))
+        .background(Capsule().fill(Color.tourSurface))
         .overlay(Capsule().strokeBorder(Color(red: 0.13, green: 0.62, blue: 0.33).opacity(0.55), lineWidth: 1))
         .shadow(color: Color.black.opacity(0.12), radius: 6, y: 2)
         .accessibilityLabel(text)

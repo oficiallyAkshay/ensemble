@@ -29,7 +29,7 @@ final class TourSceneController: NSObject, ObservableObject, WKScriptMessageHand
     @Published private(set) var failed = false
 
     /// The AppKit view SwiftUI hosts; the web view is added to it once the block list is ready.
-    let container = NSView()
+    let container = SceneBackingView()
 
     private var scene: TourScene
     private let reducedMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -47,7 +47,6 @@ final class TourSceneController: NSObject, ObservableObject, WKScriptMessageHand
         container.wantsLayer = true
         container.layer?.cornerRadius = 16
         container.layer?.masksToBounds = true
-        container.layer?.backgroundColor = NSColor.white.cgColor
     }
 
     func start() {
@@ -146,6 +145,19 @@ final class TourSceneController: NSObject, ObservableObject, WKScriptMessageHand
     }
 }
 
+/// The backing shown before the page has drawn: the window's raised surface, repainted when the system flips between
+/// light and dark (a layer colour is a fixed value and would not follow on its own).
+final class SceneBackingView: NSView {
+    override func viewDidChangeEffectiveAppearance() { paint() }
+    override func viewDidMoveToWindow() { paint() }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        }
+    }
+}
+
 private struct TourSceneHost: NSViewRepresentable {
     let controller: TourSceneController
     func makeNSView(context: Context) -> NSView { controller.container }
@@ -171,7 +183,7 @@ struct TourSceneStage<Overlay: View>: View {
         ZStack {
             TourSceneHost(controller: controller)
             if controller.failed {
-                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white)
+                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.tourSurface)
                 VStack(spacing: 10) {
                     Image(systemName: symbol).font(.system(size: 34, weight: .light)).foregroundStyle(Color.ensembleBlueInk)
                     Text(caption)
@@ -184,7 +196,7 @@ struct TourSceneStage<Overlay: View>: View {
             overlay
         }
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color(red: 0.898, green: 0.898, blue: 0.898), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.tourHairline, lineWidth: 1))
         .onAppear { controller.start() }
         .onDisappear { controller.stop() }
         .accessibilityElement(children: .ignore)
