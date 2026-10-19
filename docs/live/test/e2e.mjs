@@ -376,7 +376,7 @@ async function letter() {
 }
 
 async function lettersStars() {
-  say('scenario stars: downloads of Ensemble.dmg and stars, each shown from 5 up; below that the line invites the first stars');
+  say('scenario stars: stars shown from 1; downloads of Ensemble.dmg shown from 5 up; with no stars the line invites the first star');
   const asset = (name, download_count) => ({ name, download_count });
   // Only the fixed-name Ensemble.dmg counts (500 + 800 + 42 = 1,342); the versioned files are the app's own update check.
   const RELEASES = [
@@ -388,7 +388,8 @@ async function lettersStars() {
   for (const [name, stars, releases, want] of [
     ['12 stars, no releases yet', 12, 'missing', /^12 stars$/],
     ['12 stars, 1,342 downloads', 12, RELEASES, /^1,342 downloads · 12 stars$/],
-    ['3 stars, 1,342 downloads', 3, RELEASES, /^1,342 downloads · be the first to ★ star it$/],
+    ['4 stars, 1,342 downloads', 4, RELEASES, /^1,342 downloads · 4 stars$/],
+    ['1 star, no releases', 1, 'missing', /^1 star$/],
     ['12 stars, 4 downloads and big versioned counts', 12, FEW, /^12 stars$/],
     ['12 stars, releases without assets', 12, [{}], /^12 stars$/],
     ['0 stars, no releases', 0, 'missing', /^Be the first to ★ star it$/],
