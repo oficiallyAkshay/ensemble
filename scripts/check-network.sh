@@ -1,6 +1,6 @@
 #!/bin/bash
 # Fails (exit 1) and lists file:line if the app's code or web assets contain a network API or an http(s)/ws(s)/ftp URL
-# that is not on the allowlist below. When build/Ensemble.app exists, the built executable and the unpacked web assets
+# that is not on the allowlist below (the Sparkle update feed and the anonymous usage report, nothing else). When build/Ensemble.app exists, the built executable and the unpacked web assets
 # are scanned against the same allowlist.
 #
 # The face tracker page is also blocked from the network at run time (Sources/Ensemble/Engine/NetworkBlock.swift);
@@ -30,9 +30,14 @@ VENDORED_API_RE='sendBeacon|WebSocket|EventSource|RTCPeerConnection|WebTransport
 VENDORED="vision_bundle.mjs wasm/vision_wasm_internal.js tour/three.min.js"
 NATIVE_SYMBOL_RE='URLSession|NSURLConnection|NWConnection|nw_connection|CFSocket|CFHTTP|getaddrinfo|gethostbyname|CFStreamCreatePairWithSocketToHost'
 
+# Usage reporting (docs/telemetry.md) is the one other network use, and it is confined to UsageReporter.swift: that file may
+# use URLSession and may name the PostHog capture URL and no other. Moving to another PostHog region changes the host here.
+
 # Allowlist: <path suffix> TAB <regex the matched text must satisfy>. Every entry is a decision; keep each narrow.
 ALLOW=$(cat <<'EOF'
 Sources/Ensemble/App/UpdateController.swift	^https://[^/]+/.*appcast\.xml$
+Sources/Ensemble/App/UsageReporter.swift	^https://us\.i\.posthog\.com/i/v0/e/$
+Sources/Ensemble/App/UsageReporter.swift	URLSession|URLRequest
 Info.plist	^http://www\.apple\.com/DTDs/PropertyList-1\.0\.dtd$
 Ensemble.entitlements	^http://www\.apple\.com/DTDs/PropertyList-1\.0\.dtd$
 Sources/Ensemble/Engine/FaceTracker.swift	AssetSchemeHandler\.scheme
@@ -52,6 +57,8 @@ web/tour/CCDIKSolver.js	^https://sites\.google\.com/site/auraliusproject/ccd-alg
 web/tour/CCDIKSolver.js	^http://www20\.atpages\.jp/katwat/three\.js_r58/
 MacOS/Ensemble	^https://[^/]+/.*appcast\.xml$
 MacOS/Ensemble	^http://www\.apple\.com/DTDs/PropertyList-1\.0\.dtd$
+MacOS/Ensemble	^https://us\.i\.posthog\.com/i/v0/e/$
+MacOS/Ensemble	^ *_[^ ]*NSURLSession
 MacOS/Ensemble	^(https?|wss?|ftp)://$
 EOF
 )

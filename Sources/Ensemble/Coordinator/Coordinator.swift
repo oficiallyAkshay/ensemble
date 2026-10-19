@@ -82,8 +82,8 @@ final class Coordinator: AppCoordinating {
         ctx.busy || ctx.listening != nil || send.afterStop || send.inFlight || send.earlyArmed || gestures.progress != nil || panes.isRunning
     }
 
-    init(state: AppState, settings: SettingsStore, overlay: OverlayController) {
-        let ctx = CoordinatorContext(state: state, settings: settings, overlay: overlay)
+    init(state: AppState, settings: SettingsStore, overlay: OverlayController, usage: UsageCounting) {
+        let ctx = CoordinatorContext(state: state, settings: settings, overlay: overlay, usage: usage)
         self.ctx = ctx
         health = HealthMonitor(ctx: ctx, engine: engine)
         focus = FocusController(ctx: ctx)
@@ -169,9 +169,10 @@ final class Coordinator: AppCoordinating {
         engine.onLight = { [weak self] in self?.handle(light: $0) }
         engine.onStatus = { [weak self] in self?.health.handle(status: $0) }
         engine.onDiagnostic = { note in EnsembleLog.write("engine: \(note)") }
+        engine.onCameraFormat = { [weak self] width, height, fps in self?.ctx.usage.count(.cameraFormat(width: width, height: height, fps: fps)) }
         engine.calibratedCameraIDs = { [weak self] in Set(self?.ctx.setup.profiles.cameras.map(\.cameraID) ?? []) }
         SystemEvents.observe(
-            interrupt: { [weak self] in self?.interrupt($0) },
+            interrupt: { [weak self] in self?.interrupt($0, stop: .sleepOrLock) },
             away: { [weak self] reason, on in self?.setAway(reason, on) },
             sweep: { [weak self] in self?.dictation.sweep() },
             screensChanged: { [weak self] in self?.screensChanged() })
@@ -499,7 +500,7 @@ final class Coordinator: AppCoordinating {
         wake()
         guard let covered = ctx.cover.push(light) else { return }
         if covered {
-            if ctx.listening != nil { dictation.end(reason: "camera covered") }
+            if ctx.listening != nil { ctx.usage.count(.safetyStop(.cameraCovered)); dictation.end(reason: "camera covered") }
             send.afterStop = false
             scroll.cancel()
             gestures.reset()
@@ -560,7 +561,7 @@ final class Coordinator: AppCoordinating {
         scroll.tick()
         if now - lastAwayCheck >= 0.5 {
             lastAwayCheck = now
-            if ctx.listening != nil ? !ctx.busy : scroll.isRunning, ScreenFacts.sessionAway() { interrupt("screen locked") }
+            if ctx.listening != nil ? !ctx.busy : scroll.isRunning, ScreenFacts.sessionAway() { interrupt("screen locked", stop: .sleepOrLock) }
         }
         dictation.supervise(now: now)
         refreshDictatingFrame(now: now)
@@ -700,6 +701,7 @@ final class Coordinator: AppCoordinating {
     /// skips the idle slowdown (a change is worth reading at once) and, when one is in flight, runs after it.
     private func refreshSessions(notified: Bool = false) {
         wake()
+        if health.running, !awayState.isAway { ctx.usage.activeTick() }
         health.checkPermissions()
         microphone.restoreIfNeeded()
         let claudeUp = ctx.bridge.claudeIsRunning()
@@ -757,7 +759,9 @@ final class Coordinator: AppCoordinating {
         }
         if intent == .talkBegan || intent == .sendRequested { ctx.overlay.clearBanner() }
         switch intent {
-        case .talkBegan: dictation.begin()
+        case .talkBegan:
+            ctx.usage.count(.gestureAttempted(.pinch))
+            dictation.begin()
         case .talkEnded(let reason):
             guard let session = ctx.listening else { break }
             if gestures.holdingSendAfterStop, settings.mapping.send != nil, !ctx.busy, !ctx.setup.isPromptShowing {
@@ -771,6 +775,7 @@ final class Coordinator: AppCoordinating {
         case .sendRequested:
             // While the setup prompt shows, the held thumbs-up answers it instead of sending.
             if ctx.setup.isPromptShowing { send.dropEarly(); ctx.setup.start(); return }
+            ctx.usage.count(.gestureAttempted(.thumbsUp))
             if send.earlyArmed { send.earlyHoldCompleted(); return }
             if ctx.listening != nil || ctx.busy { send.sendAfterStop(in: ctx.listening); EnsembleLog.write("send after stop") } else { requestSend() }
         case .scroll(let dy): scroll.scroll(dy, target: focus.target)
@@ -890,7 +895,8 @@ final class Coordinator: AppCoordinating {
 
     /// The Mac is going to sleep, the screen locked, or the safety check ended the hold: stop dictation now (no
     /// tail wait), and forget anything that was about to act. The text stays; nothing is sent.
-    private func interrupt(_ reason: String) {
+    /// `stop`: the safety stop to count when this ends a running dictation; the safety check counts its own.
+    private func interrupt(_ reason: String, stop: SafetyStop? = nil) {
         EnsembleLog.write("interrupt: \(reason)")
         dictation.markInterrupted()
         send.afterStop = false; focus.clearDeferred()
@@ -901,6 +907,7 @@ final class Coordinator: AppCoordinating {
         panes.cancel()
         gestures.reset()
         guard ctx.listening != nil else { pushOverlay(); return }
+        if let stop { ctx.usage.count(.safetyStop(stop)) }
         if ctx.busy {
             dictation.endWhenIdle(reason: reason, immediate: true)
         } else {

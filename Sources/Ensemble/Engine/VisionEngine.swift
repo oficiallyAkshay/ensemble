@@ -23,6 +23,7 @@ final class VisionEngine {
     var onLight: ((FrameLight) -> Void)?
     var onStatus: ((EngineStatus) -> Void)?
     var onDiagnostic: ((String) -> Void)?
+    var onCameraFormat: ((Int, Int, Int) -> Void)?
     /// The cameras with a saved calibration; Automatic starts one of them first.
     var calibratedCameraIDs: () -> Set<String> = { [] }
 
@@ -95,6 +96,9 @@ final class VisionEngine {
         }
         face.onDiagnostic = { [weak self] note in self?.onDiagnostic?(note) }
         camera.onFrame = { [weak self] buffer in self?.process(buffer) }
+        camera.onFormat = { [weak self] width, height, fps in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.onCameraFormat?(width, height, fps) } }
+        }
         camera.onNote = { [weak self] note in
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.onDiagnostic?(note) } }
         }

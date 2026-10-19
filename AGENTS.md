@@ -1,6 +1,6 @@
 # Ensemble: instructions for coding agents
 
-Ensemble is a macOS menu bar app (Swift, SwiftPM, macOS 14.2+, Apple Silicon) that drives Claude desktop sessions hands-free with a webcam. This is the one agent-instructions file; `CLAUDE.md` only points here. Commands, structure and the order of work are in `.github/CONTRIBUTING.md`. Guides and references are in `docs/`: `setup.md`, `gestures.md`, `safety.md`, `workflows.md`, `performance.md`, `gotchas.md` (incident lessons, read before touching signing, Claude's labels, scrolling, pinch timing, overlays, audio, resources or workflows) and `RELEASING.md`.
+Ensemble is a macOS menu bar app (Swift, SwiftPM, macOS 14.2+, Apple Silicon) that drives Claude desktop sessions hands-free with a webcam. This is the one agent-instructions file; `CLAUDE.md` only points here. Commands, structure and the order of work are in `.github/CONTRIBUTING.md`. Guides and references are in `docs/`: `setup.md`, `gestures.md`, `safety.md`, `telemetry.md` (the usage report), `workflows.md`, `performance.md`, `gotchas.md` (incident lessons, read before touching signing, Claude's labels, scrolling, pinch timing, overlays, audio, resources or workflows) and `RELEASING.md`.
 
 ## Commands
 
@@ -14,7 +14,7 @@ scripts/bundle.sh           # build/Ensemble.app, signed; needs a signing identi
 
 ## Trust rules (do not weaken)
 
-- The app makes no network connection except the Sparkle update feed, and that is off until the user turns on automatic checks or presses Check for Updates. The face tracker page, its WebAssembly and the model ship in the bundle. No telemetry, no analytics, no crash upload, no remote logging. A change that adds a network call needs the owner's explicit approval first.
+- The app makes two network connections and no other: the Sparkle update feed (off until the user turns on automatic checks or presses Check for Updates) and the anonymous daily usage report to PostHog Cloud US (`docs/telemetry.md`; on by default, off with Settings, General, Share anonymous usage). `Sources/Ensemble/App/UsageReporter.swift` is the only file that may use `URLSession`, and `scripts/check-network.sh` allows that one address. The face tracker page, its WebAssembly and the model ship in the bundle. No crash upload, no remote logging, no per-event reporting, and the report holds only the fixed list of numbers and short words in `docs/telemetry.md`: never video, text, names, paths or titles. A change that adds a network call, or a field to the report, needs the owner's explicit approval first.
 - Video frames are analysed in memory and never written to disk. Logs hold events and numbers, never images or transcripts.
 - Nothing personal in the tree or in history: no personal email, no machine paths, no tokens, no names of private repositories. Commit under the repository's GitHub no-reply identity (`<id>+<user>@users.noreply.github.com`); never change `user.email`. A push whose newest commit carries any other address is refused by GitHub, and older commits are not checked, so check `git log --format=%ae` yourself.
 - Dictation safety: Claude's microphone is never left recording because of Ensemble. A change to dictation or send keeps the written-before-pressed record, the dead-man check, the standing check and the narrow send rules (`docs/safety.md`), and the pull request says how.

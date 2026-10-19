@@ -34,11 +34,14 @@ final class SettingsStore: ObservableObject {
         static let setupProfiles = "setupProfiles"
         static let lastCameraID = "lastCameraID"
         static let lastRestoreSignature = "lastRestoreSignature"
+        static let shareUsage = "shareUsage"
+        static let usageNoticeDismissed = "usageNoticeDismissed"
     }
 
     static let countdownRange: ClosedRange<Double> = 0.5...3
 
-    private let defaults: UserDefaults
+    /// The store the preferences live in; the usage counters use the same one.
+    let defaults: UserDefaults
 
     @Published var enabled: Bool { didSet { defaults.set(enabled, forKey: Key.enabled) } }
     @Published var showNoseDot: Bool { didSet { defaults.set(showNoseDot, forKey: Key.showNoseDot) } }
@@ -85,6 +88,10 @@ final class SettingsStore: ObservableObject {
     @Published var evenOutByScissors: Bool { didSet { defaults.set(evenOutByScissors, forKey: Key.evenOutByScissors) } }
     /// The session focus settles on widens to Claude's chat column when it is narrower. On by default.
     @Published var fitFocusedSession: Bool { didSet { defaults.set(fitFocusedSession, forKey: Key.fitFocusedSession) } }
+    /// Anonymous daily usage counts (docs/telemetry.md). The default is `UsagePolicy.sharingDefault`.
+    @Published var shareUsage: Bool { didSet { defaults.set(shareUsage, forKey: Key.shareUsage) } }
+    /// The first-run notice about usage sharing was dismissed.
+    @Published var usageNoticeDismissed: Bool { didSet { defaults.set(usageNoticeDismissed, forKey: Key.usageNoticeDismissed) } }
     /// Set only through `setLaunchAtLogin`, which talks to the system first.
     @Published private(set) var launchAtLogin: Bool
     @Published var launchAtLoginError: String?
@@ -128,6 +135,8 @@ final class SettingsStore: ObservableObject {
         maximizeByPeace = bool(Key.maximizeByPeace, true)
         evenOutByScissors = bool(Key.evenOutByScissors, true)
         fitFocusedSession = bool(Key.fitFocusedSession, true)
+        shareUsage = bool(Key.shareUsage, UsagePolicy.sharingDefault)
+        usageNoticeDismissed = bool(Key.usageNoticeDismissed, false)
         LoginAgent.repointIfStale()
         launchAtLogin = LoginAgent.isEnabled
         calibration = store.data(forKey: Key.calibration)

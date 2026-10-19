@@ -11,6 +11,8 @@ final class ScrollController {
     private var point: CGPoint?
     private var timer: Timer?
     private var lastOwnerCheck: TimeInterval = 0
+    /// The last call to `scroll`: a gap of a second starts a new attempt for the usage count.
+    private var lastScrollCall: TimeInterval = -.infinity
 
     init(ctx: CoordinatorContext) { self.ctx = ctx }
 
@@ -29,10 +31,14 @@ final class ScrollController {
     }
 
     func scroll(_ dy: Double, target: ClaudeSession?) {
-        guard dy.isFinite, ctx.commonRefusal(checkInput: false) == nil else { return }
+        guard dy.isFinite else { return }
+        let now = CACurrentMediaTime()
+        if now - lastScrollCall > 1 { ctx.usage.count(.gestureAttempted(.scroll)) }
+        lastScrollCall = now
+        guard ctx.commonRefusal(checkInput: false) == nil else { return }
         let found: ClaudeSession
         if let s = session { found = s.session } else if let t = ctx.listening ?? target { found = t } else { return }
-        if session == nil { EnsembleLog.write("scroll started") }
+        if session == nil { EnsembleLog.write("scroll started"); ctx.usage.count(.gestureSucceeded(.scroll)) }
         session = (found, Date())
         glide.add(dy, at: CACurrentMediaTime())    // flushed on the tick, so the pointer is touched at most 20 times a second
     }

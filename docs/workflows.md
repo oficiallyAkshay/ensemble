@@ -21,5 +21,5 @@ The four GitHub workflows and what each one guards. Back to the [contributing gu
 
 | Script | Fails when |
 |---|---|
-| `scripts/check-network.sh` | A network call or web address appears outside a short allowlist of source, web files and the built app. |
+| `scripts/check-network.sh` | A network call or web address appears outside a short allowlist of source, web files and the built app (the update feed and the one usage-report address). |
 | `scripts/check-size.sh` | The built app passes the byte budget set at the top of the script. |

@@ -14,8 +14,10 @@ final class AppEnvironment {
     let overlay = OverlayController()
     let notifier = Notifier.shared
     let updates = UpdateController()
+    let usage: UsageTracker
+    let usageReporter: UsageReporter
 
-    private(set) lazy var coordinator: AppCoordinating = makeCoordinator(state: state, settings: settings, overlay: overlay)
+    private(set) lazy var coordinator: AppCoordinating = makeCoordinator(state: state, settings: settings, overlay: overlay, usage: usage)
     private(set) lazy var panelActions = PanelActions(
         calibrate: { [weak self] in self?.dismissMenuPanel(); self?.startCoordinatorIfNeeded(); self?.coordinator.calibrate() },
         openSettings: { [weak self] in self?.dismissMenuPanel(); self?.settingsWindow.show() },
@@ -58,12 +60,21 @@ final class AppEnvironment {
     }
     let settingsNavigation = SettingsNavigation()
     private(set) lazy var settingsWindow = SettingsWindowController(navigation: settingsNavigation) { [unowned self] in
-        AnyView(SettingsView(state: state, settings: settings, updates: updates, navigation: settingsNavigation,
+        AnyView(SettingsView(state: state, settings: settings, updates: updates, usage: usage, reporter: usageReporter, navigation: settingsNavigation,
                               calibrate: { [weak self] request in self?.startCoordinatorIfNeeded(); self?.coordinator.calibrate(request) },
                               removeSpot: { [weak self] id in self?.coordinator.removeCalibrationSpot(id) },
                               replayTour: { [weak self] step in
                                   if let step { self?.tourWindow.show(startAt: step, singleStep: true) } else { self?.tourWindow.show() }
                               }))
+    }
+
+    private init() {
+        let info = Bundle.main.infoDictionary
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        usage = UsageTracker(defaults: settings.defaults, sharing: settings.shareUsage,
+                             appVersion: info?["CFBundleShortVersionString"] as? String ?? "dev",
+                             macOSVersion: "\(os.majorVersion).\(os.minorVersion)")
+        usageReporter = UsageReporter(tracker: usage)
     }
 
     private var hotKey: GlobalHotKey?
@@ -101,6 +112,10 @@ final class AppEnvironment {
             }
         }
 
+        usage.count(.launch)
+        usageReporter.start()
+        settings.$shareUsage.dropFirst().sink { [weak self] on in self?.usage.setSharing(on) }.store(in: &cancellables)
+
         notifier.overlay = overlay
         notifier.settings = settings
 
@@ -136,6 +151,7 @@ final class AppEnvironment {
     }
 
     func stop() {
+        usage.flush()
         coordinator.shutdown()
         CalibrationController.shared.cancel()
     }

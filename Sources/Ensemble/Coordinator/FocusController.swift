@@ -211,6 +211,7 @@ final class FocusController {
             lastFocusedId = session.id
             lastOwnFocusAt = CACurrentMediaTime()
             EnsembleLog.write("focus moved to a session")
+            ctx.usage.count(.focusMoved)
             Task {
                 if case .refused = await self.ctx.bridge.focus(session, unlessTypedWithin: CoordinatorContext.inputQuiet) { self.lastFocusedId = nil }
             }

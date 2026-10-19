@@ -36,7 +36,8 @@ Ensemble asks for the Microphone permission only for the live sound bars, and on
 ## Privacy
 
 - Video is analysed on your Mac. Frames are never written to disk and never sent anywhere.
+- Once a day Ensemble sends an anonymous usage report: counts, versions and the camera format under a random id, never text, names or titles. The fields are listed in [telemetry.md](telemetry.md); Settings, General, Privacy turns it off.
 - The face tracker is a web page served from inside the app through a custom address scheme, its model ships in the app, and every web address it could load is blocked.
-- The only files written are settings, a small log rolled over at 1 MB with one backup, and the two safety records above.
+- The only files written are settings (the usage counts among them while sharing is on), a small log rolled over at 1 MB with one backup, and the two safety records above.
 
 The full table of what the app touches is in [SECURITY.md](../SECURITY.md).

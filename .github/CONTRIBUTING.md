@@ -94,12 +94,13 @@ pin their tools to commit SHAs; do not loosen a pin to make a hook pass.
 
 These are not style preferences. A pull request that breaks one will not be merged, however useful it is.
 
-1. **No network except the update feed.** The app makes no connection of its own. Sparkle may fetch the update feed, and
-   only after the user turns on automatic checks or presses Check for Updates. The face tracker page, its WebAssembly and
+1. **No network except the update feed and the usage report.** Sparkle may fetch the update feed, and only after the user
+   turns on automatic checks or presses Check for Updates. `UsageReporter.swift` sends the anonymous daily report
+   described in [docs/telemetry.md](../docs/telemetry.md); it is the only file that may use `URLSession`. The face tracker page, its WebAssembly and
    its model ship inside the app bundle and are served through the `ensemble-asset://` scheme. Do not add a network call,
    a remote script, a font or image fetched from the web, or a dependency that talks to the network. If you think the app
    needs one, open an issue first.
-2. **No telemetry.** No analytics, no crash upload, no usage counts, no remote logging, not even opt-in.
+2. **Usage reporting stays small.** One anonymous summary a day with the fixed fields in `docs/telemetry.md`, on by default with a Settings switch that stops it at once. No crash upload, no remote logging, no per-event reports, no new field without the owner's approval.
 3. **Camera frames stay in memory.** Frames are analysed and discarded. They are never written to disk and never sent
    anywhere. Logs hold events and numbers, never images and never the text of a draft.
 4. **Nothing personal in the tree or in history.** No personal email addresses, machine paths, tokens, keys, names of
@@ -149,7 +150,7 @@ SwiftPM package with two targets plus a separate benchmark package.
 | `Tests/EnsembleCoreTests` | Swift Testing tests and the recorded gesture fixtures. |
 | `Tools/PerfBench` | Separate package of camera-free micro-benchmarks (synthetic frames and head paths). |
 | `scripts/` | `appcast.sh`, `bundle.sh`, `check-network.sh`, `check-size.sh`, `dev-install.sh`, `dev-update.sh`, `dmg-settings.py`, `make-dmg-background.swift`, `make-icon.swift`, `pack-web.swift`, `release.sh`, `ship-release.sh`. |
-| `docs/` | Guides and references: [gestures](../docs/gestures.md), [website review](../docs/website-review.md), [safety](../docs/safety.md), [workflows](../docs/workflows.md), [performance](../docs/performance.md), [gotchas](../docs/gotchas.md), [RELEASING.md](../docs/RELEASING.md) and the [changelog](../docs/CHANGELOG.md). |
+| `docs/` | Guides and references: [gestures](../docs/gestures.md), [website review](../docs/website-review.md), [safety](../docs/safety.md), [telemetry](../docs/telemetry.md), [workflows](../docs/workflows.md), [performance](../docs/performance.md), [gotchas](../docs/gotchas.md), [RELEASING.md](../docs/RELEASING.md) and the [changelog](../docs/CHANGELOG.md). |
 | `.github/workflows` | `ci.yml` (build, test, workflow and secrets checks, coverage, dead code, and the `gate` job), `release.yml` (the later route once a Developer ID exists). Releases ship from the owner's Mac with `scripts/ship-release.sh` after a merge, as [RELEASING.md](../docs/RELEASING.md) describes. |
 
 ### How the pieces fit

@@ -268,6 +268,7 @@ final class SendController {
             switch result {
             case .done:
                 EnsembleLog.write("sent"); self.lastSpoken = nil; Notifier.shared.playCue(.send)
+                if !self.inFlightByReturn, !self.ctx.headphoneActive { self.ctx.usage.count(.gestureSucceeded(.thumbsUp)) }
                 self.ctx.claudeDictations.forget(session.id)
                 self.inFlight = false
                 // "Sending" turns straight into "Sent": the banner replaces it in the same update.

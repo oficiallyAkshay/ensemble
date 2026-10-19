@@ -93,6 +93,8 @@ final class PaneWidthController {
     func request(_ maximize: Bool, target: ClaudeSession?) {
         let what = maximize ? "Maximize" : "Even out"
         guard !isRunning else { return }
+        let gesture: UsageGesture = maximize ? .peace : .scissors
+        ctx.usage.count(.gestureAttempted(gesture))
         if let why = ctx.commonRefusal() { ctx.refuse(why, title: what); return }
         guard let target else { ctx.refuse("Look at a Claude session first", title: what, resolves: .whenOnSession); return }
         if let why = blocker() { ctx.refuse(why, title: what); return }
@@ -109,6 +111,7 @@ final class PaneWidthController {
             }
             await self.end(target)
             EnsembleLog.write("pane widths: \(outcome)")
+            if case .done = outcome { self.ctx.usage.count(.gestureSucceeded(gesture)) }
             if let refusal = outcome.refusal { self.ctx.refuse(refusal, title: what) }
         }
     }

@@ -76,6 +76,9 @@ final class DictationController {
                 Notifier.shared.resolveAlarm()
             }
         }
+        safety.onSafetyStop = { [weak self] stop in
+            MainActor.assumeIsolated { self?.ctx.usage.count(.safetyStop(stop)) }
+        }
         safety.onHoldEnded = { [weak self] why in
             MainActor.assumeIsolated {
                 guard let self, self.ctx.listening != nil else { return }
@@ -179,6 +182,7 @@ final class DictationController {
             switch result {
             case .done:
                 EnsembleLog.write(next == .stopSwitchedOff ? "dictation started after Ensemble was switched off or interrupted; stopping it now" : "dictation started")
+                if !self.ctx.headphoneActive { self.ctx.usage.count(.gestureSucceeded(.pinch)) }
                 if self.ctx.settings.liveSoundBars, next != .stopSwitchedOff { self.meter.start() }
                 self.startedAt = CACurrentMediaTime()
                 self.inputDevice = await Task.detached { bridge.defaultInputDeviceName() }.value
@@ -400,8 +404,13 @@ final class DictationController {
     /// mouse, you leave, another app opens a microphone, or the input device changes.
     func supervise(now: TimeInterval) {
         if ctx.listening != nil, !ctx.busy, now - startedAt > 1.5 {
-            if ClaudeBridge.secondsSinceTypingOrClick() < 0.3 { ctx.refuse("Typing or a click; dictation stopped"); end(reason: "input"); return }
-            if now - ctx.lastOneFaceT > 10 { ctx.refuse("No face for 10 seconds; dictation stopped"); end(reason: "away"); return }
+            if ClaudeBridge.secondsSinceTypingOrClick() < 0.3 { ctx.refuse("Typing or a click; dictation stopped"); ctx.usage.count(.safetyStop(.typingOrClick)); end(reason: "input"); return }
+            if now - ctx.lastOneFaceT > 10 {
+                ctx.refuse("No face for 10 seconds; dictation stopped")
+                ctx.usage.count(.safetyStop((ctx.latestHead?.faceCount ?? 0) > 1 ? .multipleFaces : .noFace))
+                end(reason: "away")
+                return
+            }
         }
         if let session = ctx.listening, !ctx.busy, !audioCheckInFlight, now - lastAudioCheck >= 0.5 {
             lastAudioCheck = now
@@ -415,9 +424,13 @@ final class DictationController {
                     self.audioCheckInFlight = false
                     guard self.ctx.listening?.id == session.id, !self.ctx.busy else { return }
                     if let other {
-                        self.ctx.refuse("\(other) started using a microphone; dictation stopped"); self.end(reason: "other capturer")
+                        self.ctx.refuse("\(other) started using a microphone; dictation stopped")
+                        self.ctx.usage.count(.safetyStop(.otherMicrophone))
+                        self.end(reason: "other capturer")
                     } else if let device, current != device {
-                        self.ctx.refuse("The input device changed; dictation stopped"); self.end(reason: "input device changed")
+                        self.ctx.refuse("The input device changed; dictation stopped")
+                        self.ctx.usage.count(.safetyStop(.inputDeviceChanged))
+                        self.end(reason: "input device changed")
                     }
                 }
             }
@@ -430,6 +443,7 @@ final class DictationController {
         guard ctx.listening != nil, !ctx.busy, !claudeUp || ctx.bridge.claudePID != processID else { return }
         EnsembleLog.write("Claude quit or restarted during dictation; clearing the listening state")
         drop()
+        ctx.usage.count(.safetyStop(.claudeQuit))
         ctx.refuse("Claude quit; dictation ended")
     }
 

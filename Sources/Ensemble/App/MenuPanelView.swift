@@ -29,6 +29,7 @@ struct MenuPanelView: View {
             VStack(spacing: 10) {
                 header
                 if !settings.tourCompleted && !settings.tourSkipped { tourBanner }
+                if settings.shareUsage && !settings.usageNoticeDismissed && UsageReporter.isConfigured { usageNotice }
                 statusCard
                 togglesCard
                 buttons
@@ -76,6 +77,25 @@ struct MenuPanelView: View {
             }
             .buttonStyle(.plain)
         }
+        .padding(12)
+        .glassSurface(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    /// The one-time notice for the anonymous usage counts; the full field list is docs/telemetry.md and Settings shows
+    /// the exact report.
+    private var usageNotice: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Ensemble sends anonymous daily usage counts: gesture and safety-stop counts, the app and macOS versions and the camera format. Never video, text, names or window titles. The switch is in Settings, General.")
+                .font(.caption)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                Button("See what is sent") { settings.usageNoticeDismissed = true; actions.openSettings() }
+                Button("Dismiss") { settings.usageNoticeDismissed = true }
+            }
+            .buttonStyle(.link)
+            .font(.caption)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .glassSurface(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }

@@ -17,7 +17,7 @@ read, and a confirmed vulnerability is fixed and released before it is described
 - Ensemble acting on something other than Claude, or sending a draft the user did not dictate, to a session the user did
   not dictate it to, or after the safety rules in [docs/safety.md](docs/safety.md) should have stopped it.
 - Claude's microphone left recording because of Ensemble.
-- Any network connection other than the update feed, any data leaving the Mac, or any camera frame reaching disk.
+- Any network connection other than the update feed and the usage report in [docs/telemetry.md](docs/telemetry.md), any data leaving the Mac beyond that report's fixed fields, or any camera frame reaching disk.
 - A way for a web page, another app or a crafted update to make Ensemble run code or press Claude's controls.
 - A secret, token or personal address committed to the repository or its history.
 
@@ -27,7 +27,7 @@ already control the user's Mac account.
 
 ## What the app touches, and what leaves the Mac
 
-Nothing leaves the Mac. The app has no analytics, no telemetry and no crash upload.
+Video, text and names never leave the Mac. The app has no crash upload. It sends one anonymous usage report a day (counts only, listed field by field in [docs/telemetry.md](docs/telemetry.md)), which Settings, General, Privacy turns off.
 
 | What | How it is used | Where it goes |
 |---|---|---|
@@ -37,10 +37,11 @@ Nothing leaves the Mac. The app has no analytics, no telemetry and no crash uplo
 | The lid state, the list of audio inputs and the default input | With the lid closed, the default input moves to a working microphone before a dictation starts and is put back when the lid opens (a Settings switch turns it off); device names go to the log | Stays in the process |
 | Keyboard and mouse activity | Only whether a key was pressed or a button clicked since a draft was dictated, to refuse a send | Not stored |
 | Settings (calibration, gesture options) | The app's preferences, domain `dev.ensemble.app` | Stay in the user's Library |
+| Usage report | Counts of gestures, refusals and safety stops, the app and macOS versions and the camera format, kept per day under a random install id in the app's preferences | Sent once a day to PostHog Cloud (US) over HTTPS while "Share anonymous usage" is on; off deletes the counts and the id |
 | Log | Events and numbers, no images and no text of drafts, rolled over at 1 MB, in `~/Library/Logs/Ensemble` | Stay on disk; optional per-frame trace (numbers and states only) only when the user turns it on |
 | Safety records | "Dictation started" and "input muted" records so a crash can be undone on the next launch, in `~/Library/Application Support/Ensemble` | Stay on disk |
 
-The one network connection the app can make is Sparkle's request for the update feed (an appcast file on GitHub Pages),
+The app makes two kinds of network connection. The usage report above is one. The other is Sparkle's request for the update feed (an appcast file on GitHub Pages),
 and only after the user turns on automatic update checks or presses Check for Updates; until the feed and signing key
 are configured it never starts. Updates are verified against an EdDSA key pinned in the app and Apple's code signature
 before they are installed. The face tracker's page, WebAssembly and model are bundled and served through a custom URL

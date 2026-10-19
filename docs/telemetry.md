@@ -1,0 +1,49 @@
+# Anonymous usage report
+
+Ensemble sends one small report per day about how the app was used, so the owner can see which gestures work and which safety checks fire. It is on by default, shown once in the menu bar panel, and off with one switch.
+
+## Turn it off
+
+Settings, General, Privacy, "Share anonymous usage". Off takes effect at once: nothing more is counted or sent, and the stored counts and the install id are deleted. "Show what would be sent" there shows the exact JSON of today's report so far. "Reset install id" replaces the random id with a new one that nothing links to the old one.
+
+The default lives in one constant, `UsagePolicy.sharingDefault` in `Sources/EnsembleCore/UsageSummary.swift`.
+
+## What is sent
+
+One event named `daily_summary` per install per local day, sent after the day ends (and on launch or at the next hourly check if yesterday's is still unsent). It is a JSON `POST` over HTTPS to PostHog Cloud (US): `{api_key, event, distinct_id, timestamp, properties}`. `timestamp` is noon UTC on the date of the day reported.
+
+Every property is a number, a flag or a short word (letters, digits, dot, dash, underscore, at most 32). A count that is zero is left out, so a missing count means zero. The app refuses to send any property not in this list.
+
+| Property | Meaning |
+|---|---|
+| `app_version`, `macos_version` | Ensemble's version and macOS's major.minor version |
+| `schema_version` | 1 |
+| `launches` | Times Ensemble started that day |
+| `active_minutes` | Minutes the camera was running and nobody was away |
+| `camera_width`, `camera_height`, `camera_fps` | The camera format in use, last seen that day (no camera name) |
+| `focus_moves` | Times focus moved to the session you looked at |
+| `gesture_<g>_attempted`, `gesture_<g>_succeeded` | For `<g>` in `pinch` (Talk), `thumbs_up` (Send), `scroll`, `peace`, `scissors`. Attempted is the gesture being recognised; succeeded is the action happening. A headphone press or Return is not counted as the gesture |
+| `sends_refused_<r>` | Sends refused, by `<r>`: `not_in_front`, `nothing_dictated`, `typed_or_clicked`, `empty_draft`, `claude_not_ready`, `other_microphone`, `busy`, `no_face`, `camera_covered`, `screen_locked`, `stop_unconfirmed`, `turned_off`, `other`. One send can show more than one notice, so these count notices |
+| `safety_stops_<s>` | Dictations the app ended itself, by `<s>`: `dead_man`, `standing_check`, `multiple_faces`, `no_face`, `camera_covered`, `other_microphone`, `typing_or_click`, `input_device_changed`, `sleep_or_lock`, `claude_quit` (the checks are described in [safety.md](safety.md)) |
+| `chk` | A checksum, below |
+| `$process_person_profile` (false), `$geoip_disable` (true) | Tell PostHog not to build a person profile and not to look up a location |
+
+Never sent: your name, email, machine name, file paths, window or session titles, the text you dictate or any draft, a video frame or any image, which apps you use, your location. No individual event is sent per gesture or error; only the daily totals.
+
+## The id, honestly
+
+`distinct_id` is a random UUID made the first time a report is sent and kept in Ensemble's preferences. It is pseudonymous, not anonymous: it lets the daily reports of one install be told apart from another's, and it identifies nobody by itself. Anyone who has your Mac could read it. Resetting it, or turning sharing off, ends that link. The request also reaches PostHog's servers over the network, so PostHog's servers see the connection's IP address while handling it; the project is set to discard client IP data, and `$geoip_disable` stops any location lookup, but that setting is the owner's and not something the app can prove from your side.
+
+## Where it goes and how long it is kept
+
+PostHog Cloud (US), `https://us.i.posthog.com/i/v0/e/`, written by Ensemble over plain HTTPS with `URLSession`: no PostHog SDK and no other dependency. The project key is write-only and public (`usageWriteKey` in `Sources/Ensemble/App/UsageReporter.swift`). Retention: reports stay in the PostHog project until the owner deletes them; no automatic expiry is set up yet. Anyone can ask for their reports to be deleted through an issue, giving the install id shown in "Show what would be sent" (the id is only known after the first send). Moving to the EU cloud later means changing the host in `UsageReporter.swift` and in `scripts/check-network.sh`, and the sentence above.
+
+A send that does not get a 2xx answer is kept and tried again at the next hourly check; a summary older than 7 days is dropped. Nothing is sent while sharing is off, and `scripts/check-network.sh` allows exactly this one file to use `URLSession` and exactly this one extra address.
+
+## The checksum and spam
+
+`chk` is the first 8 hex digits of SHA-256 over `ensemble-usage-1`, then one line `name=value` per property in name order, joined by newlines, leaving out `chk` and every name that starts with `$`. The salt is in the public source (`UsageChecksum` in `UsageSummary.swift`), so anyone can forge it. It only stops a casual copy of an event into the project from passing as real. The daily analysis drops events whose `chk` does not match or whose `schema_version` is unknown.
+
+## Rotating the key
+
+If the key is abused, create a new project key in PostHog, change `usageWriteKey`, release, and delete the old key in PostHog. Old installs keep sending to the old key until they update; those reports are refused once it is deleted.

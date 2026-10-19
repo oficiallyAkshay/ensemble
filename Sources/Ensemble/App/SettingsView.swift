@@ -6,6 +6,8 @@ struct SettingsView: View {
     @ObservedObject var state: AppState
     @ObservedObject var settings: SettingsStore
     @ObservedObject var updates: UpdateController
+    let usage: UsageTracker
+    let reporter: UsageReporter
     @ObservedObject var navigation: SettingsNavigation
     let calibrate: (CalibrationRequest) -> Void
     let removeSpot: (String) -> Void
@@ -13,7 +15,7 @@ struct SettingsView: View {
 
     var body: some View {
         TabView(selection: $navigation.tab) {
-            GeneralSettings(state: state, settings: settings, updates: updates, replayTour: replayTour)
+            GeneralSettings(state: state, settings: settings, updates: updates, usage: usage, reporter: reporter, replayTour: replayTour)
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag(SettingsTab.general)
             ActionSettings(settings: settings)
@@ -37,8 +39,11 @@ private struct GeneralSettings: View {
     @ObservedObject var state: AppState
     @ObservedObject var settings: SettingsStore
     @ObservedObject var updates: UpdateController
+    let usage: UsageTracker
+    let reporter: UsageReporter
     let replayTour: (TourStep?) -> Void
     @State private var tourStep: TourStep = .welcome
+    @State private var preview: String?
 
     var body: some View {
         Form {
@@ -87,6 +92,18 @@ private struct GeneralSettings: View {
             } footer: {
                 Text("On: checks soon after launch and then every hour, and installs a new version by itself once you have been idle for 30 seconds (not dictating, sending, calibrating or in the tour); Ensemble reopens on its own. Off: nothing is checked until you press Check for Updates, which asks once before installing. \"Update to\" installs in one press.")
             }
+            Section {
+                Toggle("Share anonymous usage", isOn: $settings.shareUsage)
+                Button("Show what would be sent") { preview = reporter.previewJSON() }
+                    .disabled(!settings.shareUsage)
+                Button("Reset install id") { usage.resetInstallID() }
+                    .disabled(!settings.shareUsage)
+            } header: {
+                Text("Privacy")
+            } footer: {
+                Text("Once a day: counts of gestures, refusals and safety stops, the app and macOS versions and the camera format, under a random id. Never video, text, names, paths or window titles. Off stops everything and deletes the id and the counts. Every field is listed in docs/telemetry.md.")
+                + Text(UsageReporter.isConfigured ? "" : " Not configured: nothing is sent.")
+            }
             Section("Tour") {
                 Button("Replay tour") { replayTour(nil) }
                 Picker("One step", selection: $tourStep) {
@@ -96,6 +113,18 @@ private struct GeneralSettings: View {
             }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: Binding(get: { preview != nil }, set: { if !$0 { preview = nil } })) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Today so far, exactly as it would be sent").font(.headline)
+                ScrollView {
+                    Text(preview ?? "").font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                HStack { Spacer(); Button("Done") { preview = nil }.keyboardShortcut(.defaultAction) }
+            }
+            .padding(20)
+            .frame(width: 480, height: 400)
+        }
     }
 }
 

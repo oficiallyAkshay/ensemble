@@ -15,6 +15,7 @@ final class DictationSafety: @unchecked Sendable {
     private var alarmEndedHandler: (() -> Void)?
     private var mutedHandler: ((Bool) -> Void)?
     private var holdEndedHandler: ((String) -> Void)?
+    private var safetyStopHandler: ((SafetyStop) -> Void)?
 
     var onAlarm: ((String) -> Void)? {
         get { callbackLock.lock(); defer { callbackLock.unlock() }; return alarmHandler }
@@ -29,6 +30,11 @@ final class DictationSafety: @unchecked Sendable {
     var onHoldEnded: ((String) -> Void)? {
         get { callbackLock.lock(); defer { callbackLock.unlock() }; return holdEndedHandler }
         set { callbackLock.lock(); holdEndedHandler = newValue; callbackLock.unlock() }
+    }
+    /// The dead-man check or the standing check acted; called on the main queue, for the usage counts.
+    var onSafetyStop: ((SafetyStop) -> Void)? {
+        get { callbackLock.lock(); defer { callbackLock.unlock() }; return safetyStopHandler }
+        set { callbackLock.lock(); safetyStopHandler = newValue; callbackLock.unlock() }
     }
     var onMuted: ((Bool) -> Void)? {
         get { callbackLock.lock(); defer { callbackLock.unlock() }; return mutedHandler }
@@ -217,8 +223,8 @@ final class DictationSafety: @unchecked Sendable {
     private func endHoldAndStop(_ reason: String) {
         holdActive = false
         holdEndedAt = Date()
-        let handler = onHoldEnded
-        DispatchQueue.main.async { handler?(reason) }
+        let handler = onHoldEnded, counter = onSafetyStop
+        DispatchQueue.main.async { counter?(.deadMan); handler?(reason) }
         beginStop(reason)
     }
 
@@ -231,7 +237,11 @@ final class DictationSafety: @unchecked Sendable {
         case .some(true):
             offSince = nil
             unreadableSince = nil
-            if stopStartedAt == nil { beginStop("Claude is capturing audio with no hold active") }
+            if stopStartedAt == nil {
+                let counter = onSafetyStop
+                DispatchQueue.main.async { counter?(.standingCheck) }
+                beginStop("Claude is capturing audio with no hold active")
+            }
         case .some(false):
             unreadableSince = nil
             if stopStartedAt != nil || escalated { stopConfirmed() }

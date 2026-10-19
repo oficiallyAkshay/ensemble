@@ -11,6 +11,8 @@ final class CoordinatorContext {
     let state: AppState
     let settings: SettingsStore
     let overlay: OverlayController
+    /// Counts for the anonymous daily summary: numbers and fixed words only (docs/telemetry.md).
+    let usage: UsageCounting
     let bridge = ClaudeBridge()
     let gestures = GestureMachine()
     let cover = CoverDetector()
@@ -61,7 +63,8 @@ final class CoordinatorContext {
 
     private var calibratedCache: (value: Bool, at: TimeInterval)?
 
-    init(state: AppState, settings: SettingsStore, overlay: OverlayController) {
+    init(state: AppState, settings: SettingsStore, overlay: OverlayController, usage: UsageCounting) {
+        self.usage = usage
         self.state = state
         self.settings = settings
         self.overlay = overlay
@@ -102,6 +105,7 @@ final class CoordinatorContext {
     /// is back on a session.
     func refuse(_ why: String, title: String? = nil, resolves: RefusalNotice.Resolves = .byTime) {
         state.showRefusal(why, resolves: resolves)
+        if why.hasPrefix("Send") || why.hasPrefix("Not sent") { usage.count(.sendRefused(SendRefusal.classify(why))) }
         if gestureShowing || headphoneActive || why.hasPrefix("Send") || why.hasPrefix("Not sent") {
             let sendRelated = why.hasPrefix("Send") || why.hasPrefix("Not sent")
             let body = why.hasPrefix("Not sent: ") ? String(why.dropFirst("Not sent: ".count)) : why

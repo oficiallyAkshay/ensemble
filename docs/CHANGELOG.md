@@ -4,6 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- Ensemble sends one anonymous usage report a day (counts of gestures, refusals and safety stops, versions and the camera format, under a random id), on by default with a one-time notice in the menu bar panel. Settings, General, Privacy turns it off at once, shows the exact report and resets the id; every field is in [telemetry.md](telemetry.md).
 - Automatic camera now starts a camera that has a saved calibration before one that has none, so a phone camera that appears on its own no longer leaves Ensemble uncalibrated; with no saved calibration the order is unchanged (external, built-in, any other).
 - A missing permission shows one button that opens the right list; Restart Ensemble and Reset sit behind a small "Still stuck?" link.
 - With a face or hand in view, the overlay is refreshed at most once per screen refresh instead of on every camera reading, so the app does less work on its main thread.

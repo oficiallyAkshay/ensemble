@@ -64,7 +64,7 @@ No credential: everything runs on your Mac, and Ensemble asks only for Camera an
 - Never records your dictation or your screen; it logs events and numbers only.
 - Never reaches the internet from the face tracker page.
 - Never updates itself unless you turn on Update automatically or press Check for Updates, and installs only updates signed with its own key.
-- Never sends telemetry, analytics or crash reports.
+- Sends no crash reports, and one anonymous usage report a day (counts of gestures, refusals and safety stops, versions and the camera format, under a random id; never video, text, names or titles). Turn it off in Settings, General, Privacy; every field is in [docs/telemetry.md](docs/telemetry.md).
 - Never acts on another app, except pausing other audio while you dictate.
 
 Headphone presses (Bluetooth only) are explained in [Gestures and settings](docs/gestures.md#headphone-presses).

@@ -28,6 +28,6 @@ protocol AppCoordinating: AnyObject {
 }
 
 @MainActor
-func makeCoordinator(state: AppState, settings: SettingsStore, overlay: OverlayController) -> AppCoordinating {
-    Coordinator(state: state, settings: settings, overlay: overlay)
+func makeCoordinator(state: AppState, settings: SettingsStore, overlay: OverlayController, usage: UsageCounting) -> AppCoordinating {
+    Coordinator(state: state, settings: settings, overlay: overlay, usage: usage)
 }

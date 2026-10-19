@@ -16,6 +16,8 @@ final class CameraSession: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     /// session can be told apart from one about the current run.
     var onInterrupted: ((String, Int) -> Void)?
     var onNote: ((String) -> Void)?
+    /// The format the running session settled on: width, height, frames a second (0 when the device does not say).
+    var onFormat: ((Int, Int, Int) -> Void)?
 
     private var session: AVCaptureSession?
     /// Token of the start that owns `session`. Queue-confined.
@@ -107,6 +109,9 @@ final class CameraSession: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
             teardownOnQueue()
             throw CameraError.failed("Camera \(device.localizedName) did not start")
         }
+        let size = CMVideoFormatDescriptionGetDimensions(device.activeFormat.formatDescription)
+        let frame = device.activeVideoMinFrameDuration
+        onFormat?(Int(size.width), Int(size.height), frame.isNumeric && frame.seconds > 0 ? Int((1 / frame.seconds).rounded()) : 0)
         return (device.localizedName, device.uniqueID)
     }
 
