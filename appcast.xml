@@ -3,6 +3,24 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.28</title>
+            <pubDate>Mon, 19 Oct 2026 18:17:54 +0000</pubDate>
+            <sparkle:version>502</sparkle:version>
+            <sparkle:shortVersionString>0.2.28</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.27:
+
+- Update (#164)
+- A merge that lands while the release job is queued ends the run with a notice instead of failing it (#163)
+- The README opens with a new hero, look then pinch twice then thumbs-up with the real hand, and reads in a minute from what it is to where the docs are (#162)
+- The dead tag-triggered release workflow is gone; releases run only through auto-release.yml and the docs say Developer ID signing is not in use (#157)
+- The demo loads its trackers in the background and its sees panel shows a skeleton when nothing is tracked (#159)
+- The home page shows the real star count from 1, and invites the first star only at zero (#158)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.28/Ensemble-0.2.28.dmg" length="6450470" type="application/octet-stream" sparkle:edSignature="VD/eLl6WgkOCmm5IWQ8qjuC0KD9Jym6CXe5IH5fuesfWi7olaCCQTtaeLKV4Hv7TiPvx9V5oNqS6+r5sYokmCg=="/>
+        </item>
+        <item>
             <title>0.2.27</title>
             <pubDate>Mon, 19 Oct 2026 12:45:40 -0400</pubDate>
             <sparkle:version>496</sparkle:version>
@@ -37,23 +55,6 @@
 - The usage triage hands ticket drafts to its caller and no longer files GitHub issues; tickets live in Linear (#144)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.26/Ensemble-0.2.26.dmg" length="6444758" type="application/octet-stream" sparkle:edSignature="rJHx5UJagmN8l2XkFoCLuz/qAP8MbdhV0tjQVVVUCq6gh+HY1Zby5zX5l9WfC2BziD35503Iw+0afgL3rjM8Bg=="/>
-        </item>
-        <item>
-            <title>0.2.25</title>
-            <pubDate>Mon, 19 Oct 2026 02:32:19 -0400</pubDate>
-            <sparkle:version>484</sparkle:version>
-            <sparkle:shortVersionString>0.2.25</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.24:
-
-- A triage script reads the anonymous daily summaries from PostHog and files one GitHub issue per firing rule (#143)
-- Every merge that changes app logic is released at once by the agent that merged it (#142)
-- Ensemble sends one anonymous usage summary a day to PostHog, on by default with one switch to turn it off (#141)
-- A still head no longer lets one isolated camera reading carry the resting dot away (#140)
-- Nose dot is off on a new install, and the first-run tour asks whether to show it (#136)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.25/Ensemble-0.2.25.dmg" length="6434934" type="application/octet-stream" sparkle:edSignature="o31DwcyFjA7ERFu/qi1A+kMTP6c24uofDqTGzjxyOBlyB1YMGaUEgJ7O/1WOzsUCB1pkCMyBzzIfyggOITR5DQ=="/>
         </item>
     </channel>
 </rss>
