@@ -3,6 +3,23 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.25</title>
+            <pubDate>Mon, 19 Oct 2026 02:32:19 -0400</pubDate>
+            <sparkle:version>484</sparkle:version>
+            <sparkle:shortVersionString>0.2.25</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.24:
+
+- A triage script reads the anonymous daily summaries from PostHog and files one GitHub issue per firing rule (#143)
+- Every merge that changes app logic is released at once by the agent that merged it (#142)
+- Ensemble sends one anonymous usage summary a day to PostHog, on by default with one switch to turn it off (#141)
+- A still head no longer lets one isolated camera reading carry the resting dot away (#140)
+- Nose dot is off on a new install, and the first-run tour asks whether to show it (#136)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.25/Ensemble-0.2.25.dmg" length="6434934" type="application/octet-stream" sparkle:edSignature="o31DwcyFjA7ERFu/qi1A+kMTP6c24uofDqTGzjxyOBlyB1YMGaUEgJ7O/1WOzsUCB1pkCMyBzzIfyggOITR5DQ=="/>
+        </item>
+        <item>
             <title>0.2.24</title>
             <pubDate>Sun, 18 Oct 2026 22:15:29 -0400</pubDate>
             <sparkle:version>479</sparkle:version>
@@ -52,15 +69,6 @@
 - The rule that keeps the dictation safety record while a start press is in flight is decided in one tested place (#109)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.23/Ensemble-0.2.23.dmg" length="6404066" type="application/octet-stream" sparkle:edSignature="bXvkT9Uddol0egPmiCwGULTtHRj5ezJUcpk8g2DUCDQujtQl7X2zl2SDfbbJLc46DEM8Y7hWPOiUgqwY4GZ3Cg=="/>
-        </item>
-        <item>
-            <title>0.2.22</title>
-            <pubDate>Fri, 16 Oct 2026 19:32:39 -0400</pubDate>
-            <sparkle:version>447</sparkle:version>
-            <sparkle:shortVersionString>0.2.22</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.22/Ensemble-0.2.22.dmg" length="6386710" type="application/octet-stream" sparkle:edSignature="yJdWPoypcStlVL5SjTgSR2XlcvCEDTnCdJPiMUYpANmlCb5ApcTZS8JuFhIhO+TAOdkyxE0WYE6Da6wTFyviBw=="/>
         </item>
     </channel>
 </rss>
