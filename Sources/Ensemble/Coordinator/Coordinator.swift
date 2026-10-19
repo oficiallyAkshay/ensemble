@@ -440,8 +440,11 @@ final class Coordinator: AppCoordinating {
             if returned { refreshSessions() }
         }
         logHeadStats(head)
+        // The pointer filter advances on every call, so the nose is read once and the trace line shares it.
+        let nose = head.faceCount == 1 && !state.calibrating && ctx.calibratedHere ? ctx.pointer.point(for: head) : nil
+        EnsembleTrace.write(head.t, TrackSample(t: head.t, faces: head.faceCount, nose: nose, luma: ctx.latestLuma).traceLine)
         guard !state.calibrating else { return }
-        if head.faceCount == 1, ctx.calibratedHere, let p = ctx.pointer.point(for: head), ctx.setup.isUsable(p) {
+        if head.faceCount == 1, ctx.calibratedHere, let p = nose, ctx.setup.isUsable(p) {
             state.set(\.spotInUse, ctx.setup.spotInUseID)
             if ctx.handsBusy, ctx.listening != nil {
                 // Hands on the keyboard or mouse while dictating: the dictating session and its edge warnings hold still.
@@ -498,7 +501,10 @@ final class Coordinator: AppCoordinating {
 
     private func handle(light: FrameLight) {
         wake()
-        guard let covered = ctx.cover.push(light) else { return }
+        ctx.latestLuma = light.meanLuma
+        let coverChange = ctx.cover.push(light)
+        if ctx.dim.push(light, covered: ctx.cover.covered) != nil { health.update() }
+        guard let covered = coverChange else { return }
         if covered {
             if ctx.listening != nil { ctx.usage.count(.safetyStop(.cameraCovered)); dictation.end(reason: "camera covered") }
             send.afterStop = false

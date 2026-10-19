@@ -127,6 +127,7 @@ final class HealthMonitor {
         if let problem = cameraProblem { return .error(problem) }
         if let failure = trackerFailure { return .error("Face tracking is retrying: \(failure)") }
         if ctx.cover.covered { return .cameraCovered }
+        if ctx.dim.dim { return .pictureDim }
         if !ctx.calibratedHere { return .needsCalibration }
         if !claudeRunning { return .claudeNotRunning }
         if sessionsScanned, ctx.sessions.isEmpty { return .claudeNotOnScreen }

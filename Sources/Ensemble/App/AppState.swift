@@ -9,6 +9,8 @@ enum AppStatus: Equatable {
     case pausedForInput
     case listening
     case cameraCovered
+    /// The picture has stayed too dim for tracking to be trusted (`DimPicture`); gestures keep working.
+    case pictureDim
     case needsCalibration
     case needsPermission(String)
     case claudeNotRunning
@@ -115,6 +117,7 @@ extension AppStatus {
         case .pausedForInput: return "Focus holds while you type or use the mouse"
         case .listening: return "Claude dictation on"
         case .cameraCovered: return "Camera is covered"
+        case .pictureDim: return "Turn on a light"
         case .needsCalibration: return "Needs calibration"
         case .needsPermission(let what): return "Needs permission: \(what)"
         case .claudeNotRunning: return "Claude is not running"

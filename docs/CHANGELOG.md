@@ -18,6 +18,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 - While you pinch and drag to scroll, the nose dot turns into the up-and-down scroll arrows, and turns back into the dot when the pinch releases; the website demo does the same.
 - The menu bar icon gains a small upward arrow beside the three dots while a newer version has been found and not yet installed; with automatic checks off it appears only after you press Check for Updates.
 - The nose dot is off on a new install, and the first-run tour gains a "Show the nose dot?" step after the gestures with On and Off, Off preselected. Installs that already had Ensemble keep the setting they have; Settings' "Show nose dot" is the same choice.
+- The island says "Turn on a light" when the picture has stayed dim for 4 seconds, and clears it one second after the light returns; a covered camera still says "Camera is covered". With the hidden `detailedTrace` setting on, every head reading, with or without a face, now writes a trace line with the face count, nose position and brightness, and a test command turns saved traces into lost-face rate, still-head wander and follow lag (`docs/performance.md`).
 
 ## 0.2.21 - 2026-10-15
 
