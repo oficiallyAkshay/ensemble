@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import EnsembleCore
 
@@ -42,9 +43,9 @@ struct TourView: View {
                 }
                 Spacer()
                 if model.canGoBack {
-                    Button("Back") { model.back() }.ensembleButtonStyle()
+                    Button("Back") { model.back() }.ensembleButtonStyle().controlSize(.regular)
                 }
-                Button(nextTitle) { advance() }.ensembleButtonStyle(prominent: true)
+                Button(nextTitle) { advance() }.ensembleButtonStyle(prominent: true).controlSize(.large)
             }
         }
         .padding(20)
@@ -59,11 +60,14 @@ struct TourView: View {
     }
 }
 
-/// The tour's light palette, the website demo's: near-black ink, grey for secondary text, hairline grey for lines.
+/// The tour's palette follows the system's light or dark setting: primary ink, secondary text, hairline lines and a
+/// raised surface for panels that sit on the window.
 extension Color {
-    static let tourInk = Color(red: 0.039, green: 0.039, blue: 0.039)
-    static let tourMuted = Color(red: 0.451, green: 0.451, blue: 0.451)
-    static let tourLine = Color(red: 0.831, green: 0.831, blue: 0.831)
+    static let tourInk = Color.primary
+    static let tourMuted = Color.secondary
+    static let tourLine = Color.secondary.opacity(0.35)
+    static let tourSurface = Color(nsColor: .controlBackgroundColor)
+    static let tourHairline = Color.primary.opacity(0.12)
 }
 
 private struct StepDots: View {

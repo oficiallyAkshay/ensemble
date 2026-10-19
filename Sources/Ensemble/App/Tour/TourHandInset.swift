@@ -30,7 +30,7 @@ final class TourHandInsetModel: ObservableObject {
 }
 
 /// The bottom half of the gestures canvas's right-hand column: the owner's hand as Vision sees it, 21 joints as
-/// dots and bones as lines, in the app's blue, on a white backing, with the gesture the system reads
+/// dots and bones as lines, in the app's blue, on the window's raised surface, with the gesture the system reads
 /// under it. It fills whatever rectangle it is given (`TourGestureColumn` gives it the page's empty half).
 struct TourHandInset: View {
     @ObservedObject var model: TourHandInsetModel
@@ -62,8 +62,8 @@ struct TourHandInset: View {
                 .padding(.bottom, 6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color(red: 0.898, green: 0.898, blue: 0.898), lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.tourSurface))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.tourHairline, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Your hand as the camera sees it: \(model.readout)")

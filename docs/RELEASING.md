@@ -1,6 +1,6 @@
 # Releasing Ensemble
 
-How a release is built, signed, notarized, published, and delivered to installed copies. Nothing in this repo signs, uploads, or publishes by itself except the `auto-release` workflow and, until the first workflow release has succeeded, the launchd job the owner installs on their Mac (see "Release on every merge"): the other scripts run on your command, and `release.yml` runs only when a tag named `v*` is pushed (it stays disabled).
+How a release is built, signed, notarized, published, and delivered to installed copies. Nothing in this repo signs, uploads, or publishes by itself except the `auto-release` workflow and, until the first workflow release has succeeded, the launchd job the owner installs on their Mac (see "Release on every merge"): the other scripts run on your command. Developer ID signing, notarization and a tag-triggered release workflow are not in use (the owner cancelled that plan for now); the one-time steps for them are kept below, marked, and the workflow would be rebuilt if it were ever needed.
 
 ## The pieces
 
@@ -9,7 +9,6 @@ How a release is built, signed, notarized, published, and delivered to installed
 | `scripts/bundle.sh` | Builds the release binary, assembles `build/Ensemble.app` with Sparkle inside, signs it. Local identity by default; `ENSEMBLE_SIGN_IDENTITY="Developer ID Application: ..."` switches to hardened runtime + secure timestamp + `Sources/Ensemble/Ensemble.entitlements`. |
 | `scripts/release.sh` | Runs `bundle.sh`, optionally notarizes and staples the app, builds `build/Ensemble-<version>.dmg` with `hdiutil` (app plus an Applications shortcut), signs/notarizes/staples the DMG, writes the `.sha256`, prints a summary. `--dry-run` prints the Apple-service commands instead of running them. |
 | `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast`; refuses to write an appcast whose items lack an EdDSA signature. |
-| `.github/workflows/release.yml` | On tag `v*`: build, test, import the certificate, run `release.sh`, create the GitHub Release with `gh release create`, update the appcast on the `gh-pages` branch. Hardened like the other workflows (no default permissions, actions pinned to commit SHAs, no stored checkout credentials). Stays disabled on the repository until Developer ID signing exists. |
 | `.github/workflows/auto-release.yml` | After `ci` passes on a push to `main`, or by hand: decides whether app logic changed since the newest tag, imports the signing identity from the `release` environment, runs `scripts/ship-release.sh` and checks the release and the feed. See "Release on every merge". |
 | `.github/workflows/ci.yml` | On every pull request and push to `main`: `ci` builds in release mode, runs the tests and the repository's network and size checks; `hygiene` runs zizmor, pinact and a secrets scan over the whole history; `coverage`, `periphery` and `website-tests` check EnsembleCore coverage, unused code and the website logic and replay-timeline tests; `gate` passes only when all of them did. It never signs or publishes. |
 | `Sources/Ensemble/App/UpdateController.swift` | The Sparkle wrapper and Ensemble's own update interface: feed URL constant, the one alert, the idle gate, the relaunch record. |
@@ -18,12 +17,14 @@ Log of the last `release.sh` run: `build/release.log`.
 
 ## One-time setup (you)
 
+Steps 1, 5 and 6 are what the current route needs (the self-signed identity, the update key, the feed). Steps 2 to 4 and the Developer ID secrets in step 7 are only for a future move to Developer ID signing, which is not in use: there is no tag-triggered workflow for it, and one would be rebuilt then. The self-signed identity and its secrets are described under "Release on every merge".
+
 Do these once, in this order.
 
 1. **Decide the final name and bundle identifier before the first public release.** The bundle identifier is `dev.ensemble.app` (`Sources/Ensemble/Info.plist`, `LoginAgent.swift`). Camera and Accessibility grants, saved settings, the login agent and every future Sparkle update are tied to it, so changing it after release makes every user re-grant permissions and breaks the update chain. If the project becomes "Leanback", rename first: bundle identifier, app name, DMG name, feed URL, cask.
-2. **Apple Developer Program: $99 per year.** Enroll at https://developer.apple.com/programs/enroll/ (an individual needs a legal name and two-factor sign-in; an organization needs a D-U-N-S number and a public website). Notarization requires the paid membership. The fee waiver covers only nonprofits, schools, and governments, not individual open-source maintainers (https://developer.apple.com/help/account/membership/fee-waivers/).
-3. **Developer ID Application certificate.** Only the account holder can create it. In Keychain Access: Certificate Assistant, Request a Certificate From a Certificate Authority, save to disk. At https://developer.apple.com/account/resources/certificates/add choose "Developer ID Application", upload the request, download the `.cer`, double-click it. Confirm with `security find-identity -v -p codesigning`: a line `"Developer ID Application: Your Name (TEAMID)"`. Export it (Keychain Access, right-click the certificate, Export, `.p12`, choose a password) for the CI secret.
-4. **Notarization credentials.** In App Store Connect, Users and Access, Integrations, App Store Connect API: create a key with Developer access and download `AuthKey_XXXX.p8` (downloadable once). Note the key ID and the issuer ID. For local runs store them once:
+2. **(Only for a future Developer ID move.) Apple Developer Program: $99 per year.** Enroll at https://developer.apple.com/programs/enroll/ (an individual needs a legal name and two-factor sign-in; an organization needs a D-U-N-S number and a public website). Notarization requires the paid membership. The fee waiver covers only nonprofits, schools, and governments, not individual open-source maintainers (https://developer.apple.com/help/account/membership/fee-waivers/).
+3. **(Only for a future Developer ID move.) Developer ID Application certificate.** Only the account holder can create it. In Keychain Access: Certificate Assistant, Request a Certificate From a Certificate Authority, save to disk. At https://developer.apple.com/account/resources/certificates/add choose "Developer ID Application", upload the request, download the `.cer`, double-click it. Confirm with `security find-identity -v -p codesigning`: a line `"Developer ID Application: Your Name (TEAMID)"`. Export it (Keychain Access, right-click the certificate, Export, `.p12`, choose a password) if a workflow ever needs it.
+4. **(Only for a future Developer ID move.) Notarization credentials.** In App Store Connect, Users and Access, Integrations, App Store Connect API: create a key with Developer access and download `AuthKey_XXXX.p8` (downloadable once). Note the key ID and the issuer ID. For local runs store them once:
    ```
    xcrun notarytool store-credentials ensemble-notary --key AuthKey_XXXX.p8 --key-id KEYID --issuer ISSUERID
    ```
@@ -37,19 +38,8 @@ Do these once, in this order.
    ```
    git switch --orphan gh-pages && git commit --allow-empty -m "Appcast branch" && git push origin gh-pages && git switch -
    ```
-   Then Settings, Pages, Source: Deploy from a branch, `gh-pages`, `/ (root)`. The first release's workflow creates `appcast.xml` there.
-7. **Repository secrets** (Settings, Secrets and variables, Actions):
-
-   | Secret | Value |
-   |---|---|
-   | `DEVELOPER_ID_P12_BASE64` | `base64 -i DeveloperID.p12 \| pbcopy` |
-   | `DEVELOPER_ID_P12_PASSWORD` | the password chosen when exporting the `.p12` |
-   | `NOTARY_KEY_P8` | the full text of `AuthKey_XXXX.p8` |
-   | `NOTARY_KEY_ID` | the API key ID |
-   | `NOTARY_ISSUER_ID` | the issuer ID |
-   | `SPARKLE_ED_PRIVATE_KEY` | the text of `sparkle_private.key` |
-
-   The workflow's first step stops with the name of any missing secret or leftover placeholder.
+   Then Settings, Pages, Source: Deploy from a branch, `gh-pages`, `/ (root)`. The first release creates `appcast.xml` there.
+7. **Secrets.** The current route's secrets (`ENSEMBLE_SIGN_P12_BASE64`, `ENSEMBLE_SIGN_P12_PASSWORD`, `SPARKLE_ED_PRIVATE_KEY`) are environment secrets of `release`, listed under "Release on every merge"; `SPARKLE_ED_PRIVATE_KEY` is the text of `sparkle_private.key`. A Developer ID route would additionally need the certificate `.p12` (base64) and its password, the notary key `.p8`, its key ID and its issuer ID; none of these is set or read by any workflow now.
 
 ## Try it locally first
 
@@ -77,7 +67,7 @@ It builds and signs the DMG with the local identity, adds it to the appcast with
 
 Every pull request that changes app logic is released as soon as it merges to `main`. Bug fixes are app logic, so they ship the same way and at once. The GitHub workflow `.github/workflows/auto-release.yml` cuts the release once `ci` has passed on the merge commit (see "The workflow" below). Until the first workflow release has succeeded, a plain launchd job on the owner's Mac does the same within about 5 minutes of the checks passing, and stays installed; after that it is removed (`scripts/install-auto-release.sh --uninstall`) so two releasers never race. The job: `scripts/install-auto-release.sh` installs the agent `dev.ensemble.releaser`, which runs `scripts/auto-release.sh` every 5 minutes. No Claude session or routine is involved, so nobody has to remember to release. An agent or a person may still run `scripts/ship-release.sh` by hand; the job then sees the new tag and has nothing to do.
 
-**The workflow.** `auto-release.yml` has two jobs. `decide` (no secrets, no environment) runs when `ci` completes green for a push to `main`, or on `workflow_dispatch`: it stops quietly unless the commit is still the tip of `main` and a file under `Sources/`, `Package.swift` or `Package.resolved` changed since the newest `v*` tag, picks the next patch version and refuses one that exists as a tag or a release. `release` runs on a macOS runner in the GitHub environment `release` (limited to `main`): it checks out exactly the decided commit, imports the signing identity into a temporary keychain, refuses unless that identity's SHA-1 is `40B0779A528926B904971BBDB913DC4860CD1D49`, then runs `scripts/ship-release.sh` (build, sign as "Ensemble Local Signing", DMG, signed appcast item, tag, GitHub Release with `Ensemble-<version>.dmg`, its `.sha256` and `Ensemble.dmg`, appcast to `gh-pages`, all through the API with the run's token) and finally checks that the release and `https://oficiallyakshay.github.io/ensemble/appcast.xml` show the version, retrying for 3 minutes. Before anything is public `ship-release.sh` mounts the DMG and refuses unless the app's designated requirement is `identifier "dev.ensemble.app" and certificate leaf = H"40b0779a528926b904971bbdb913dc4860cd1d49"`, the one releases 0.2.24 and later carry: another certificate would reset every user's Camera and Accessibility grants. The temporary keychain is deleted at the end of every run.
+**The workflow.** `auto-release.yml` has two jobs. `decide` (no secrets, no environment) runs when `ci` completes green for a push to `main`, or on `workflow_dispatch`: it stops quietly unless the commit is still the tip of `main` and a file under `Sources/`, `Package.swift` or `Package.resolved` changed since the newest `v*` tag, picks the next patch version and refuses one that exists as a tag or a release. `release` runs on a macOS runner in the GitHub environment `release` (limited to `main`): it checks out exactly the decided commit, imports the signing identity into a temporary keychain, refuses unless that identity's SHA-1 is `40B0779A528926B904971BBDB913DC4860CD1D49`, then, unless `main` has moved on since `decide` (a merge while the job queued: the step ends with a notice and the run for the newer commit decides, instead of failing in `ship-release.sh`), runs `scripts/ship-release.sh` (build, sign as "Ensemble Local Signing", DMG, signed appcast item, tag, GitHub Release with `Ensemble-<version>.dmg`, its `.sha256` and `Ensemble.dmg`, appcast to `gh-pages`, all through the API with the run's token) and finally checks that the release and `https://oficiallyakshay.github.io/ensemble/appcast.xml` show the version, retrying for 3 minutes. Before anything is public `ship-release.sh` mounts the DMG and refuses unless the app's designated requirement is `identifier "dev.ensemble.app" and certificate leaf = H"40b0779a528926b904971bbdb913dc4860cd1d49"`, the one releases 0.2.24 and later carry: another certificate would reset every user's Camera and Accessibility grants. The temporary keychain is deleted at the end of every run.
 
 The secrets are environment secrets of `release` (values never in the repository): `ENSEMBLE_SIGN_P12_BASE64` (the signing identity as a base64 PKCS12 file), `ENSEMBLE_SIGN_P12_PASSWORD` and `SPARKLE_ED_PRIVATE_KEY` (the Sparkle update key; its public half is `SUPublicEDKey` in `Info.plist`).
 
@@ -111,13 +101,11 @@ The next version is the latest tag with one added to the patch number (`0.2.24` 
 
 ## Cut a release
 
-1. Merge to `main`; the tests pass.
-2. `git tag v0.1.0 && git push origin v0.1.0`. The version comes from the tag; the build number is the commit count, so it grows with every commit (Sparkle compares the build number, never reuse or lower one).
-3. The workflow runs (about 20 to 40 minutes, most of it Apple's notary queue). On success the GitHub Release holds `Ensemble-0.1.0.dmg` and its `.sha256`, and `appcast.xml` on `gh-pages` lists the new version.
-4. Check on a Mac that has never run Ensemble: download the DMG from the release page, drag the app to Applications, double-click. It must open with no Gatekeeper warning. `spctl -a -t exec -vv /Applications/Ensemble.app` says `source=Notarized Developer ID`.
-5. Tags with a dash (`v0.2.0-beta.1`) publish a pre-release and are not added to the appcast.
+Releases are cut by `auto-release.yml` after a merge, or by hand with `scripts/ship-release.sh` (see "Release on every merge" and "Ship from this Mac"). The version is the next patch number after the newest `v*` tag; the build number is the commit count, so it grows with every commit (Sparkle compares the build number, never reuse or lower one). Pushing a tag does not start a release: no workflow reacts to a tag, and one is never pushed by hand. Developer ID signing, notarization and the tag-triggered workflow that went with them are not in use; if they are ever wanted, that workflow is rebuilt from `scripts/release.sh` and the steps under "One-time setup".
 
-If the workflow fails after the GitHub Release is created (for example the appcast push), fix the cause and re-run the failed job; do not move the tag.
+After a release, on a Mac that has run Ensemble before, check for updates and confirm the new version installs; the GitHub Release holds `Ensemble-<version>.dmg`, its `.sha256` and `Ensemble.dmg`, and `appcast.xml` on `gh-pages` lists the version. A DMG signed with the local identity is not notarized, so Gatekeeper warns on a Mac that has never run Ensemble.
+
+If a release fails after the GitHub Release is created (for example the appcast push), fix the cause and run the release again for the same version only if the tag was not created; do not move a tag.
 
 ## What CI builds
 
@@ -125,11 +113,11 @@ If the workflow fails after the GitHub Release is created (for example the appca
 
 Every action in the workflows is pinned to a commit SHA with the version in a trailing comment, and Dependabot proposes the bumps weekly. A bump pull request must pass `gate`, whose `hygiene` job includes `pinact` checking that each SHA is the commit its comment names. To pin by hand: `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`.
 
-The secrets listed under "One-time setup" are the only ones any workflow reads beyond the built-in token. They are recorded as owner opt-ins in `.ossemble/state.json`, with the reason for each.
+The secrets of the `release` environment and `TRAFFIC_TOKEN` are the only ones any workflow reads beyond the built-in token. They are recorded as owner opt-ins in `.ossemble/state.json`, with the reason for each.
 
 ## The website
 
-GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `release.yml`) and the website. `site.yml` copies `docs/index.html`, `docs/logo.png`, `docs/live/` and `docs/assets/` there whenever they change on main, so the site is edited in `docs/` like any other file. It lives at https://oficiallyakshay.github.io/ensemble/.
+GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `scripts/ship-release.sh`) and the website. `site.yml` copies `docs/index.html`, `docs/logo.png`, `docs/live/` and `docs/assets/` there whenever they change on main, so the site is edited in `docs/` like any other file. It lives at https://oficiallyakshay.github.io/ensemble/.
 
 ## How updates reach users
 

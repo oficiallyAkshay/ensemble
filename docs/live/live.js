@@ -8,7 +8,7 @@ import {
 import { SESSIONS } from './content.js';
 import { esc, fmt, buildPane, addLine } from './pane.js';
 import { SeesPanel } from './sees.js';
-import { Trackers, unsupportedReason, TOTAL_BYTES } from './tracker.js';
+import { Trackers, unsupportedReason } from './tracker.js';
 import { track } from '../analytics.js';
 const stage = (s) => track('demo_stage', { stage: s });   // the last stage a visit sent is where the visitor dropped off
 
@@ -22,7 +22,7 @@ const el = {
   prompt: $('prompt'), steps: $('steps'), done: $('done'), finish: $('finish'), keep: $('keep'), stop: $('stop'), recentre: $('recentre'),
   sink: $('sink'), sees: $('sees'), hl: $('hl'), dot: $('dot'),
   centre: $('centre'), centreLine: $('centre-line'), centreCount: $('centre-count'), centreArc: $('centre-arc'), centreSkip: $('centre-skip'), rPinch: $('r-pinch'),
-  rHead: $('r-head'), rHand: $('r-hand'), rGesture: $('r-gesture'), rSpeed: $('r-speed'), sizeNote: $('size-note'),
+  rHead: $('r-head'), rHand: $('r-hand'), rGesture: $('r-gesture'), rSpeed: $('r-speed'),
 };
 const now = () => performance.now() / 1000;
 
@@ -75,6 +75,24 @@ const S = {
 };
 S.machine.sendHold = 0.75;
 const trackers = new Trackers();
+
+// The trackers (about 12 MB, gzipped, from this site) load quietly in the background the moment the demo opens, while the person
+// looks around, opens Claude and the menu bar tour. Nothing about the download is ever shown: no bar, no size. Pressing the camera
+// button only waits on this same load, which has normally finished by then. A failed early load is not reported until the person
+// asks for the camera, and is tried again then. Skipped on a data-saving or very slow connection, as the letter's prefetch is.
+const loader = { promise: null, abort: new AbortController() };
+function loadTrackers() {
+  if (trackers.face) return Promise.resolve();
+  if (!loader.promise) {
+    loader.promise = trackers.load({ signal: loader.abort.signal }).catch((e) => { loader.promise = null; throw e; });
+  }
+  return loader.promise;
+}
+(function startBackgroundLoad() {
+  const c = navigator.connection;
+  if (unsupportedReason() || (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')))) return;
+  setTimeout(() => { loadTrackers().catch(() => {}); }, 0);
+})();
 const sees = new SeesPanel(el.sees);
 const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 
@@ -145,21 +163,13 @@ async function startCamera() {
   el.gate.hidden = false; el.finish.hidden = true;
   el.goCamera.disabled = true; el.goMouse.disabled = true;
   el.gateMsg.hidden = true; el.progress.hidden = false;
-  el.progressLabel.textContent = 'Waiting for camera permission, loading the trackers in the meantime';
-  el.bar.style.width = '0%';
+  // Only the camera is asked for in front of the person; the trackers are already loading in the background (loadTrackers).
+  el.bar.parentElement.hidden = true;
+  el.progressLabel.textContent = 'Turning on the camera';
   setState('loading');
   const abort = new AbortController(); S.abort = abort;
   const camP = openCamera();
-  camP.catch(() => abort.abort());
-  const needLoad = !trackers.face;
-  const loadP = needLoad ? trackers.load({
-    signal: abort.signal,
-    onProgress: (f, label) => {
-      el.bar.style.width = `${Math.round(f * 100)}%`;
-      el.progressLabel.textContent = label || `Loading the trackers: ${Math.round(f * 100)}% of ${(TOTAL_BYTES / 1e6).toFixed(1)} MB`;
-    },
-  }) : Promise.resolve();
-  const [cam, load] = await Promise.allSettled([camP, loadP]);
+  const [cam, load] = await Promise.allSettled([camP, loadTrackers()]);
   if (cam.status === 'rejected') { showGate(cameraErrorMessage(cam.reason)); return; }
   if (load.status === 'rejected') {
     cam.value.getTracks().forEach((t) => t.stop());
@@ -169,7 +179,7 @@ async function startCamera() {
   }
   try {
     await withTimeout(attachStream(cam.value), 10000, 'no picture');
-    el.progressLabel.textContent = 'Warming up the trackers';
+    el.progressLabel.textContent = 'Getting ready';
     await trackers.warmUp(S.video);
   } catch (e) {
     cam.value.getTracks().forEach((t) => t.stop());
@@ -883,11 +893,10 @@ document.addEventListener('visibilitychange', () => {
     startCamera();
   }
 });
-addEventListener('pagehide', () => { stopCamera(); trackers.close(); S.abort?.abort(); });
+addEventListener('pagehide', () => { stopCamera(); trackers.close(); S.abort?.abort(); loader.abort.abort(); });
 addEventListener('resize', () => { sees.resize(); refreshFrames(); });
 // Without a hidden-tab restart the gate would sit over a dead stage, so the first view is always the gate.
 
-el.sizeNote.textContent = `${Math.round(TOTAL_BYTES / 1e6)} MB`;
 refreshFrames();
 for (const p of panes) stick(p);
 addEventListener('load', () => { for (const p of panes) if (!p.streams && !p.typed) stick(p); });

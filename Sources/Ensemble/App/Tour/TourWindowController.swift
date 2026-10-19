@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 import EnsembleCore
 
-/// The tour's own window: a fixed-size white panel in the light appearance centred on the main screen, independent of the menu-bar
-/// panel and the Settings window. Closing it any way other than Skip or Done (the red button, Esc, Cmd-W)
+/// The tour's own window: a fixed-size panel centred on the main screen that follows the system's light or dark setting,
+/// independent of the menu-bar panel and the Settings window. Closing it any way other than Skip or Done (the red button, Esc, Cmd-W)
 /// counts as Skip.
 @MainActor
 final class TourWindowController {
@@ -50,21 +50,14 @@ final class TourWindowController {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
-        window.appearance = NSAppearance(named: .aqua)
         window.isReleasedWhenClosed = false
-        window.backgroundColor = .white
+        window.backgroundColor = .windowBackgroundColor
         window.isOpaque = true
 
-        // Light like the website's demo: a plain white backing, no glass.
-        let glass = NSView()
-        glass.wantsLayer = true
-        glass.layer?.backgroundColor = NSColor.white.cgColor
-        glass.frame = NSRect(origin: .zero, size: size)
         let host = NSHostingView(rootView: TourView(model: model, state: state, settings: settings))
-        host.frame = glass.bounds
+        host.frame = NSRect(origin: .zero, size: size)
         host.autoresizingMask = [.width, .height]
-        glass.addSubview(host)
-        window.contentView = glass
+        window.contentView = host
         self.window = window
 
         closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: nil) { [weak self] _ in

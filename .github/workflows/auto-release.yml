@@ -182,6 +182,7 @@ jobs:
       # dry run; only a real run then creates the tag and the release and pushes the appcast, through the API with this
       # run's token (no stored git credentials).
       - name: Build, sign and ship (scripts/ship-release.sh)
+        id: ship
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -189,11 +190,20 @@ jobs:
           ENSEMBLE_EXPECTED_REQUIREMENT: 'identifier "dev.ensemble.app" and certificate leaf = H"40b0779a528926b904971bbdb913dc4860cd1d49"'
         run: |
           [ -n "$SPARKLE_ED_PRIVATE_KEY" ] || { echo "::error::SPARKLE_ED_PRIVATE_KEY is not set in the release environment (docs/RELEASING.md)"; exit 1; }
+          # `decide` checked the tip of main minutes ago (this job can queue for a macOS runner), and ship-release.sh refuses
+          # anything but the tip of main. A merge in between is not a failure: the run for the newer commit decides.
+          TIP="$(git ls-remote "https://github.com/$GH_REPO" refs/heads/main | cut -f1)"
+          if [ "$(git rev-parse HEAD)" != "$TIP" ]; then
+            echo "::notice::$(git rev-parse --short HEAD) is no longer the tip of main (${TIP:0:7}); v$VERSION is not shipped from it, the run for the newer commit decides"
+            echo "shipped=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$DRY" = "true" ]; then export ENSEMBLE_SHIP_DRY_RUN=1; fi
           scripts/ship-release.sh "$VERSION"
+          echo "shipped=true" >> "$GITHUB_OUTPUT"
 
       - name: Check that the release is public
-        if: ${{ needs.decide.outputs.dry != 'true' }}
+        if: ${{ needs.decide.outputs.dry != 'true' && steps.ship.outputs.shipped == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

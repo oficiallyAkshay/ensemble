@@ -2,25 +2,52 @@
  * Needs three.js r128 globals (THREE, THREE.GLTFLoader, THREE.CCDIKSolver).
  * Hand model: WebXR generic hand (MIT), loaded from opts.handUrl (default 'assets/hand.glb').
  *
- *   window.EnsembleScene.mount(el, { scene, reducedMotion, onFrame, handUrl, handOnly }) -> { setScene, destroy, canvas }
+ *   window.EnsembleScene.mount(el, { scene, reducedMotion, onFrame, handUrl, handOnly, theme }) -> { setScene, setTheme, destroy, canvas }
  *   handOnly (gesture scenes only): the 3D hand fills el and no Claude window is drawn.
+ *   theme: 'light' (default) or 'dark'. The page decides (the tour reads the colour-scheme media query); setTheme switches a mounted scene.
  *   The welcome and calibrate scenes fill el with one 3D canvas (desk, head, monitors). The gesture scenes (dictate,
  *   send, scroll) mount the frame layout instead: a flat 2D Claude window with one focused session, and over its
  *   right COLUMN share a top panel holding the 3D hand alone. The bottom half of that column is left empty for the
- *   app to draw the camera's hand skeleton in. A mounted instance keeps its layout; setScene switches within it.
+ *   app to draw the camera's hand skeleton in, except on dictate, where the panel takes the whole column.
+ *   A mounted instance keeps its layout; setScene switches within it.
  *   window.EnsembleScene._seek(name, t)   debug: freeze a frame on the last mounted instance
  */
 (function () {
   'use strict';
 
   var ACCENT = 0x5294ff;      // the app's blue (the website's --e-blue)
-  var ACCENT_INK = 0x2d6ae0;  // the same blue darkened to read on white
-  var LINE = 0x2a3140;      // outline colour for the desk objects
-  var LINE_DIM = 0xa4abb8;
-  var BG_TOP = new THREE.Color(0xffffff);
-  var BG_HORIZON = new THREE.Color(0xf0f3f8);
-  var WOOD_FILL = new THREE.Color(0xd9a469);
-  var WOOD_RIM = new THREE.Color(0x6b3d14);
+
+  // Every colour that differs between light and dark. 3D parts are hex numbers, the 2D Claude window (`frame`) is CSS strings.
+  var THEMES = {
+    light: {
+      accentInk: 0x2d6ae0,   // the app's blue darkened to read on white
+      line: 0x2a3140, lineDim: 0xa4abb8, clear: 0xffffff, bgTop: 0xffffff, bgHorizon: 0xf0f3f8,
+      gridCol: 0xb4c0d4, gridMajor: 0x6f84a6,
+      woodFill: 0xd9a469, woodRim: 0x6b3d14, woodJoint: 0x7a4515, woodBone: 0x9a5a22,
+      monBody: 0xffffff, monScreen: 0xf4f6fa, paneDim: 0xcdd2dc, paneText: 0xb3bccb, off: 0xc8483f,
+      panel: 'linear-gradient(180deg,#ffffff,#f1f4f9)', panelBorder: '#e5e5e5', panelShadow: 'rgba(10,10,10,0.08)',
+      frame: {
+        bg: '#faf9f5', side: '#faf9f5', pane: '#ffffff', line: '#e8e6dc', text: '#3d3d3a', dim: '#83827d', faint: '#9a9892',
+        bubble: '#f0eee6', code: '#f4f2eb', orange: '#d97757', blue: '#5294ff', bone: '#e6e4dc', bone2: '#edebe4', skel: '#d9d6cc',
+        skelPane: '#f3f2ee', head: '#f0eee6', strong: '#141413', composer: '#ffffff', composerLine: '#dedad0', send: '#d9d6cc',
+        kw: '#b8502a', fn: '#2d6ae0', plain: '#3d3d3a', capsuleLine: 'rgba(10,10,10,0.2)'
+      }
+    },
+    dark: {
+      accentInk: 0x8ab4ff,
+      line: 0xc3cada, lineDim: 0x56607a, clear: 0x0f1218, bgTop: 0x0f1218, bgHorizon: 0x1b2232,
+      gridCol: 0x2a3347, gridMajor: 0x4a5b82,
+      woodFill: 0xd9a469, woodRim: 0xf2c48d, woodJoint: 0xf2c48d, woodBone: 0xd9a469,
+      monBody: 0x1d222c, monScreen: 0x151922, paneDim: 0x3a4254, paneText: 0x4a5367, off: 0xff6b62,
+      panel: 'linear-gradient(180deg,#171b23,#0f1218)', panelBorder: '#2a3040', panelShadow: 'rgba(0,0,0,0.4)',
+      frame: {
+        bg: '#262624', side: '#1f1e1d', pane: '#30302e', line: '#3d3d3a', text: '#d6d4cc', dim: '#9a9892', faint: '#7d7c76',
+        bubble: '#3a3936', code: '#2b2a28', orange: '#d97757', blue: '#5294ff', bone: '#4a4944', bone2: '#3d3c38', skel: '#55534e',
+        skelPane: '#2a2927', head: '#1f1e1d', strong: '#f0eee6', composer: '#30302e', composerLine: '#4a4944', send: '#4a4944',
+        kw: '#e0825c', fn: '#7aa8ff', plain: '#d6d4cc', capsuleLine: 'rgba(255,255,255,0.22)'
+      }
+    }
+  };
 
   var DURATIONS = { welcome: 8, look: 8, calibrate: 12, dictate: 6.4, send: 5.2, scroll: 5.6 };
   var STATIC_T = { welcome: 0.8, look: 0.8, calibrate: 3.0, dictate: 0.66, send: 1.5, scroll: 2.3 };
@@ -35,10 +62,10 @@
   // ------------------------------------------------------------------
   // Stage: sky gradient, fading grid floor
   // ------------------------------------------------------------------
-  function buildStage(scene, disposables) {
+  function buildStage(scene, disposables, T) {
     var skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      uniforms: { uTop: { value: BG_TOP }, uHor: { value: BG_HORIZON } },
+      uniforms: { uTop: { value: new THREE.Color(T.bgTop) }, uHor: { value: new THREE.Color(T.bgHorizon) } },
       vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: [
         'uniform vec3 uTop; uniform vec3 uHor; varying vec3 vP;',
@@ -59,8 +86,8 @@
       transparent: true, depthWrite: false,
       uniforms: {
         uCam: { value: new THREE.Vector3() },
-        uCol: { value: new THREE.Color(0xb4c0d4) },
-        uMajor: { value: new THREE.Color(0x6f84a6) }
+        uCol: { value: new THREE.Color(T.gridCol) },
+        uMajor: { value: new THREE.Color(T.gridMajor) }
       },
       extensions: { derivatives: true },
       vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
@@ -83,7 +110,13 @@
     floor.renderOrder = -5;
     scene.add(floor);
     disposables.push(gridMat, floor.geometry);
-    return { gridMat: gridMat };
+    return {
+      gridMat: gridMat,
+      apply: function (T2) {
+        skyMat.uniforms.uTop.value.setHex(T2.bgTop); skyMat.uniforms.uHor.value.setHex(T2.bgHorizon);
+        gridMat.uniforms.uCol.value.setHex(T2.gridCol); gridMat.uniforms.uMajor.value.setHex(T2.gridMajor);
+      }
+    };
   }
 
   // ------------------------------------------------------------------
@@ -108,7 +141,8 @@
       transparent: true, depthWrite: false, side: THREE.FrontSide,
       uniforms: {
         uFill: { value: fill.clone() }, uRim: { value: rim.clone() },
-        uOp: { value: opacity }, uEdge: { value: edge || 0.52 }, uGrain: { value: 0.0 }, uFadeLen: { value: 0.0 }
+        uOp: { value: opacity }, uEdge: { value: edge || 0.52 }, uGrain: { value: 0.0 }, uFadeLen: { value: 0.0 },
+        uGS: { value: 1.0 }   // grain scale: the hand is modelled in metres, the head in scene units
       },
       vertexShader: vsHead + [
         'varying vec3 vN; varying vec3 vV; varying vec3 vP;',
@@ -122,7 +156,7 @@
         '}'
       ].join('\n'),
       fragmentShader: [
-        'uniform vec3 uFill; uniform vec3 uRim; uniform float uOp; uniform float uEdge; uniform float uGrain; uniform float uFadeLen;',
+        'uniform vec3 uFill; uniform vec3 uRim; uniform float uOp; uniform float uEdge; uniform float uGrain; uniform float uFadeLen; uniform float uGS;',
         'varying vec3 vN; varying vec3 vV; varying vec3 vP;',
         'void main(){',
         '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
@@ -130,7 +164,8 @@
         '  float rim = smoothstep(uEdge, uEdge + 0.07, f);',
         '  float glow = smoothstep(0.15, 0.9, f) * 0.35;',
         '  float lit = 0.62 + 0.38 * clamp(dot(n, normalize(vec3(0.35, 0.65, 0.7))), 0.0, 1.0);',
-        '  float gr = sin(vP.z * 330.0 + sin(vP.y * 70.0) * 1.6 + sin(vP.x * 110.0 + vP.y * 30.0) * 1.1);',
+        '  vec3 q = vP * uGS;',
+        '  float gr = sin(q.z * 330.0 + sin(q.y * 70.0) * 1.6 + sin(q.x * 110.0 + q.y * 30.0) * 1.1);',
         '  float grain = smoothstep(0.35, 1.0, gr) * uGrain;',
         '  vec3 c = uFill * lit * (1.0 - 0.28 * grain) + uRim * glow;',
         '  c = mix(c, uRim, rim);',
@@ -169,10 +204,15 @@
   // ------------------------------------------------------------------
   // Desk: head, two monitors, four session panes
   // ------------------------------------------------------------------
-  function buildDesk(scene, disposables) {
+  function buildDesk(scene, disposables, T0) {
     var root = new THREE.Group();
     scene.add(root);
     function track(o) { disposables.push(o); return o; }
+    // A part whose colour depends on the theme registers a painter; apply() runs them all again when the theme flips.
+    var T = T0, painters = [];
+    function paint(fn) { painters.push(fn); fn(T); }
+    function paintLine(mat, key) { paint(function (t) { mat.color.setHex(t[key]); }); }
+    function paintFill(mat, fillKey, rimKey) { paint(function (t) { mat.uniforms.uFill.value.setHex(t[fillKey]); mat.uniforms.uRim.value.setHex(t[rimKey]); }); }
 
     var HEAD_POS = new THREE.Vector3(0.1, 1.6, 0.7);
 
@@ -185,13 +225,22 @@
     rig.scale.setScalar(1.22);
     neck.add(rig);
 
+    // The head is drawn like the hands: translucent wood with a grained fill and a crisp rim, so it reads as the same kind of object.
+    var HEAD_GRAIN = 0.27;
+    function woodMat(opacity, edge) {
+      var m = track(rimMaterial(new THREE.Color(0), new THREE.Color(0), opacity, false, edge));
+      m.uniforms.uGrain.value = 1.0; m.uniforms.uGS.value = HEAD_GRAIN;
+      paintFill(m, 'woodFill', 'woodRim');
+      return m;
+    }
     var skullGeo = track(new THREE.SphereGeometry(0.42, 40, 28));
-    var skullMat = track(rimMaterial(new THREE.Color(0xeef2f8), new THREE.Color(0x3b4558), 0.5, false, 0.72));
+    var skullMat = woodMat(0.85, 0.84);
     var skull = new THREE.Mesh(skullGeo, skullMat);
     skull.scale.set(0.9, 1.1, 1.0);
     rig.add(skull);
 
-    var lm = track(lineMat(0x5a6679, 0.55));
+    var lm = track(lineMat(0x000000, 0.55));
+    paintLine(lm, 'woodJoint');
     [-0.3, 0.0, 0.3].forEach(function (yy) {
       var rr = Math.sqrt(1 - Math.pow(yy / 0.462, 2)) * 0.42;
       var g = track(new THREE.BufferGeometry().setFromPoints(circlePts(rr, 48, 'xz')));
@@ -203,7 +252,7 @@
     var mer = track(new THREE.BufferGeometry().setFromPoints(circlePts(0.42, 56, 'yz')));
     var merL = new THREE.Line(mer, lm); merL.scale.set(1, 1.1, 1.0); rig.add(merL);
 
-    var noseMat = track(rimMaterial(new THREE.Color(0xe3e9f3), new THREE.Color(0x2a3140), 0.85, false, 0.45));
+    var noseMat = woodMat(0.9, 0.7);
     var noseGeo = track(new THREE.ConeGeometry(0.1, 0.28, 4));
     var nose = new THREE.Mesh(noseGeo, noseMat);
     nose.rotation.x = -Math.PI / 2 - 0.12;   // tip toward -z
@@ -219,13 +268,16 @@
     });
     // brow marker so facing reads even at a distance
     var browGeo = track(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.2, 0.1, -0.4), new THREE.Vector3(-0.1, 0.14, -0.42), new THREE.Vector3(0.1, 0.14, -0.42), new THREE.Vector3(0.2, 0.1, -0.4)]));
-    rig.add(new THREE.Line(browGeo, track(lineMat(0x2a3140, 0.9))));
+    var browMat = track(lineMat(0x000000, 0.9));
+    paintLine(browMat, 'woodJoint');
+    rig.add(new THREE.Line(browGeo, browMat));
 
     var gazeMat = track(new THREE.LineBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.55 }));
     var gaze = new THREE.Line(track(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -0.62), new THREE.Vector3(0, 0, -2.4)])), gazeMat);
     rig.add(gaze);
     // neck + shoulders (static)
-    var lineM = track(lineMat(LINE, 0.9));
+    var lineM = track(lineMat(0x000000, 0.9));
+    paintLine(lineM, 'woodJoint');
     var neckPts = [];
     [-1, 1].forEach(function (sx) { neckPts.push(new THREE.Vector3(sx * 0.17, -0.42, 0.03), new THREE.Vector3(sx * 0.2, -0.78, 0.05)); });
     neck.add(new THREE.LineSegments(track(new THREE.BufferGeometry().setFromPoints(neckPts)), lineM));
@@ -240,25 +292,33 @@
       g.rotation.y = yaw;
       root.add(g);
       var boxGeo = track(new THREE.BoxGeometry(w + 0.1, h + 0.1, 0.07));
-      var body = new THREE.Mesh(boxGeo, track(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.96 })));
-      g.add(body);
-      var edges = new THREE.LineSegments(track(new THREE.EdgesGeometry(boxGeo)), track(lineMat(LINE, 1)));
-      g.add(edges);
-      var screen = new THREE.Mesh(track(new THREE.PlaneGeometry(w, h)), track(new THREE.MeshBasicMaterial({ color: 0xf4f6fa })));
+      var bodyMat = track(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.96 }));
+      paintLine(bodyMat, 'monBody');
+      g.add(new THREE.Mesh(boxGeo, bodyMat));
+      var edgeMat = track(lineMat(0x000000, 1));
+      paintLine(edgeMat, 'line');
+      g.add(new THREE.LineSegments(track(new THREE.EdgesGeometry(boxGeo)), edgeMat));
+      var screenMat = track(new THREE.MeshBasicMaterial({ color: 0xf4f6fa }));
+      paintLine(screenMat, 'monScreen');
+      var screen = new THREE.Mesh(track(new THREE.PlaneGeometry(w, h)), screenMat);
       screen.position.z = 0.037;
       g.add(screen);
-      var sf = new THREE.Mesh(track(frameGeometry(w, h, 0.012)), track(new THREE.MeshBasicMaterial({ color: LINE_DIM })));
+      var dimMat = track(new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      paintLine(dimMat, 'lineDim');
+      var sf = new THREE.Mesh(track(frameGeometry(w, h, 0.012)), dimMat);
       sf.position.z = 0.04;
       g.add(sf);
+      var standMat = track(lineMat(0x000000, 1));
+      paintLine(standMat, 'lineDim');
       // stand: pole to the floor and a base
       var yc = pos.y;
       var stand = [new THREE.Vector3(0, -h / 2 - 0.05, -0.06), new THREE.Vector3(0, -yc + 0.02, -0.12),
       new THREE.Vector3(-0.045, -h / 2 - 0.05, -0.06), new THREE.Vector3(-0.045, -yc + 0.02, -0.12),
       new THREE.Vector3(0.045, -h / 2 - 0.05, -0.06), new THREE.Vector3(0.045, -yc + 0.02, -0.12)];
-      g.add(new THREE.LineSegments(track(new THREE.BufferGeometry().setFromPoints(stand)), track(lineMat(LINE_DIM, 1))));
+      g.add(new THREE.LineSegments(track(new THREE.BufferGeometry().setFromPoints(stand)), standMat));
       var bw = Math.min(w, 0.9) * 0.45;
       var base = [new THREE.Vector3(-bw, -yc + 0.02, -0.4), new THREE.Vector3(bw, -yc + 0.02, -0.4), new THREE.Vector3(bw, -yc + 0.02, 0.1), new THREE.Vector3(-bw, -yc + 0.02, 0.1), new THREE.Vector3(-bw, -yc + 0.02, -0.4)];
-      g.add(new THREE.Line(track(new THREE.BufferGeometry().setFromPoints(base)), track(lineMat(LINE_DIM, 1))));
+      g.add(new THREE.Line(track(new THREE.BufferGeometry().setFromPoints(base)), standMat));
       g.updateMatrixWorld(true);
       return { group: g, w: w, h: h };
     }
@@ -267,15 +327,64 @@
     var PORT_W = 1.08, PORT_H = 1.92;
     var port = makeMonitor(PORT_W, PORT_H, new THREE.Vector3(-1.95, 1.63, -1.85), 30 * D2R);
 
-    // --- panes ---
+    // --- webcam: a small camera clipped to the top edge of the main screen, with a pulse on its lens and
+    // a faint cone to the head. Its place is the usual one (top centre); no frame is involved. ---
+    var camPulse = null, camLens = null;
+    (function () {
+      var g = new THREE.Group();
+      g.position.set(0, MAIN_H / 2 + 0.05 + 0.055, 0.015);
+      main.group.add(g);
+      var bodyGeo = track(new THREE.BoxGeometry(0.4, 0.11, 0.1));
+      var bodyMat = track(new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      paintLine(bodyMat, 'monBody');
+      g.add(new THREE.Mesh(bodyGeo, bodyMat));
+      var edgeMat = track(lineMat(0x000000, 1));
+      paintLine(edgeMat, 'line');
+      g.add(new THREE.LineSegments(track(new THREE.EdgesGeometry(bodyGeo)), edgeMat));
+      var lensMat = track(new THREE.MeshBasicMaterial({ color: 0x000000 }));
+      paintLine(lensMat, 'line');
+      var lens = new THREE.Mesh(track(new THREE.CircleGeometry(0.034, 24)), lensMat);
+      lens.position.set(0, 0, 0.0505);
+      g.add(lens);
+      var ringMat = track(new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.95, depthWrite: false }));
+      var ring = new THREE.Mesh(track(new THREE.RingGeometry(0.04, 0.052, 32)), ringMat);
+      ring.position.set(0, 0, 0.051);
+      g.add(ring);
+      var pulseMat = track(new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0, depthWrite: false }));
+      camPulse = new THREE.Mesh(track(new THREE.RingGeometry(0.052, 0.066, 32)), pulseMat);
+      camPulse.position.set(0, 0, 0.052);
+      g.add(camPulse);
+      camLens = new THREE.Vector3(0, 0, 0.051);
+      g.updateMatrixWorld(true);
+      camLens = g.localToWorld(camLens);
+      var cone = [];
+      [[-0.55, -0.7], [0.55, -0.7], [0.55, 0.5], [-0.55, 0.5]].forEach(function (c) {
+        cone.push(camLens.clone(), new THREE.Vector3(HEAD_POS.x + c[0], HEAD_POS.y + c[1], HEAD_POS.z));
+      });
+      root.add(new THREE.LineSegments(track(new THREE.BufferGeometry().setFromPoints(cone)), track(new THREE.LineBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.28 }))));
+    })();
+
+    // --- panes: three Claude sessions (an orange mark in the title bar) and one other window (a picture block, no mark) ---
     var panes = [];
-    function makePane(mon, cx, cy, w, h) {
+    var SPARK = (function () {   // the Claude mark: three crossing strokes
+      var pts = [];
+      for (var k = 0; k < 3; k++) { var a = k * Math.PI / 3, c = Math.cos(a) * 0.034, s = Math.sin(a) * 0.034; pts.push(new THREE.Vector3(-c, -s, 0), new THREE.Vector3(c, s, 0)); }
+      return new THREE.BufferGeometry().setFromPoints(pts);
+    })();
+    disposables.push(SPARK);
+    var sparkMat = track(lineMat(0xd97757, 1));
+    function makePane(mon, cx, cy, w, h, claude) {
       var g = new THREE.Group();
       g.position.set(cx, cy, 0.045);
       mon.group.add(g);
-      var dimFrame = new THREE.Mesh(track(frameGeometry(w, h, 0.012)), track(new THREE.MeshBasicMaterial({ color: 0xcdd2dc, transparent: true, opacity: 1 })));
+      var dimMat = track(new THREE.MeshBasicMaterial({ color: 0xcdd2dc, transparent: true, opacity: 1 }));
+      paintLine(dimMat, 'paneDim');
+      var dimFrame = new THREE.Mesh(track(frameGeometry(w, h, 0.012)), dimMat);
       g.add(dimFrame);
-      var hiFrame = new THREE.Mesh(track(frameGeometry(w + 0.012, h + 0.012, 0.03)), track(new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0 })));
+      // a Claude window lights blue when the head faces it; the other window shows red instead, and nothing fills
+      var hiMat = track(new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0 }));
+      if (!claude) paintLine(hiMat, 'off');
+      var hiFrame = new THREE.Mesh(track(frameGeometry(w + 0.012, h + 0.012, 0.03)), hiMat);
       hiFrame.position.z = 0.004;
       g.add(hiFrame);
       var hiFill = new THREE.Mesh(track(new THREE.PlaneGeometry(w, h)), track(new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0, depthWrite: false })));
@@ -284,24 +393,49 @@
       // title bar + text lines
       var pts = [];
       var top = h / 2 - 0.09;
-      pts.push(new THREE.Vector3(-w / 2 + 0.05, top, 0), new THREE.Vector3(-w / 2 + 0.05 + w * 0.32, top, 0));
-      var rows = Math.floor((h - 0.3) / 0.11);
-      for (var i = 0; i < rows; i++) {
+      var barX = -w / 2 + (claude ? 0.12 : 0.05);
+      pts.push(new THREE.Vector3(barX, top, 0), new THREE.Vector3(barX + w * 0.32, top, 0));
+      var rows = Math.floor((h - 0.3) / 0.11), first = 0;
+      if (!claude) {   // a picture block under the title, then fewer lines
+        var bx0 = -w / 2 + 0.07, bx1 = w / 2 - 0.07, by0 = top - 0.12, by1 = top - 0.12 - (h - 0.3) * 0.5;
+        var V = function (x, y) { return new THREE.Vector3(x, y, 0); };
+        pts.push(V(bx0, by0), V(bx1, by0), V(bx1, by0), V(bx1, by1), V(bx1, by1), V(bx0, by1), V(bx0, by1), V(bx0, by0), V(bx0, by0), V(bx1, by1), V(bx1, by0), V(bx0, by1));
+        first = Math.ceil((h - 0.3) * 0.5 / 0.11) + 1;
+      }
+      for (var i = first; i < rows; i++) {
         var yy = top - 0.14 - i * 0.11;
         var len = (0.35 + 0.55 * ((i * 37 % 7) / 7)) * (w - 0.14);
         pts.push(new THREE.Vector3(-w / 2 + 0.07, yy, 0), new THREE.Vector3(-w / 2 + 0.07 + len, yy, 0));
       }
       var textMat = track(lineMat(0xb3bccb, 0.85));
       g.add(new THREE.LineSegments(track(new THREE.BufferGeometry().setFromPoints(pts)), textMat));
-      return { group: g, dimFrame: dimFrame, hiFrame: hiFrame, hiFill: hiFill, textMat: textMat, hl: 0 };
+      if (claude) {
+        var mark = new THREE.LineSegments(SPARK, sparkMat);
+        mark.position.set(-w / 2 + 0.07, top, 0.001);
+        g.add(mark);
+      }
+      var badge = null;   // "off": a slashed ring over the window, shown while the head faces it
+      if (!claude) {
+        badge = new THREE.Group();
+        badge.position.z = 0.01;
+        var badgeMat = track(new THREE.MeshBasicMaterial({ color: 0xc8483f, transparent: true, opacity: 0, depthWrite: false }));
+        paintLine(badgeMat, 'off');
+        badge.add(new THREE.Mesh(track(new THREE.RingGeometry(0.115, 0.14, 40)), badgeMat));
+        var slash = new THREE.Mesh(track(new THREE.PlaneGeometry(0.3, 0.026)), badgeMat);
+        slash.rotation.z = Math.PI / 4;
+        badge.add(slash);
+        badge.userData.mat = badgeMat;
+        g.add(badge);
+      }
+      return { group: g, dimFrame: dimFrame, hiFrame: hiFrame, hiFill: hiFill, textMat: textMat, hl: 0, claude: claude, badge: badge };
     }
     var pm = 0.04;
     var pw = (MAIN_W - pm * 3) / 2, ph = MAIN_H - pm * 2;
-    panes.push(makePane(main, -MAIN_W / 2 + pm + pw / 2, 0, pw, ph));            // 0: main left
-    panes.push(makePane(main, MAIN_W / 2 - pm - pw / 2, 0, pw, ph));             // 1: main right
+    panes.push(makePane(main, -MAIN_W / 2 + pm + pw / 2, 0, pw, ph, true));            // 0: main left
+    panes.push(makePane(main, MAIN_W / 2 - pm - pw / 2, 0, pw, ph, true));             // 1: main right
     var qw = PORT_W - pm * 2, qh = (PORT_H - pm * 3) / 2;
-    panes.push(makePane(port, 0, PORT_H / 2 - pm - qh / 2, qw, qh));             // 2: portrait top
-    panes.push(makePane(port, 0, -PORT_H / 2 + pm + qh / 2, qw, qh));            // 3: portrait bottom
+    panes.push(makePane(port, 0, PORT_H / 2 - pm - qh / 2, qw, qh, true));             // 2: portrait top
+    panes.push(makePane(port, 0, -PORT_H / 2 + pm + qh / 2, qw, qh, false));           // 3: portrait bottom, not Claude
     root.updateMatrixWorld(true);
 
     function paneCentre(i) { return panes[i].group.getWorldPosition(new THREE.Vector3()); }
@@ -328,7 +462,9 @@
       var base = new THREE.Mesh(track(new THREE.RingGeometry(0.19, 0.205, 64)), track(new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.1, depthWrite: false })));
       g.add(base);
       var fillGeo = track(new THREE.RingGeometry(0.175, 0.225, 64, 1, 0, Math.PI * 2));
-      var fill = new THREE.Mesh(fillGeo, track(new THREE.MeshBasicMaterial({ color: ACCENT_INK, transparent: true, opacity: 1, depthWrite: false })));
+      var fillMat = track(new THREE.MeshBasicMaterial({ color: ACCENT, transparent: true, opacity: 1, depthWrite: false }));
+      paintLine(fillMat, 'accentInk');
+      var fill = new THREE.Mesh(fillGeo, fillMat);
       fill.position.z = 0.002;
       g.add(fill);
       fillGeo.setDrawRange(0, 0);
@@ -371,10 +507,17 @@
       for (var i = 0; i < 4; i++) {
         var p = panes[i], v = vals[i];
         p.hiFrame.material.opacity = v;
-        p.hiFill.material.opacity = 0.13 * v;
         p.dimFrame.material.opacity = 1 - 0.85 * v;
-        p.textMat.opacity = (dim ? 0.35 : 0.55) + 0.4 * v;
-        p.textMat.color.setHex(v > 0.5 ? ACCENT_INK : 0xb3bccb);
+        if (p.claude) {
+          p.hiFill.material.opacity = 0.13 * v;
+          p.textMat.opacity = (dim ? 0.35 : 0.55) + 0.4 * v;
+          p.textMat.color.setHex(v > 0.5 ? T.accentInk : T.paneText);
+        } else {
+          // not a Claude session: the red outline and the slashed ring say "off"; no fill, and its text stays grey
+          p.textMat.opacity = dim ? 0.35 : 0.55;
+          p.textMat.color.setHex(T.paneText);
+          p.badge.userData.mat.opacity = v;
+        }
       }
     }
 
@@ -439,10 +582,14 @@
         rig.rotation.y = r.yaw; rig.rotation.x = r.pitch;
         setPaneHighlights(r.hl, false);
       }
+      // the webcam's lens pulses once a second, so the eye finds it
+      var cp = (t % 1.6) / 1.6;
+      camPulse.scale.setScalar(1 + 1.4 * cp);
+      camPulse.material.opacity = 0.7 * (1 - cp);
       return st;
     }
 
-    return { root: root, update: update };
+    return { root: root, update: update, apply: function (T2) { T = T2; painters.forEach(function (fn) { fn(T); }); } };
   }
 
   // ------------------------------------------------------------------
@@ -453,21 +600,19 @@
   var DRAFT_TEXT = 'Log each retry with its attempt number.';
   var SANS = '-apple-system, "SF Pro Text", "Segoe UI", system-ui, Helvetica, Arial, sans-serif';
   var MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
-  var C = {
-    bg: '#faf9f5', side: '#faf9f5', pane: '#ffffff', line: '#e8e6dc', text: '#3d3d3a', dim: '#83827d', faint: '#9a9892',
-    bubble: '#f0eee6', code: '#f4f2eb', orange: '#d97757', blue: '#5294ff', bone: '#e6e4dc', bone2: '#edebe4',
-    skelPane: '#f3f2ee', head: '#f0eee6', strong: '#141413', composer: '#ffffff', composerLine: '#dedad0', send: '#d9d6cc'
-  };
   // The window is laid out in a 960 x 600 design space and scaled to the canvas. The right 18% is where the page
   // and the app overlay the hand column, so the last session sits under it.
   var FW = 960, FH = 600;
   var COLUMN = 0.18;   // width of the overlay column as a share of the canvas; Swift's TourGestureColumn uses the same number
   var PANES = [{ x: 6, w: 162 }, { x: 174, w: 450, focus: true }, { x: 630, w: 156 }, { x: 792, w: 162 }];
   var PANE_Y = 42, PANE_H = 552;
+  var HAND_PANEL_ASPECT = 0.52;   // width over height of the half-column hand panel on a 16:10 canvas
 
-  function makeFrameView(canvas) {
+  function makeFrameView(canvas, T0) {
     var ctx = canvas.getContext('2d');
     var cssW = FW, dpr = 1;
+    var C = T0.frame;
+    var skel = false;   // dictate draws every line of text as a grey bar, like the neighbouring sessions
 
     function rr(x, y, w, h, r) {
       ctx.beginPath();
@@ -485,6 +630,13 @@
       });
       if (cur) lines.push(cur);
       return lines;
+    }
+    // Text, or in skeleton mode a bar as long as the text would be and as tall as a lowercase line.
+    function txt(str, x, y, font, color) {
+      ctx.font = font;
+      if (!skel) { ctx.fillStyle = color; ctx.fillText(str, x, y); return; }
+      var px = parseFloat(/(\d+(?:\.\d+)?)px/.exec(font)[1]), h = Math.max(6, px * 0.5), w = ctx.measureText(str).width;
+      ctx.fillStyle = C.skel; rr(x, y - px * 0.62, w, h, h / 2); ctx.fill();
     }
 
     // ---- the focused session ----
@@ -509,8 +661,8 @@
       return { h: bh, draw: function (y, a) {
         ctx.globalAlpha = a === undefined ? 1 : a;
         ctx.fillStyle = C.bubble; rr(X1 - bw, y, bw, bh, 14); ctx.fill();
-        ctx.fillStyle = C.strong; ctx.font = F; ctx.textBaseline = 'alphabetic';
-        lines.forEach(function (l, i) { ctx.fillText(l, X1 - bw + 16, y + 10 + 17 + i * LH - 2); });
+        ctx.textBaseline = 'alphabetic';
+        lines.forEach(function (l, i) { txt(l, X1 - bw + 16, y + 10 + 17 + i * LH - 2, F, C.strong); });
         ctx.globalAlpha = 1;
       } };
     }
@@ -518,16 +670,15 @@
       var lines = wrap(text, X1 - X0, F);
       return { h: lines.length * LH + 4, draw: function (y) {
         ctx.fillStyle = C.orange; ctx.font = '600 18px ' + SANS; ctx.fillText('✻', X0 - 22, y + 17);
-        ctx.fillStyle = C.text; ctx.font = F;
-        lines.forEach(function (l, i) { ctx.fillText(l, X0, y + 17 + i * LH); });
+        lines.forEach(function (l, i) { txt(l, X0, y + 17 + i * LH, F, C.text); });
       } };
     }
     function tool(label, arg) {
       return { h: 34, draw: function (y) {
         ctx.fillStyle = C.bubble; rr(X0, y, 330, 30, 8); ctx.fill();
         ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = C.dim; ctx.font = '600 13px ' + SANS; ctx.fillText(label, X0 + 12, y + 20);
-        ctx.fillStyle = C.strong; ctx.font = '13px ' + MONO; ctx.fillText(arg, X0 + 12 + ctx.measureText(label).width + 16, y + 20);
+        txt(label, X0 + 12, y + 20, '600 13px ' + SANS, C.dim);
+        txt(arg, X0 + 12 + ctx.measureText(label).width + 16, y + 20, '13px ' + MONO, C.strong);
       } };
     }
     function code() {
@@ -535,13 +686,13 @@
       return { h: h, draw: function (y) {
         ctx.fillStyle = C.code; rr(X0, y, w, h, 10); ctx.fill();
         ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
-        ctx.fillStyle = C.faint; ctx.font = '600 12px ' + SANS; ctx.fillText('sync.ts', X0 + 14, y + 22);
-        ctx.font = '13.5px ' + MONO;
+        txt('sync.ts', X0 + 14, y + 22, '600 12px ' + SANS, C.faint);
         CODE.forEach(function (ln, i) {
-          var x = X0 + 14, yy = y + 46 + i * 21;
-          ctx.fillStyle = '#b8502a'; ctx.fillText(ln[0], x, yy); x += ctx.measureText(ln[0]).width;
-          ctx.fillStyle = ln[1].indexOf(' drain') === 0 ? '#2d6ae0' : '#3d3d3a'; ctx.fillText(ln[1], x, yy); x += ctx.measureText(ln[1]).width;
-          ctx.fillStyle = '#3d3d3a'; ctx.fillText(ln[2], x, yy);
+          var x = X0 + 14, yy = y + 46 + i * 21, f = '13.5px ' + MONO;
+          if (skel) { txt(ln.join(''), x, yy, f, C.plain); return; }
+          txt(ln[0], x, yy, f, C.kw); x += ctx.measureText(ln[0]).width;
+          txt(ln[1], x, yy, f, ln[1].indexOf(' drain') === 0 ? C.fn : C.plain); x += ctx.measureText(ln[1]).width;
+          txt(ln[2], x, yy, f, C.plain);
         });
       } };
     }
@@ -573,8 +724,8 @@
       ctx.save();
       ctx.translate(PX + PW / 2 - 640 * Q, 0); ctx.scale(Q, Q);
       ctx.fillStyle = '#000'; rr(x, y, w, h, 21); ctx.fill();
-      ctx.strokeStyle = 'rgba(10,10,10,0.2)'; ctx.lineWidth = 1.2; ctx.stroke();
-      var dot = { ready: '#8a8984', listen: C.orange, hold: C.blue, sent: '#58c27d', scroll: C.blue }[mode];
+      ctx.strokeStyle = C.capsuleLine; ctx.lineWidth = 1.2; ctx.stroke();
+      var dot ={ ready: '#8a8984', listen: C.orange, hold: C.blue, sent: '#58c27d', scroll: C.blue }[mode];
       ctx.fillStyle = dot; ctx.beginPath(); ctx.arc(x + 25, y + h / 2, 6, 0, 6.2832); ctx.fill();
       if (mode === 'listen') { ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.arc(x + 25, y + h / 2, 6 + 4 * (0.5 + 0.5 * Math.sin(t * 7)), 0, 6.2832); ctx.fill(); ctx.globalAlpha = 1; }
       ctx.fillStyle = '#fff'; ctx.font = '600 19px ' + SANS; ctx.textBaseline = 'alphabetic';
@@ -603,7 +754,9 @@
     function skeleton(p, variant) {
       var x = p.x, y = PANE_Y, w = p.w, h = PANE_H;
       ctx.fillStyle = C.skelPane; rr(x, y, w, h, 12); ctx.fill();
-      ctx.fillStyle = C.bone; rr(x + 14, y + 20, w * 0.42, 9, 4.5); ctx.fill();
+      // the orange mark in the title is what says "another Claude session"
+      ctx.fillStyle = C.orange; ctx.font = '600 18px ' + SANS; ctx.textBaseline = 'alphabetic'; ctx.fillText('✻', x + 12, y + 32);
+      ctx.fillStyle = C.bone; rr(x + 38, y + 20, w * 0.34, 9, 4.5); ctx.fill();
       ctx.fillStyle = C.bone2; rr(x + w - 14 - w * 0.2, y + 20, w * 0.2, 9, 4.5); ctx.fill();
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y + 50); ctx.lineTo(x + w, y + 50); ctx.stroke();
       var yy = y + 70;
@@ -631,10 +784,11 @@
     function focused(st, name, t) {
       var ev = eventsFor(name);
       ctx.fillStyle = C.pane; rr(PX, PY, PW, PH, 12); ctx.fill();
-      ctx.fillStyle = C.strong; ctx.font = '600 17px ' + SANS; ctx.fillText('ensemble-tour', PX + 20, PY + 34);
+      ctx.textBaseline = 'alphabetic';
+      txt('ensemble-tour', PX + 20, PY + 34, '600 17px ' + SANS, C.strong);
       ctx.fillStyle = C.bubble; rr(PX + 148, PY + 16, 156, 26, 13); ctx.fill();
-      ctx.fillStyle = C.dim; ctx.font = '12px ' + MONO; ctx.fillText('feature/onboarding', PX + 162, PY + 34);
-      ctx.fillStyle = C.faint; ctx.font = '13px ' + SANS; ctx.textAlign = 'right'; ctx.fillText('Opus', PX + PW - 20, PY + 34); ctx.textAlign = 'left';
+      txt('feature/onboarding', PX + 162, PY + 34, '12px ' + MONO, C.dim);
+      if (!skel) { ctx.fillStyle = C.faint; ctx.font = '13px ' + SANS; ctx.textAlign = 'right'; ctx.fillText('Opus', PX + PW - 20, PY + 34); ctx.textAlign = 'left'; }
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PX, PY + 50); ctx.lineTo(PX + PW, PY + 50); ctx.stroke();
 
       // conversation (clipped)
@@ -682,18 +836,52 @@
       }
       ctx.font = F; ctx.textBaseline = 'alphabetic';
       if (text) {
-        ctx.globalAlpha = textA; ctx.fillStyle = C.strong; ctx.fillText(text, CX0 + 20, CY0 + 38); ctx.globalAlpha = 1;
+        ctx.globalAlpha = textA; txt(text, CX0 + 20, CY0 + 38, F, C.strong); ctx.globalAlpha = 1;
         if (caret) { var cw = ctx.measureText(text).width; ctx.fillStyle = C.orange; ctx.fillRect(CX0 + 22 + cw, CY0 + 21, 2, 22); }
       } else {
         if (caret) { ctx.fillStyle = C.orange; ctx.fillRect(CX0 + 22, CY0 + 21, 2, 22); }
-        ctx.fillStyle = C.faint; ctx.fillText(caret || st.listening ? '' : 'Reply to Claude...', CX0 + 20, CY0 + 38);
+        if (!caret && !st.listening) txt('Reply to Claude...', CX0 + 20, CY0 + 38, F, C.faint);
       }
-      ctx.fillStyle = C.faint; ctx.font = '12.5px ' + SANS; ctx.fillText('Plan mode  ·  Opus  ·  Auto-accept off', CX0 + 20, CY0 + 68);
       var bx = CX0 + CW - 30, by = CY0 + CH / 2;
-      ctx.fillStyle = text ? C.orange : C.send; ctx.beginPath(); ctx.arc(bx, by, 17, 0, 6.2832); ctx.fill();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.beginPath();
-      ctx.moveTo(bx, by + 6.5); ctx.lineTo(bx, by - 6.5);
-      ctx.moveTo(bx - 6.5, by - 1); ctx.lineTo(bx, by - 7.5); ctx.lineTo(bx + 6.5, by - 1); ctx.stroke();
+      if (name === 'dictate') {
+        // the mic button is the strong control, with a send button beside it kept quiet
+        sendButton(bx + 4, by + 2, 13, C.send);
+        micButton(bx - 42, by, 22);
+        micRings(bx - 42, by, 22, ev, t);
+      } else {
+        ctx.fillStyle = C.faint; ctx.font = '12.5px ' + SANS; ctx.fillText('Plan mode  ·  Opus  ·  Auto-accept off', CX0 + 20, CY0 + 68);
+        sendButton(bx, by, 17, text ? C.orange : C.send);
+      }
+    }
+    function sendButton(bx, by, r, fill) {
+      var k = r / 17;
+      ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(bx, by, r, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.6 * k; ctx.lineCap = 'round'; ctx.beginPath();
+      ctx.moveTo(bx, by + 6.5 * k); ctx.lineTo(bx, by - 6.5 * k);
+      ctx.moveTo(bx - 6.5 * k, by - 1 * k); ctx.lineTo(bx, by - 7.5 * k); ctx.lineTo(bx + 6.5 * k, by - 1 * k); ctx.stroke();
+    }
+    function micButton(mx, my, r) {
+      ctx.fillStyle = C.orange; ctx.beginPath(); ctx.arc(mx, my, r, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = '#ffffff'; rr(mx - 4.5, my - 12, 9, 15, 4.5); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(mx, my - 1, 8.5, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx, my + 7.5); ctx.lineTo(mx, my + 11.5); ctx.moveTo(mx - 4, my + 11.5); ctx.lineTo(mx + 4, my + 11.5); ctx.stroke();
+    }
+    // Two rings spread out from the mic button when the pinch lands: the moment dictation starts or stops.
+    var RING_LIFE = 1.1;
+    function micRings(mx, my, r, ev, t) {
+      var D = durOf('dictate'), starts = [];
+      (ev.listen || []).forEach(function (iv) { starts.push(iv[0]); if (iv[1] < D - 0.5) starts.push(iv[1]); });
+      starts.forEach(function (s) {
+        for (var k = 0; k < 2; k++) {
+          var age = t - s - k * 0.22;
+          if (age < 0 || age > RING_LIFE) continue;
+          var p = age / RING_LIFE;
+          ctx.globalAlpha = 0.6 * (1 - p) * (1 - p); ctx.strokeStyle = C.orange; ctx.lineWidth = 3 * (1 - 0.6 * p);
+          ctx.beginPath(); ctx.arc(mx, my, r + 4 + 34 * sstep(p), 0, 6.2832); ctx.stroke();
+        }
+      });
+      ctx.globalAlpha = 1;
     }
 
     function draw(st, name, t) {
@@ -705,6 +893,7 @@
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 38.5); ctx.lineTo(FW, 38.5); ctx.stroke();
       [['#ff5f57', 0], ['#febc2e', 1], ['#28c840', 2]].forEach(function (d) { ctx.fillStyle = d[0]; ctx.beginPath(); ctx.arc(20 + d[1] * 18, 19, 5, 0, 6.2832); ctx.fill(); });
       ctx.fillStyle = C.dim; ctx.font = '600 13px ' + SANS; ctx.textBaseline = 'alphabetic'; ctx.fillText('Claude', 82, 23);
+      skel = name === 'dictate';
       PANES.forEach(function (p, i) { if (!p.focus) skeleton(p, i); });
       focused(st, name, t);
       // Ensemble focus: blue outline only, never filled
@@ -716,7 +905,7 @@
       cssW = w; dpr = ratio;
       canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
     }
-    return { draw: draw, resize: resize };
+    return { draw: draw, resize: resize, setTheme: function (T) { C = T.frame; } };
   }
 
   // ------------------------------------------------------------------
@@ -740,7 +929,8 @@
     return new THREE.Quaternion().setFromRotationMatrix(m);
   }
 
-  function buildHand(scene, gltf, disposables) {
+  function buildHand(scene, gltf, disposables, T) {
+    var WOOD_FILL = new THREE.Color(T.woodFill), WOOD_RIM = new THREE.Color(T.woodRim);
     var model = gltf.scene;
     model.updateMatrixWorld(true);
     var bones = {}, skinned = null;
@@ -825,8 +1015,8 @@
     armature.add(hullMesh);
     hullMesh.bind(sk, skinned.bindMatrix);
 
-    var jointMat = new THREE.LineBasicMaterial({ color: 0x7a4515, transparent: true, opacity: 0.8 });
-    var boneMat = new THREE.LineBasicMaterial({ color: 0x9a5a22, transparent: true, opacity: 0.55 });
+    var jointMat = new THREE.LineBasicMaterial({ color: T.woodJoint, transparent: true, opacity: 0.8 });
+    var boneMat = new THREE.LineBasicMaterial({ color: T.woodBone, transparent: true, opacity: 0.55 });
     disposables.push(jointMat, boneMat);
     var radii = { thumb: 0.0085, 'index-finger': 0.0075, 'middle-finger': 0.0078, 'ring-finger': 0.0072, 'pinky-finger': 0.0062 };
     Object.keys(chains).forEach(function (f) {
@@ -881,7 +1071,12 @@
 
     var hand = {
       pivot: pivot, model: model, bones: bones, chains: chains, W: W, P: P, solver: solver,
-      skinned: skinned, scale: scale, tmp: new THREE.Quaternion()
+      skinned: skinned, scale: scale, tmp: new THREE.Quaternion(),
+      apply: function (T2) {
+        [fillMat, armMat].forEach(function (m) { m.uniforms.uFill.value.setHex(T2.woodFill); m.uniforms.uRim.value.setHex(T2.woodRim); });
+        hullMat.uniforms.uCol.value.setHex(T2.woodRim);
+        jointMat.color.setHex(T2.woodJoint); boneMat.color.setHex(T2.woodBone);
+      }
     };
     // pre-computed thumb swing for the thumbs-up
     var d0 = P['thumb-tip'].clone().sub(P['thumb-metacarpal']).normalize();
@@ -1696,7 +1891,7 @@
   // ------------------------------------------------------------------
   var lastInstance = null;
 
-  function noop() { return { setScene: function () { }, destroy: function () { } }; }
+  function noop() { return { setScene: function () { }, setTheme: function () { }, destroy: function () { } }; }
 
   function mount(container, opts) {
     opts = opts || {};
@@ -1721,29 +1916,33 @@
       container.appendChild(msg);
       return noop();
     }
-    renderer.setClearColor(0xffffff, frameMode ? 0 : 1);
+    var theme = THEMES[opts.theme] || THEMES.light;
+    renderer.setClearColor(theme.clear, frameMode ? 0 : 1);
     renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
     if (!container.style.position) container.style.position = 'relative';
-    var sizeBox = container, frameView = null, frameCanvas = null, column = null, panel0 = null;
+    var sizeBox = container, frameView = null, frameCanvas = null, column = null, panel0 = null, spacer = null;
     if (frameMode && opts.handOnly) {
       // The hand alone, filling the container: the website's demo draws its own Claude window and keeps this panel for the gesture.
       panel0 = document.createElement('div');
-      panel0.style.cssText = 'position:absolute;inset:0;overflow:hidden;background:linear-gradient(180deg,#ffffff,#f1f4f9)';
+      panel0.style.cssText = 'position:absolute;inset:0;overflow:hidden';
+      panel0.style.background = theme.panel;
       panel0.appendChild(renderer.domElement);
       container.appendChild(panel0);
       sizeBox = panel0;
     } else if (frameMode) {
       frameCanvas = document.createElement('canvas');
       frameCanvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block';
-      frameView = makeFrameView(frameCanvas);
+      frameView = makeFrameView(frameCanvas, theme);
       // The column: the 3D hand panel on top, an empty half below it for the app's camera panel. Margins, radius and
-      // the 50 / 50 split are mirrored by the app's TourGestureColumn.
+      // the 50 / 50 split are mirrored by the app's TourGestureColumn. On dictate the app draws no camera panel, so the
+      // spacer goes and the hand panel takes the whole column.
       column = document.createElement('div');
       column.style.cssText = 'position:absolute;top:0;right:0;bottom:0;width:' + COLUMN * 100 + '%;box-sizing:border-box;padding:8px;display:flex;flex-direction:column;gap:8px;pointer-events:none';
       var panel = document.createElement('div');
-      panel.style.cssText = 'flex:1 1 0;min-height:0;position:relative;overflow:hidden;border-radius:12px;box-sizing:border-box;border:1px solid #e5e5e5;background:linear-gradient(180deg,#ffffff,#f1f4f9);box-shadow:0 8px 24px rgba(10,10,10,0.08)';
-      var spacer = document.createElement('div');
+      panel.style.cssText = 'flex:1 1 0;min-height:0;position:relative;overflow:hidden;border-radius:12px;box-sizing:border-box;border:1px solid';
+      spacer = document.createElement('div');
       spacer.style.cssText = 'flex:1 1 0;min-height:0';
+      spacer.style.display = current === 'dictate' ? 'none' : '';
       panel.appendChild(renderer.domElement);
       column.appendChild(panel); column.appendChild(spacer);
       container.appendChild(frameCanvas); container.appendChild(column);
@@ -1751,11 +1950,19 @@
     } else {
       container.appendChild(renderer.domElement);
     }
+    function paintPanel() {
+      if (panel0) { panel0.style.background = theme.panel; return; }
+      if (frameMode) {
+        sizeBox.style.background = theme.panel; sizeBox.style.borderColor = theme.panelBorder;
+        sizeBox.style.boxShadow = '0 8px 24px ' + theme.panelShadow;
+      }
+    }
+    paintPanel();
 
     var scene = new THREE.Scene();
     var disposables = [];
-    var stage = frameMode ? null : buildStage(scene, disposables);
-    var desk = frameMode ? null : buildDesk(scene, disposables);
+    var stage = frameMode ? null : buildStage(scene, disposables, theme);
+    var desk = frameMode ? null : buildDesk(scene, disposables, theme);
     var camera = new THREE.PerspectiveCamera(40, 1.6, 0.1, 500);
     var hand = null, handLoading = false, handFailed = false;
 
@@ -1770,7 +1977,7 @@
       var onHand = function (gltf) {
         handLoading = false;
         if (destroyed) return;
-        try { hand = buildHand(scene, gltf, disposables); } catch (e) { handFailed = true; if (window.console) console.warn('[EnsembleScene] hand build failed', e); return; }
+        try { hand = buildHand(scene, gltf, disposables, theme); } catch (e) { handFailed = true; if (window.console) console.warn('[EnsembleScene] hand build failed', e); return; }
         hand.pivot.visible = !!HAND_SCENES[current];
         if (reduced) renderNow(); else if (frozen) frozenDirty = true;
       };
@@ -1804,7 +2011,9 @@
       var isHand = !!HAND_SCENES[name];
       var c = isHand ? (window.__camHand || CAMS.hand) : (window.__camDesk || CAMS.desk);
       var d = drift ? t : 0;
-      camera.fov = c.fov;
+      // A hand panel narrower than the half-column one (dictate's full-height panel) widens the view so the hand keeps its size and is not cut off.
+      var narrow = frameMode && !opts.handOnly ? Math.max(1, HAND_PANEL_ASPECT / camera.aspect) : 1;
+      camera.fov = 2 * Math.atan(Math.tan(c.fov * D2R / 2) * narrow) / D2R;
       camera.position.set(c.pos.x + Math.sin(d * 0.35) * 0.18 * (isHand ? 0.7 : 1), c.pos.y + Math.sin(d * 0.27) * 0.06, c.pos.z + Math.cos(d * 0.3) * 0.08);
       camera.lookAt(c.look);
       camera.updateProjectionMatrix();
@@ -1845,8 +2054,20 @@
       setScene: function (name) {
         if (!DURATIONS[name] || !!HAND_SCENES[name] !== frameMode) return;   // the layout is fixed per mount
         current = name; t0 = performance.now(); frozen = null;
+        if (spacer) spacer.style.display = name === 'dictate' ? 'none' : '';
         if (HAND_SCENES[name]) loadHand();
         if (reduced) renderNow();
+      },
+      setTheme: function (name) {
+        if (!THEMES[name] || THEMES[name] === theme) return;
+        theme = THEMES[name];
+        renderer.setClearColor(theme.clear, frameMode ? 0 : 1);
+        paintPanel();
+        if (stage) stage.apply(theme);
+        if (desk) desk.apply(theme);
+        if (hand) hand.apply(theme);
+        if (frameView) frameView.setTheme(theme);
+        if (reduced) renderNow(); else if (frozen) frozenDirty = true;
       },
       destroy: function () {
         if (destroyed) return;
@@ -1861,6 +2082,7 @@
       _seek: function (name, t) {
         if (!DURATIONS[name] || !!HAND_SCENES[name] !== frameMode) name = current;
         current = name;
+        if (spacer) spacer.style.display = name === 'dictate' ? 'none' : '';
         frozen = { name: name, t: t }; frozenDirty = true;
         if (HAND_SCENES[name]) loadHand();
         if (reduced) renderNow();

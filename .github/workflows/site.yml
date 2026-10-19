@@ -1,5 +1,5 @@
 # Publishes the website (docs/index.html, docs/analytics.js, docs/logo.png, docs/live/, docs/assets/) to the gh-pages branch, which GitHub Pages serves
-# next to the update feed (appcast.xml, written by release.yml). Runs only when those files change on main.
+# next to the update feed (appcast.xml, written by scripts/ship-release.sh). Runs only when those files change on main.
 name: Site
 
 on:

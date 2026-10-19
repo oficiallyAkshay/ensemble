@@ -7,6 +7,10 @@
   var reduced = q.get('rm') === '1';
   var HAND_SCENES = { dictate: 1, send: 1, scroll: 1 };
   var instance = null, current = q.get('scene') || 'welcome', watch = null;
+  // The web view does not pass the window's look to the page, so the page reads the colour scheme itself and follows it live.
+  var scheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function themeName() { return scheme && scheme.matches ? 'dark' : 'light'; }
+  function paintPage() { document.documentElement.style.background = scheme && scheme.matches ? '#0f1218' : '#ffffff'; }
 
   function post(message) {
     try { window.webkit.messageHandlers.tour.postMessage(message); } catch (e) { /* opened outside the app */ }
@@ -29,9 +33,11 @@
   function start() {
     if (!window.THREE || !window.EnsembleScene || !THREE.GLTFLoader) { post({ failed: 'scripts' }); return; }
     var stage = document.getElementById('stage');
+    paintPage();
     try {
-      instance = window.EnsembleScene.mount(stage, { scene: current, reducedMotion: reduced, handUrl: 'hand.glb' });
+      instance = window.EnsembleScene.mount(stage, { scene: current, reducedMotion: reduced, handUrl: 'hand.glb', theme: themeName() });
     } catch (e) { post({ failed: 'mount' }); return; }
+    if (scheme) scheme.addEventListener('change', function () { paintPage(); if (instance) instance.setTheme(themeName()); });
     var canvas = instance && instance.canvas;
     if (!canvas) { post({ failed: 'webgl' }); return; }
     canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); post({ failed: 'webgl' }); });

@@ -286,7 +286,7 @@
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">01</span><h3>Look.</h3><p>Focus follows your nose. The session you face gets the blue outline.</p></div>
-    <figure class="shot"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four session windows on two monitors, and the window it faces lights up blue."><div class="scene" data-scene="look"></div></div><figcaption>Notice: the window the head faces gets the blue outline.</figcaption></figure>
+    <figure class="shot"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four windows on two monitors. Three are Claude sessions and light up blue when the head faces them; the fourth is not a Claude session and shows an off mark instead."><div class="scene" data-scene="look"></div></div><figcaption>Notice: a Claude window the head faces gets the blue outline; the other window shows off.</figcaption></figure>
   </div>
 
   <div class="moment">
@@ -575,15 +575,15 @@
   // ---- the counts: two GitHub requests after load, low priority, nothing about the visitor ----
   // Stars come from the repo API; downloads are the summed download_count of the assets named exactly Ensemble.dmg (the file the Download buttons fetch)
   // in the releases list. The versioned Ensemble-x.y.z.dmg files are the app's own update check, so they are not counted. The count is an upper bound on
-  // people: GitHub counts repeat fetches and bots. Any failure, or a count under 5, leaves that number out.
+  // people: GitHub counts repeat fetches and bots. Any failure leaves a number out; a downloads count under 5 is left out too, and stars show from 1.
   const GH = { credentials: 'omit', referrerPolicy: 'no-referrer', priority: 'low' };
   const fmt = (n) => n.toLocaleString('en-US');
   async function counts() {
     const out = $('counts'); if (!out) return;
     const got = { downloads: '', stars: '' };
-    // Under 5 stars (or when GitHub does not answer) the line invites the first stars instead of showing a small number.
+    // With no stars yet (or when GitHub does not answer) the line invites the first star; any real count, even 1, is shown.
     const paint = () => {
-      const parts = [got.downloads && `${got.downloads} downloads`, got.stars ? `${got.stars} stars` : 'be the first to \u2605 star it'].filter(Boolean);
+      const parts = [got.downloads && `${got.downloads} downloads`, got.stars ? `${got.stars} ${got.stars === '1' ? 'star' : 'stars'}` : 'be the first to \u2605 star it'].filter(Boolean);
       const text = parts.join(' · ');
       out.textContent = text.charAt(0).toUpperCase() + text.slice(1); out.hidden = false;
     };
@@ -594,7 +594,7 @@
           const r = await fetch('https://api.github.com/repos/oficiallyAkshay/ensemble', { ...GH, headers: { Accept: 'application/vnd.github+json' } });
           if (!r.ok) return;
           const n = (await r.json()).stargazers_count;
-          if (Number.isInteger(n) && n >= 5) { got.stars = fmt(n); paint(); }
+          if (Number.isInteger(n) && n >= 1) { got.stars = fmt(n); paint(); }
         } catch { /* leave the stars out */ }
       })(),
       (async () => {

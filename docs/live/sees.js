@@ -12,6 +12,34 @@ const EXTRA_DOTS = [61, 291, 1];
 
 export const FACE_DOTS = [...new Set([...OVAL.filter((_, i) => i % 2 === 0), ...EYE_L.filter((_, i) => i % 4 === 0), ...EYE_R.filter((_, i) => i % 4 === 0), ...BRIDGE, ...EXTRA_DOTS])];
 
+// A resting skeleton for when nothing is tracked (camera off, mouse mode, no face or hand found yet): the panel never sits empty.
+// A face wireframe that sways a little and an open hand that pinches now and then, built from the same landmark ids the trackers
+// give, so it is drawn by the same code as the real thing. Made up, not recorded: no data file ships for it.
+const HAND_REST = [
+  [0, 0], [-0.05, -0.04], [-0.09, -0.08], [-0.12, -0.11], [-0.14, -0.14],
+  [-0.03, -0.10], [-0.035, -0.16], [-0.04, -0.20], [-0.045, -0.24],
+  [0, -0.11], [0, -0.17], [0, -0.22], [0, -0.26],
+  [0.03, -0.10], [0.035, -0.155], [0.04, -0.20], [0.045, -0.235],
+  [0.06, -0.08], [0.07, -0.12], [0.08, -0.15], [0.09, -0.18],
+];
+
+export function idlePose(sec) {
+  const lm = Array.from({ length: 468 }, () => ({ x: 0.5, y: 0.5 }));
+  const yaw = Math.sin(sec * 0.8) * 0.025, pitch = Math.sin(sec * 0.55 + 1) * 0.012;
+  const cx = 0.66 + yaw, cy = 0.31 + pitch, rx = 0.12, ry = 0.19;
+  OVAL.forEach((id, i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / OVAL.length; lm[id] = { x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a) }; });
+  const eye = (ids, ex) => ids.forEach((id, i) => { const a = (i * 2 * Math.PI) / ids.length; lm[id] = { x: ex + 0.026 * Math.cos(a), y: cy - 0.04 + 0.012 * Math.sin(a) }; });
+  eye(EYE_L, cx + 0.058 + yaw); eye(EYE_R, cx - 0.058 + yaw);
+  BRIDGE.forEach((id, i) => { const k = i / (BRIDGE.length - 1); lm[id] = { x: cx + yaw * 1.6 * k, y: cy - 0.05 + 0.095 * k }; });
+  lm[1] = { x: cx + yaw * 1.6, y: cy + 0.05 }; lm[61] = { x: cx - 0.04, y: cy + 0.12 }; lm[291] = { x: cx + 0.04, y: cy + 0.12 };
+  // The hand: open, then the thumb tip meets the index tip for a moment.
+  const pinch = Math.max(0, Math.min(1, (Math.sin(sec * 1.1) - 0.25) / 0.5));
+  const hx = 0.27, hy = 0.74 + Math.sin(sec * 0.9) * 0.01;
+  const points = HAND_REST.map(([dx, dy]) => ({ x: hx + dx, y: hy + dy }));
+  for (const i of [2, 3, 4]) { const t = points[8]; points[i] = { x: points[i].x + (t.x - points[i].x) * pinch * (i / 4), y: points[i].y + (t.y - points[i].y) * pinch * (i / 4) }; }
+  return { face: { landmarks: lm }, hand: { points, closed: pinch > 0.92 } };
+}
+
 function css(el, name, fallback) {
   const v = getComputedStyle(el).getPropertyValue(name).trim();
   return v || fallback;
@@ -24,6 +52,9 @@ export class SeesPanel {
     this.aspect = 4 / 3;
     this.colors = null;
     this.resize();
+    // The panel starts hidden (display: none measures as 0 by 0), so the bitmap was made 1 px wide and stayed that way when the panel
+    // appeared: a flat grey box with nothing drawn. Resize whenever the box really changes size.
+    if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.resize()).observe(canvas);
   }
 
   resize() {
@@ -60,6 +91,10 @@ export class SeesPanel {
     ctx.fillStyle = k.bg; ctx.fillRect(0, 0, this.w, this.h);
     if (face) this.drawFace(face.landmarks, k);
     if (hand) this.drawHand(hand, k);
+    if (!face && !hand) {
+      const idle = idlePose(performance.now() / 1000);
+      ctx.save(); ctx.globalAlpha = 0.55; this.drawFace(idle.face.landmarks, k); this.drawHand(idle.hand, k); ctx.restore();
+    }
     if (!face && !hand && note) {
       ctx.fillStyle = k.text; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center';
       const lines = []; let cur = '';
@@ -67,7 +102,7 @@ export class SeesPanel {
         if (cur && ctx.measureText(`${cur} ${word}`).width > this.w - 24) { lines.push(cur); cur = word; } else cur = cur ? `${cur} ${word}` : word;
       }
       lines.push(cur);
-      lines.forEach((l, i) => ctx.fillText(l, this.w / 2, this.h / 2 + (i - (lines.length - 1) / 2) * 18));
+      lines.forEach((l, i) => ctx.fillText(l, this.w / 2, this.h - 10 - (lines.length - 1 - i) * 17));
       ctx.textAlign = 'start';
     }
   }

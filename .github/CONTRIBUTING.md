@@ -154,9 +154,9 @@ SwiftPM package with two targets plus a separate benchmark package.
 | `Sources/Ensemble/Resources/web` | The bundled MediaPipe runtime, WebAssembly, model and tracker page. |
 | `Tests/EnsembleCoreTests` | Swift Testing tests and the recorded gesture fixtures. |
 | `Tools/PerfBench` | Separate package of camera-free micro-benchmarks (synthetic frames and head paths). |
-| `scripts/` | `appcast.sh`, `auto-release.sh`, `bundle.sh`, `check-network.sh`, `check-size.sh`, `check-test-traps.sh`, `dev-install.sh`, `dev-update.sh`, `dmg-settings.py`, `install-auto-release.sh`, `make-dmg-background.swift`, `make-icon.swift`, `pack-web.swift`, `release.sh`, `ship-release.sh`. |
+| `scripts/` | `appcast.sh`, `auto-release.sh`, `bundle.sh`, `check-network.sh`, `check-size.sh`, `check-test-traps.sh`, `dev-install.sh`, `dev-update.sh`, `dmg-settings.py`, `install-auto-release.sh`, `make-dmg-background.swift`, `make-hero.mjs`, `make-icon.swift`, `pack-web.swift`, `release.sh`, `render-hero-hands.mjs`, `ship-release.sh`. |
 | `docs/` | Guides and references: [setup](../docs/setup.md), [gestures](../docs/gestures.md), [website review](../docs/website-review.md), [safety](../docs/safety.md), [telemetry](../docs/telemetry.md), [workflows](../docs/workflows.md), [performance](../docs/performance.md), [gotchas](../docs/gotchas.md), [RELEASING.md](../docs/RELEASING.md) and the [changelog](../docs/CHANGELOG.md). |
-| `.github/workflows` | `ci.yml` (build, test, workflow and secrets checks, coverage, dead code, and the `gate` job), `auto-release.yml` (releases after every merge that changes app logic, with the signing secrets in the `release` environment), `release.yml` (the later route once a Developer ID exists, disabled). A release is `scripts/ship-release.sh`, run by `auto-release.yml` (and, until its first release succeeded, by the owner's launchd job), as [RELEASING.md](../docs/RELEASING.md) describes. |
+| `.github/workflows` | `ci.yml` (build, test, workflow and secrets checks, coverage, dead code, and the `gate` job), `auto-release.yml` (releases after every merge that changes app logic, with the signing secrets in the `release` environment). A release is `scripts/ship-release.sh`, run by `auto-release.yml` (and, until its first release succeeded, by the owner's launchd job), as [RELEASING.md](../docs/RELEASING.md) describes. |
 
 ### How the pieces fit
 
@@ -216,25 +216,38 @@ own licence; see `THIRD_PARTY_NOTICES.md`.
 
 ## Badge recipes
 
-The README shows the licence badge and a clone count. Recipes, with `<owner>/<repo>` as this repository:
+The README shows the licence badge, a clone count and the star count. Recipes, with `<owner>/<repo>` as this repository:
 
 | Badge | Template |
 |---|---|
 | Licence | `https://img.shields.io/badge/license-MIT-2f6f4e?logo=opensourceinitiative&logoColor=white` |
 | Clones | `https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/<owner>/<repo>/badges/clones.json&query=$.badge&label=clones&logo=github&logoColor=white`, fed by the clonometer workflow, which writes the JSON to the `badges` branch. |
-| Works with | `https://img.shields.io/badge/Claude.ai-1e1b4b?logo=claude&logoColor=white` |
+| Stars | `https://img.shields.io/github/stars/<owner>/<repo>?logo=github&logoColor=white` |
+| Works with | `https://img.shields.io/badge/Claude%20Code-1e1b4b?logo=claude&logoColor=white`, linked to `https://claude.com/product/claude-code`. |
 
 ## The README and its checks
 
-The README follows the readmerlin shape: hero, Features, Fit, How it compares, Security and limits. The hero graphic
-`Assets/hero.svg` is drawn from `Assets/hero.hero.json` with figurehead:
+The README follows the readmerlin shape: hero, Features, Fit, How it compares, Security and limits. The one place it departs
+from readmerlin's template is emoji: the repository's rule is none in docs, so the title, the feature blocks and the
+"never" list carry none, and readmerlin reports that as warnings.
+
+The hero, `Assets/hero.svg`, shows what a person does, in the order they do it: look at a Claude session, pinch twice to
+talk, hold a thumbs-up to send, then pinch and drag to scroll, a peace sign to widen and scissors to even out. The two hands
+are real stills of the 3D hand the tour and the website use, and the sessions are abstract. Its words live in
+`Assets/hero.hero.json` (the spec figurehead reads), and the README's alt text is the spec's `title`, so change them
+together. figurehead has no layout for this picture, so `scripts/make-hero.mjs` draws it from the spec and the stills in
+`Assets/hero-hands/`, and `make-hero.mjs --check` (run by the `website-tests` job) fails when the SVG is not what they build:
 
 ```
-node <path-to-figurehead>/scripts/figurehead.mjs render Assets/hero.hero.json --out Assets/hero.svg
+node scripts/render-hero-hands.mjs   # only when the hand model or the recorded motion changes: re-renders the two stills
+node scripts/make-hero.mjs           # rebuilds Assets/hero.svg from the spec and the stills
 node <path-to-figurehead>/scripts/figurehead.mjs check Assets/hero.hero.json Assets/hero.svg --repo .
 ```
 
-`Assets/social-preview.png` (1280 by 640, the repository's social preview card) is the hero on a white canvas, rendered from `Assets/social-preview.html`. Regenerate it whenever the hero changes, then upload it under Settings, General, Social preview:
+figurehead's check prints warnings that it has no measured face for the `window` style's row labels, because this picture
+does not use that style's layout; every other check passes with no warning.
+
+`Assets/social-preview.png` (1280 by 640, the repository's social preview card) is the hero on a white canvas, rendered from `Assets/social-preview.html`. Regenerate it whenever the hero changes, then upload it under Settings, General, Social preview (GitHub has no API for that upload):
 
 ```
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars --force-color-profile=srgb --window-size=1280,640 --screenshot="$PWD/Assets/social-preview.png" "file://$PWD/Assets/social-preview.html"
