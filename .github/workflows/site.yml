@@ -1,4 +1,4 @@
-# Publishes the website (docs/index.html, docs/logo.png, docs/live/, docs/assets/) to the gh-pages branch, which GitHub Pages serves
+# Publishes the website (docs/index.html, docs/analytics.js, docs/logo.png, docs/live/, docs/assets/) to the gh-pages branch, which GitHub Pages serves
 # next to the update feed (appcast.xml, written by release.yml). Runs only when those files change on main.
 name: Site
 
@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - "docs/index.html"
+      - "docs/analytics.js"
       - "docs/logo.png"
       - "docs/live/**"
       - "docs/assets/**"
@@ -41,7 +42,7 @@ jobs:
 
       - name: Copy the site next to the appcast
         run: |
-          cp src/docs/index.html src/docs/logo.png pages/
+          cp src/docs/index.html src/docs/analytics.js src/docs/logo.png pages/
           rm -rf pages/live
           cp -R src/docs/live pages/live
           rm -rf pages/live/test
@@ -56,7 +57,7 @@ jobs:
           cd pages
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html logo.png live assets
+          git add index.html analytics.js logo.png live assets
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit -m "Site: ${SHA}"
           # The checkout keeps no credentials; the push gets the token from gh's credential helper, never from a URL.

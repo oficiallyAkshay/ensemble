@@ -80,7 +80,7 @@ Every website pull request first checks whether the product UI changed since the
 - G5. Are there emojis in code, comments or docs?
 
 ### H. Trust and privacy
-- H1. Are the only off-origin requests the star count and the clone ledger?
+- H1. Are the only off-origin requests the star count, the clone ledger and the anonymous visit events to PostHog (`docs/analytics.js`, listed in `docs/telemetry.md`, "The website"), and does the page send nothing with Do Not Track or Global Privacy Control on?
 - H2. Does video stay in the tab, in memory, never displayed or stored? Is the privacy line accurate?
 - H3. Do the tree and history contain personal names, emails, handles or private repository names?
 - H4. Are commits authored under the repository's GitHub no-reply identity?

@@ -1,6 +1,6 @@
 # Ensemble: instructions for coding agents
 
-Ensemble is a macOS menu bar app (Swift, SwiftPM, macOS 14.2+, Apple Silicon) that drives Claude desktop sessions hands-free with a webcam. This is the one agent-instructions file; `CLAUDE.md` only points here. Commands, structure and the order of work are in `.github/CONTRIBUTING.md`. Guides and references are in `docs/`: `setup.md`, `gestures.md`, `safety.md`, `telemetry.md` (the usage report), `workflows.md`, `performance.md`, `gotchas.md` (incident lessons, read before touching signing, Claude's labels, scrolling, pinch timing, overlays, audio, resources or workflows) and `RELEASING.md`.
+Ensemble is a macOS menu bar app (Swift, SwiftPM, macOS 14.2+, Apple Silicon) that drives Claude desktop sessions hands-free with a webcam. This is the one agent-instructions file; `CLAUDE.md` only points here. Commands, structure and the order of work are in `.github/CONTRIBUTING.md`. Guides and references are in `docs/`: `setup.md`, `gestures.md`, `safety.md`, `telemetry.md` (the usage report, and the website's anonymous visit counts), `workflows.md`, `performance.md`, `gotchas.md` (incident lessons, read before touching signing, Claude's labels, scrolling, pinch timing, overlays, audio, resources or workflows) and `RELEASING.md`.
 
 ## Commands
 

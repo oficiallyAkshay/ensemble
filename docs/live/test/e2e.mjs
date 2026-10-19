@@ -1,4 +1,4 @@
-// End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|prefetch|camera|denied|nodevice|mouse|phone|tablet|cpu|nowebgl|modelfail|all]
+// End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|prefetch|camera|denied|nodevice|mouse|phone|tablet|cpu|nowebgl|modelfail|analytics|analyticsPrivacy|analyticsDemo|all]
 // It starts its own static server (serve.mjs, which sends the headers GitHub Pages sends and counts requests) and needs Chrome at the usual macOS path.
 // Fake camera: a test pattern with no face or hand.
 import { launch, Page, say, sleep } from './cdp.mjs';
@@ -10,7 +10,8 @@ const URL_ = `${ORIGIN}/live/index.html`;
 const LETTER = `${ORIGIN}/index.html`;
 const STARS_URL = 'https://api.github.com/repos/oficiallyAkshay/ensemble';
 const RELEASES_URL = 'https://api.github.com/repos/oficiallyAkshay/ensemble/releases?per_page=100';
-const LETTER_ALLOWED = [STARS_URL, RELEASES_URL];   // the only two off-origin requests the letter page may make
+const POSTHOG_URL = 'https://us.i.posthog.com/i/v0/e/';   // the one analytics host (docs/telemetry.md, "The website")
+const LETTER_ALLOWED = [STARS_URL, RELEASES_URL, POSTHOG_URL];   // the only off-origin requests the letter page may make: the two GitHub counts and the anonymous visit events
 const DMG = 'https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg';
 const FAKE = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'];
 const HEAVY = ['/live/vendor/vision_bundle.js', '/live/vendor/wasm/vision_wasm_internal.js', '/live/vendor/wasm/vision_wasm_internal.wasm.gz', '/live/models/face_landmarker.task.gz', '/live/models/gesture_recognizer.task.gz'];
@@ -315,9 +316,16 @@ const tablet = () => desktopOnly('tablet', 9340, { width: 820, height: 1180 }, '
 // `releases` is 'fail', 'limit', 'missing' or the releases list the stub returns.
 // The default is an empty list, not a 404: the browser logs a 404 as a console error, which scenarios that check for none would trip on.
 const stub = async (p, stars, releases = []) => {
-  await p.send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.github.com/*' }, { urlPattern: 'https://raw.githubusercontent.com/*' }] });
+  await p.send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.github.com/*' }, { urlPattern: 'https://raw.githubusercontent.com/*' }, { urlPattern: 'https://us.i.posthog.com/*' }] });
   const CORS = { name: 'Access-Control-Allow-Origin', value: '*' };
+  p.posthog = [];   // every request the page made to the analytics host, answered here so nothing real is sent
   p.on('Fetch.requestPaused', (e) => {
+    if (e.request.url.startsWith('https://us.i.posthog.com/')) {
+      let body = null; try { body = JSON.parse(e.request.postData); } catch { /* recorded as null */ }
+      p.posthog.push({ url: e.request.url, method: e.request.method, headers: e.request.headers, body, at: Date.now() });
+      p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, CORS], body: btoa('{"status":"Ok"}') });
+      return;
+    }
     const isReleases = e.request.url.startsWith(RELEASES_URL);
     const mode = isReleases ? releases : stars;
     if (mode === 'fail') p.send('Fetch.failRequest', { requestId: e.requestId, errorReason: 'Failed' });
@@ -329,6 +337,174 @@ const stub = async (p, stars, releases = []) => {
 };
 const starsText = (p) => p.eval("(() => { const c = document.getElementById('counts'); return c.hidden ? '' : c.textContent; })()");
 const hitsOf = () => HEAVY.map((u) => srv.hits.get(u) || 0);
+
+// ---- the website's anonymous visit counts (docs/analytics.js, docs/telemetry.md "The website") ----
+
+const PH_PROPS = ['page', 'viewport', 'schema_version', 'stage', '$process_person_profile', '$geoip_disable'];
+const PH_TOKEN = 'phc_BGLN5bXDwYbwdzkzci7L2tNbyWXtUfwokDRhP6TG5w2Q';
+const STAGES = ['opened', 'camera_asked', 'camera_on', 'mouse_chosen', 'looked', 'dictated', 'sent', 'scrolled', 'install_step', 'download_screen'];
+// pages on a local address never count, so the page needs to be told this is the test
+const optIn = (p) => p.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__ensembleAnalyticsLocal = true;' });
+const privacy = (p, how) => p.send('Page.addScriptToEvaluateOnNewDocument', { source: how === 'dnt' ? "Object.defineProperty(navigator, 'doNotTrack', { value: '1' });" : how === 'window' ? "window.doNotTrack = '1';" : "Object.defineProperty(navigator, 'globalPrivacyControl', { value: true });" });
+const names = (p) => p.posthog.map((r) => r.body?.event + (r.body?.properties?.stage ? ':' + r.body.properties.stage : ''));
+const count = (p, n) => names(p).filter((x) => x === n).length;
+// a fresh browser tab has its own sessionStorage, so each call is a new visit
+async function visitTab(c, { url, size, privacy: how, size_ }) {
+  const p = await Page.open(c.port); const w = await p.watch();
+  await stub(p, 12); await optIn(p);
+  if (how) await privacy(p, how);
+  let loadAt = 0; p.on('Page.loadEventFired', () => { loadAt = Date.now(); });
+  if (size) await p.send('Emulation.setDeviceMetricsOverride', { width: size, height: 900, deviceScaleFactor: 1, mobile: false });
+  await p.send('Page.navigate', { url });
+  await p.waitFor("document.readyState === 'complete'", 15000, 'load');
+  return { p, w, loadAt: () => loadAt };
+}
+
+async function analytics() {
+  say('scenario analytics: the letter page counts anonymous visits');
+  const c = await launch({ port: 9371, flags: [] });
+  let t;
+  try {
+    t = await visitTab(c, { url: LETTER, size: 1280 });
+    const { p, w } = t;
+    await sleep(1500);
+    check('a normal visit sends site_visit once, and nothing else yet', JSON.stringify(names(p)) === '["site_visit"]', names(p).join(' '));
+    const ev = p.posthog[0];
+    check('the request is a POST to the PostHog capture URL only', ev && ev.method === 'POST' && ev.url === POSTHOG_URL, ev?.url);
+    check('the body holds exactly api_key, event, distinct_id, timestamp, properties', ev && JSON.stringify(Object.keys(ev.body).sort()) === JSON.stringify(['api_key', 'distinct_id', 'event', 'properties', 'timestamp']), JSON.stringify(Object.keys(ev?.body || {})));
+    check('the key is the public project token', ev?.body.api_key === PH_TOKEN);
+    const pr = ev?.body.properties || {};
+    check('properties are only the allowed ones, with the right values', Object.keys(pr).every((k) => PH_PROPS.includes(k)) && pr.page === 'letter' && pr.viewport === 'desktop' && pr.schema_version === 1 && pr.$process_person_profile === false && pr.$geoip_disable === true && !('stage' in pr), JSON.stringify(pr));
+    check('the id is a random per-visit id kept in sessionStorage, and the timestamp is a date', /^[0-9a-f-]{36}$/.test(ev?.body.distinct_id) && ev.body.distinct_id === (await p.eval("JSON.parse(sessionStorage.getItem('ensemble-site-visit')).id")) && !Number.isNaN(Date.parse(ev.body.timestamp)));
+    check('no cookie and nothing in localStorage', (await p.eval("document.cookie === '' && localStorage.length === 0")) && p.posthog.every((r) => !Object.keys(r.headers).some((h) => /^cookie$/i.test(h))));
+    check('no page text, URL, referrer or user agent in any body', p.posthog.every((r) => { const j = JSON.stringify(r.body); return !/127\.0\.0\.1|localhost|Mozilla|Chrome|index\.html/.test(j); }));
+    const ph = w.requests.filter((r) => r.url === POSTHOG_URL);
+    check('the request is low priority and left after the load event', ph.length === 1 && ph.every((r) => /Low|VeryLow/i.test(r.priority || '') && r.at >= t.loadAt() - 50), ph.map((r) => `${r.priority}@${r.at - t.loadAt()}ms`).join(' '));
+    check('only the PostHog address left the site (besides the two GitHub counts)', offOrigin(w, LETTER_ALLOWED).length === 0, offOrigin(w, LETTER_ALLOWED).join(' '));
+
+    // scrolling: to the bottom, up and down again
+    await p.eval('window.scrollTo(0, document.documentElement.scrollHeight)');
+    await sleep(900);
+    check('scrolled_to_bottom is sent after scrolling to the bottom', count(p, 'scrolled_to_bottom') === 1, names(p).join(' '));
+    check('download_seen is sent when the download section has been on screen', count(p, 'download_seen') === 1, names(p).join(' '));
+    for (let i = 0; i < 2; i++) { await p.eval('window.scrollTo(0, 0)'); await sleep(300); await p.eval('window.scrollTo(0, document.documentElement.scrollHeight)'); await sleep(500); }
+    check('scrolling up and down again sends them no second time', count(p, 'scrolled_to_bottom') === 1 && count(p, 'download_seen') === 1, names(p).join(' '));
+
+    // a friend's card: first pointerdown only
+    await p.eval("document.querySelector('#friends .imsg').scrollIntoView({ block: 'center', behavior: 'instant' }); 0");
+    await sleep(400);
+    check('nothing about the contacts is sent until a card is touched', count(p, 'contacts_played') === 0);
+    // the tiles overlap like a pile, so take a point that really lands on a card
+    const pt = await p.eval("(() => { for (const el of document.querySelectorAll('#friends .imsg')) { const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2; if (y > 0 && y < innerHeight && document.elementFromPoint(x, y)?.closest('.imsg')) return { x, y }; } return null; })()");
+    for (let i = 0; i < 2; i++) { await p.mouse('mousePressed', pt.x, pt.y); await sleep(80); await p.mouse('mouseReleased', pt.x, pt.y); await sleep(200); }
+    await sleep(500);
+    check('contacts_played is sent on the first pointerdown on a card, once', count(p, 'contacts_played') === 1, names(p).join(' '));
+
+    // downloads: click every Download control twice, with the navigation itself prevented
+    await p.eval("document.addEventListener('click', (e) => { if (e.target.closest('a')) e.preventDefault(); }, true); 0");
+    check('nothing about downloads is sent before a click', count(p, 'download_clicked') === 0);
+    await p.eval("for (const id of ['dl-btn', 'dl-btn-2']) { document.getElementById(id).click(); document.getElementById(id).click(); } document.querySelector('.nav-links a[href$=\"Ensemble.dmg\"]').click(); 0");
+    await sleep(700);
+    check('download_clicked is sent for the download controls, once', count(p, 'download_clicked') === 1, names(p).join(' '));
+    check('each event name was sent exactly once in the visit', new Set(names(p)).size === names(p).length && JSON.stringify([...names(p)].sort()) === JSON.stringify(['contacts_played', 'download_clicked', 'download_seen', 'scrolled_to_bottom', 'site_visit']), names(p).join(' '));
+    check('every request carries only the allowed properties and no cookie header', p.posthog.every((r) => Object.keys(r.body.properties).every((k) => PH_PROPS.includes(k)) && !Object.keys(r.headers).some((h) => /^cookie$/i.test(h))));
+    const sentBefore = p.posthog.length;
+    await p.send('Page.reload'); await p.waitFor("document.readyState === 'complete'", 15000); await sleep(1500);
+    check('a reload in the same tab (the same visit) counts nothing again', p.posthog.length === sentBefore, names(p).join(' '));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+    p.close();
+
+    // a phone-sized and a tablet-sized visit name their viewport
+    for (const [width, want] of [[390, 'phone'], [820, 'tablet']]) {
+      const v = await visitTab(c, { url: LETTER, size: width }); await sleep(1200);
+      check(`a ${width}px wide visit reports viewport "${want}"`, v.p.posthog[0]?.body.properties.viewport === want, JSON.stringify(v.p.posthog[0]?.body.properties));
+      v.p.close();
+    }
+    // where sendBeacon is missing or refuses, a keepalive fetch with no credentials, no referrer and low priority sends it instead
+    const f = await Page.open(c.port); const fw = await f.watch(); await stub(f, 12); await optIn(f);
+    await f.send('Page.addScriptToEvaluateOnNewDocument', { source: 'navigator.sendBeacon = () => false;' });
+    await f.send('Page.navigate', { url: LETTER }); await f.waitFor("document.readyState === 'complete'", 15000); await sleep(1200);
+    const fr = fw.requests.filter((r) => r.url === POSTHOG_URL);
+    check('without sendBeacon the event goes by fetch, low priority', fr.length === 1 && fr[0].type === 'Fetch' && /Low/i.test(fr[0].priority || '') && f.posthog.length === 1 && f.posthog[0].body.event === 'site_visit', fr.map((r) => `${r.type} ${r.priority}`).join(' '));
+    check('the fetch carries no cookie header and no referrer', f.posthog.every((r) => !Object.keys(r.headers).some((h) => /^(cookie|referer)$/i.test(h))), JSON.stringify(f.posthog[0]?.headers));
+    f.close();
+  } finally { t?.p.close(); await c.close(); }
+}
+
+async function analyticsPrivacy() {
+  say('scenario analyticsPrivacy: Do Not Track and Global Privacy Control send nothing');
+  const c = await launch({ port: 9372, flags: [] });
+  try {
+    for (const [how, label] of [['dnt', 'navigator.doNotTrack'], ['window', 'window.doNotTrack'], ['gpc', 'globalPrivacyControl']]) {
+      for (const [url, what] of [[LETTER, 'letter'], [URL_, 'demo']]) {
+        const { p, w } = await visitTab(c, { url, size: 1280, privacy: how });
+        await sleep(800);
+        await p.eval('window.scrollTo(0, document.documentElement.scrollHeight)');
+        await p.eval("document.addEventListener('click', (e) => { if (e.target.closest('a')) e.preventDefault(); }, true); (document.getElementById('dl-btn') || document.getElementById('download') || document.getElementById('go-mouse')).click(); 0");
+        await sleep(1500);
+        check(`${label} on, ${what}: nothing is sent`, p.posthog.length === 0 && !w.requests.some((r) => r.url === POSTHOG_URL), names(p).join(' '));
+        check(`${label} on, ${what}: nothing is stored either`, await p.eval("sessionStorage.length === 0 && localStorage.length === 0 && document.cookie === ''"));
+        p.close();
+      }
+    }
+    // the same pages without the signal do send, so the checks above can fail
+    const on = await visitTab(c, { url: URL_, size: 1280 });
+    await sleep(1200);
+    check('control: the same demo visit without the signal sends demo_stage opened', JSON.stringify(names(on.p)) === '["demo_stage:opened"]', names(on.p).join(' '));
+    on.p.close();
+    // and with no opt-in, a local address sends nothing at all
+    const p = await Page.open(c.port); const w = await p.watch(); await stub(p, 12);
+    await p.send('Page.navigate', { url: LETTER }); await p.waitFor("document.readyState === 'complete'", 15000); await sleep(1200);
+    check('a page on a local address sends nothing unless the test opts in', p.posthog.length === 0 && !w.requests.some((r) => r.url === POSTHOG_URL));
+    p.close();
+  } finally { await c.close(); }
+}
+
+async function analyticsDemo() {
+  say('scenario analyticsDemo: the demo reports the last stage a visitor reached (mouse mode)');
+  const c = await launch({ port: 9373, flags: [], size: '1400,860' });
+  let t;
+  try {
+    t = await visitTab(c, { url: URL_ });
+    const { p, w } = t;
+    await sleep(800);
+    check('opening the demo sends demo_stage opened and nothing else', JSON.stringify(names(p)) === '["demo_stage:opened"]', names(p).join(' '));
+    check('opened carries page demo, a viewport, the schema version and the stage, nothing more', (() => { const q = p.posthog[0]?.body.properties; return q && q.page === 'demo' && ['phone', 'tablet', 'desktop'].includes(q.viewport) && q.schema_version === 1 && q.stage === 'opened' && Object.keys(q).every((k) => PH_PROPS.includes(k)); })(), JSON.stringify(p.posthog[0]?.body.properties));
+    await p.eval("document.getElementById('go-mouse').click()");
+    await sleep(500);
+    check('choosing the mouse sends mouse_chosen', names(p).includes('demo_stage:mouse_chosen'), names(p).join(' '));
+    const centre = (id) => p.eval(`(() => { const r = document.querySelector('[data-id=${id}]').getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; })()`);
+    const api = await centre('api');
+    await p.mouse('mouseMoved', api.x, api.y); await sleep(1000);
+    const click = async (pt) => { await p.mouse('mousePressed', pt.x, pt.y); await sleep(110); await p.mouse('mouseReleased', pt.x, pt.y); };
+    await sleep(500);
+    check('looking at a session sends looked', names(p).includes('demo_stage:looked'), names(p).join(' '));
+    await click(api); await sleep(250); await click(api); await sleep(2800);
+    check('dictating sends dictated', names(p).includes('demo_stage:dictated'), names(p).join(' '));
+    await p.mouse('mouseMoved', api.x + 1, api.y); await sleep(900);
+    await p.mouse('mousePressed', api.x, api.y); await sleep(1400); await p.mouse('mouseReleased', api.x, api.y); await sleep(5200);
+    check('sending sends sent', names(p).includes('demo_stage:sent'), names(p).join(' '));
+    await p.mouse('mousePressed', api.x, api.y - 60);
+    for (let i = 0; i < 25; i++) { await p.mouse('mouseMoved', api.x, api.y - 60 + i * 6, { buttons: 1 }); await sleep(16); }
+    await p.mouse('mouseReleased', api.x, api.y + 90); await sleep(500);
+    check('scrolling sends scrolled, and the install step follows it', names(p).includes('demo_stage:scrolled') && names(p).includes('demo_stage:install_step'), names(p).join(' '));
+    await p.eval("document.addEventListener('click', (e) => { if (e.target.closest('a')) e.preventDefault(); }, true); document.getElementById('done').click(); 0");
+    await sleep(800);
+    check('seeing the download screen sends download_screen and download_seen', names(p).includes('demo_stage:download_screen') && names(p).includes('download_seen'), names(p).join(' '));
+    check('the stages come in the order they happened', JSON.stringify(names(p).filter((n) => n.startsWith('demo_stage:')).map((n) => n.slice(11))) === JSON.stringify(['opened', 'mouse_chosen', 'looked', 'dictated', 'sent', 'scrolled', 'install_step', 'download_screen']), names(p).join(' '));
+    await p.eval("document.getElementById('download').click(); document.getElementById('download').click(); 0");
+    await sleep(700);
+    check('downloading from the demo sends download_clicked once', count(p, 'download_clicked') === 1, names(p).join(' '));
+    await p.eval("document.getElementById('keep').click(); document.getElementById('stop').click(); document.getElementById('go-mouse').click(); 0");
+    await sleep(500);
+    check('repeating a stage sends nothing new', new Set(names(p)).size === names(p).length, names(p).join(' '));
+    check('every stage name is on the list, every property allowed, no cookie header', p.posthog.every((r) => (r.body.event !== 'demo_stage' || STAGES.includes(r.body.properties.stage)) && Object.keys(r.body.properties).every((k) => PH_PROPS.includes(k)) && !Object.keys(r.headers).some((h) => /^cookie$/i.test(h))));
+    const ph = w.requests.filter((r) => r.url === POSTHOG_URL);
+    check('every request was low priority and sent after the load event', ph.length === p.posthog.length && ph.every((r) => /Low|VeryLow/i.test(r.priority || '') && r.at >= t.loadAt() - 50), ph.map((r) => r.priority).join(' '));
+    check('nothing else left the site', offOrigin(w, [STARS_URL, RELEASES_URL, POSTHOG_URL]).length === 0, offOrigin(w, [STARS_URL, RELEASES_URL, POSTHOG_URL]).join(' '));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { t?.p.close(); await c.close(); }
+}
 
 async function letter() {
   say('scenario letter: the popover asks for the camera, then the demo starts with no gate');
@@ -824,7 +1000,7 @@ async function scrollable() {
 }
 
 const which = process.argv[2] || 'all';
-const all = { scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, tablet, cpu, nowebgl, modelfail };
+const all = { analytics, analyticsPrivacy, analyticsDemo, scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, tablet, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }

@@ -9,6 +9,8 @@ import { SESSIONS } from './content.js';
 import { esc, fmt, buildPane, addLine } from './pane.js';
 import { SeesPanel } from './sees.js';
 import { Trackers, unsupportedReason, TOTAL_BYTES } from './tracker.js';
+import { track } from '../analytics.js';
+const stage = (s) => track('demo_stage', { stage: s });   // the last stage a visit sent is where the visitor dropped off
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -93,7 +95,7 @@ function showGate(message) {
 }
 
 function enterMouse(note) {
-  openClaude();
+  openClaude(); stage('mouse_chosen');
   stopCamera(); endCentring(null);
   S.mode = 'mouse'; S.machine.reset(); S.focus.forgetAll();
   el.gate.hidden = true; el.finish.hidden = true;
@@ -138,7 +140,7 @@ async function openCamera() {
 async function startCamera() {
   const why = unsupportedReason();
   if (why) { showGate(why); return; }
-  openClaude();
+  openClaude(); stage('camera_asked');
   document.documentElement.dataset.go = '';   // loading only: the consent copy lives in the menu now
   el.gate.hidden = false; el.finish.hidden = true;
   el.goCamera.disabled = true; el.goMouse.disabled = true;
@@ -179,7 +181,7 @@ async function startCamera() {
   S.frames = { seen: 0, processed: 0, start: now() };
   el.gate.hidden = true; el.progress.hidden = true; el.finish.hidden = true;
   el.stop.hidden = false; el.stop.textContent = 'Stop camera'; el.recentre.hidden = false;
-  setState('running'); el.app.dataset.mode = 'camera';
+  setState('running'); el.app.dataset.mode = 'camera'; stage('camera_on');
   tick_('enabled');
   S.seesNote = 'Looking for your face';
   beginCentring();
@@ -688,11 +690,14 @@ const currentStep = () => ORDER.find((k) => !DONE[k] && !(k === 'centred' && mou
 
 function tick_(k) {
   if (DONE[k]) return;
-  DONE[k] = true; renderCoach();
+  DONE[k] = true;
+  if (RAIL.includes(k) || k === 'looked') stage(k);   // before renderCoach, which reports the install step the last gesture unlocks
+  renderCoach();
 }
 
 function renderCoach() {
   const cur = currentStep(), m = modeKey();
+  if (cur === 'install') stage('install_step');
   for (const k of [...RAIL, 'install']) {
     const st = steps[k];
     st.li.hidden = k === 'install' && cur !== 'install' && !DONE.install;
@@ -757,7 +762,7 @@ function showGuide(cur, m) {
 function startTutorial() { S.step = 0; renderCoach(); }
 
 function finish() {
-  tick_('install');
+  tick_('install'); stage('download_screen');
   if (S.mode === 'camera') { S.resumeOnShow = false; stopCamera(); S.machine.reset(); }
   el.finish.hidden = false; setState('finished');
   el.finish.querySelector('#download').focus({ preventScroll: true });
