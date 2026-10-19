@@ -1,7 +1,7 @@
 # Run before pushing: pre-commit run --all-files
 # Unset the token variables first so a placeholder token never reaches zizmor's online audits:
 #   env -u GH_TOKEN -u GITHUB_TOKEN pre-commit run --all-files
-# CI runs the same two tools in the `hygiene` job of .github/workflows/ci.yml. Revisions are commit SHAs, with the tag as a comment.
+# The test-trap check runs on push (see the hook at the end). CI runs the same two tools in the `hygiene` job of .github/workflows/ci.yml. Revisions are commit SHAs, with the tag as a comment.
 repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
@@ -12,3 +12,13 @@ repos:
     rev: fa412071e4f5d44d44f9e365f4676f9df92456a2  # frozen: v1.30.1
     hooks:
       - id: zizmor
+
+  # Refuses a push that holds a known test trap (docs/gotchas.md, 21). Install with: pre-commit install --hook-type pre-push
+  - repo: local
+    hooks:
+      - id: check-test-traps
+        name: check-test-traps
+        entry: bash scripts/check-test-traps.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

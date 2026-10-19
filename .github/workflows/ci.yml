@@ -37,6 +37,9 @@ jobs:
           xcodebuild -version
           swift --version
 
+      - name: Test trap check
+        run: scripts/check-test-traps.sh 2>&1 | tee /tmp/ensemble-ci-test-traps.log
+
       - name: Test
         run: swift test 2>&1 | tee /tmp/ensemble-ci-test.log
 

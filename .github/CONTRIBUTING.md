@@ -84,11 +84,16 @@ CI runs the same checks you can run locally.
 
 ```
 env -u GH_TOKEN -u GITHUB_TOKEN pre-commit run --all-files   # gitleaks (secrets) and zizmor (workflow security)
+pre-commit install --hook-type pre-push                      # once per clone: runs scripts/check-test-traps.sh before every push
 ```
 
 Unset the two variables: zizmor forwards any token it finds to github.com, and a placeholder token fails with a 401
 instead of a clean finding. If you change a workflow, also run `actionlint` and `pinact run --check`. The pre-commit hooks
 pin their tools to commit SHAs; do not loosen a pin to make a hook pass.
+
+The third check, `scripts/check-test-traps.sh`, refuses a test whose whole expectation is a mutating call, which Swift Testing
+cannot compile and the Command Line Tools cannot show you ([docs/gotchas.md](../docs/gotchas.md), 21). It runs before every
+push once you install the push hook, and by hand with `scripts/check-test-traps.sh` (or `pre-commit run check-test-traps --hook-stage pre-push --all-files`).
 
 ## The trust rules
 
@@ -149,7 +154,7 @@ SwiftPM package with two targets plus a separate benchmark package.
 | `Sources/Ensemble/Resources/web` | The bundled MediaPipe runtime, WebAssembly, model and tracker page. |
 | `Tests/EnsembleCoreTests` | Swift Testing tests and the recorded gesture fixtures. |
 | `Tools/PerfBench` | Separate package of camera-free micro-benchmarks (synthetic frames and head paths). |
-| `scripts/` | `appcast.sh`, `bundle.sh`, `check-network.sh`, `check-size.sh`, `dev-install.sh`, `dev-update.sh`, `dmg-settings.py`, `make-dmg-background.swift`, `make-icon.swift`, `pack-web.swift`, `release.sh`, `ship-release.sh`. |
+| `scripts/` | `appcast.sh`, `bundle.sh`, `check-network.sh`, `check-size.sh`, `check-test-traps.sh`, `dev-install.sh`, `dev-update.sh`, `dmg-settings.py`, `make-dmg-background.swift`, `make-icon.swift`, `pack-web.swift`, `release.sh`, `ship-release.sh`. |
 | `docs/` | Guides and references: [setup](../docs/setup.md), [gestures](../docs/gestures.md), [website review](../docs/website-review.md), [safety](../docs/safety.md), [telemetry](../docs/telemetry.md), [workflows](../docs/workflows.md), [performance](../docs/performance.md), [gotchas](../docs/gotchas.md), [RELEASING.md](../docs/RELEASING.md) and the [changelog](../docs/CHANGELOG.md). |
 | `.github/workflows` | `ci.yml` (build, test, workflow and secrets checks, coverage, dead code, and the `gate` job), `release.yml` (the later route once a Developer ID exists). Releases ship from the owner's Mac with `scripts/ship-release.sh` after a merge, as [RELEASING.md](../docs/RELEASING.md) describes. |
 
