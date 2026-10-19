@@ -14,6 +14,9 @@ final class CoordinatorContext {
     let bridge = ClaudeBridge()
     let gestures = GestureMachine()
     let cover = CoverDetector()
+    let dim = DimPicture()
+    /// The newest brightness reading (taken about every 0.1 s, so it can be that old), for the detailed trace.
+    var latestLuma: Double?
     let pointer = NosePointer()
     /// Created lazily: it needs `self` fully formed first (it reads settings, the pointer and the overlay back).
     lazy var setup = SetupController(ctx: self)

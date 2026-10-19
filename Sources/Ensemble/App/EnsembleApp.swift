@@ -93,7 +93,7 @@ final class StatusIconModel: ObservableObject {
         switch status {
         case .off, .claudeNotRunning: return .off
         case .watching, .pausedForInput, .listening, .claudeNotOnScreen: return .on
-        case .cameraCovered, .needsCalibration, .needsPermission, .error: return .attention
+        case .cameraCovered, .pictureDim, .needsCalibration, .needsPermission, .error: return .attention
         }
     }
 
