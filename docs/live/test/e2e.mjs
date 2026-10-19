@@ -9,8 +9,8 @@ const ORIGIN = `http://127.0.0.1:${srv.port}`;
 const URL_ = `${ORIGIN}/live/index.html`;
 const LETTER = `${ORIGIN}/index.html`;
 const STARS_URL = 'https://api.github.com/repos/oficiallyAkshay/ensemble';
-const CLONES_URL = 'https://raw.githubusercontent.com/oficiallyAkshay/ensemble/badges/clones.json';
-const LETTER_ALLOWED = [STARS_URL, CLONES_URL];   // the only two off-origin requests the letter page may make
+const RELEASES_URL = 'https://api.github.com/repos/oficiallyAkshay/ensemble/releases?per_page=100';
+const LETTER_ALLOWED = [STARS_URL, RELEASES_URL];   // the only two off-origin requests the letter page may make
 const DMG = 'https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg';
 const FAKE = ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'];
 const HEAVY = ['/live/vendor/vision_bundle.js', '/live/vendor/wasm/vision_wasm_internal.js', '/live/vendor/wasm/vision_wasm_internal.wasm.gz', '/live/models/face_landmarker.task.gz', '/live/models/gesture_recognizer.task.gz'];
@@ -24,8 +24,7 @@ const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok }); say(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ' :: ' + detail : ''}`); };
 
 // MediaPipe reports its own INFO lines (the TensorFlow Lite delegate notice) through console.error; those are not errors.
-// The letter asks for the clonometer ledger, which does not exist until the counter is installed; the browser logs that 404 by itself, and the page leaves the clones out.
-const real = (w) => w.errors.filter((e) => !/INFO:/.test(e) && !/badges\/clones\.json/.test(e));
+const real = (w) => w.errors.filter((e) => !/INFO:/.test(e));
 function offOrigin(w, allow = []) { return w.requests.filter((r) => !r.url.startsWith(ORIGIN) && !/^(blob:|data:|about:)/.test(r.url) && !allow.includes(r.url)).map((r) => r.url); }
 
 async function camera() {
@@ -313,16 +312,18 @@ const tablet = () => desktopOnly('tablet', 9340, { width: 820, height: 1180 }, '
 
 // ---- the letter page: the popover flow, the prefetch, the star count ----
 
-const stub = async (p, stars, clones = 'missing') => {
+// `releases` is 'fail', 'limit', 'missing' or the releases list the stub returns.
+// The default is an empty list, not a 404: the browser logs a 404 as a console error, which scenarios that check for none would trip on.
+const stub = async (p, stars, releases = []) => {
   await p.send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.github.com/*' }, { urlPattern: 'https://raw.githubusercontent.com/*' }] });
   const CORS = { name: 'Access-Control-Allow-Origin', value: '*' };
   p.on('Fetch.requestPaused', (e) => {
-    const isClones = e.request.url.startsWith('https://raw.githubusercontent.com/');
-    const mode = isClones ? clones : stars;
+    const isReleases = e.request.url.startsWith(RELEASES_URL);
+    const mode = isReleases ? releases : stars;
     if (mode === 'fail') p.send('Fetch.failRequest', { requestId: e.requestId, errorReason: 'Failed' });
     else if (mode === 'limit') p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 403, responseHeaders: [CORS], body: btoa('{"message":"rate limit"}') });
     else if (mode === 'missing') p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 404, responseHeaders: [CORS], body: btoa('404: Not Found') });
-    else if (isClones) p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, CORS], body: btoa(JSON.stringify(clones)) });
+    else if (isReleases) p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, CORS], body: btoa(JSON.stringify(releases)) });
     else p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }, CORS], body: btoa(JSON.stringify({ stargazers_count: stars })) });
   });
 };
@@ -341,7 +342,8 @@ async function letter() {
     check('hero reads top to bottom: meta chip, short headline, gesture line, two-sentence copy, then the action row', await p.eval(`(() => { const h = document.querySelector('.hero'); const t = (q) => h.querySelector(q).textContent.replace(/\\s+/g, ' ').trim(); const y = (q) => h.querySelector(q).getBoundingClientRect().top; return t('.ens-chip') === 'Free \u00b7 open source \u00b7 for Mac' && t('h1') === 'Run Claude by looking at it.' && t('.sub') === 'Look at a session to pick it. Pinch twice to talk. Thumbs-up to send.' && t('.copy').endsWith('Nothing leaves your Mac.') && y('.ens-chip') < y('h1') && y('h1') < y('.sub') && y('.sub') < y('.copy') && y('.copy') < y('#try'); })()`));
     check('hero copy and action row are above the fold at 1280x800', await p.eval("['.copy', '#try', '#dl-btn', '#src'].every((q) => document.querySelector(q).getBoundingClientRect().bottom <= innerHeight)"));
     check('the letter follows as its own section: its chip, then the opening line as a paragraph, not a headline', await p.eval("(() => { const s = document.getElementById('note'); return s.querySelector('.ens-chip').textContent.trim() === 'A note from the person who made this' && s.querySelector('p.lead').textContent.startsWith('Type to your AI for thirty minutes') && document.querySelectorAll('h1').length === 1 && !s.querySelector('h1'); })()"));
-    check('CTA row in the hero: See the demo, Download with a logo that starts the .dmg, GitHub logo and source link', await p.eval(`(() => { const d = document.getElementById('dl-btn'), a = document.getElementById('src'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href === '${DMG}' && a.textContent.trim() === 'See the source code on GitHub' && !!a.querySelector('svg') && a.href === 'https://github.com/oficiallyAkshay/ensemble'; })()`));
+    check('CTA row in the hero: See the demo, Download with a logo that starts the .dmg, GitHub logo and source link', await p.eval(`(() => { const d = document.getElementById('dl-btn'), a = document.getElementById('src'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href === '${DMG}' && a.textContent.trim() === 'Open source on GitHub' && !!a.querySelector('svg') && a.href === 'https://github.com/oficiallyAkshay/ensemble'; })()`));
+    check('no line about the demo running in the browser', await p.eval("!/demo runs in this browser|video never leaves/i.test(document.body.textContent)"));
     check('the whole action row sits above the fold at 1280x800', await p.eval("(() => { const f = (id) => document.getElementById(id).getBoundingClientRect(); return ['try', 'dl-btn', 'src'].every((id) => f(id).top >= 0 && f(id).bottom <= innerHeight); })()"));
     check('every Download link on the letter page starts the .dmg', await p.eval(`[...document.querySelectorAll('a')].filter((a) => /download/i.test(a.textContent)).every((a) => a.href === '${DMG}')`));
     check('no horizontal overflow at 1280', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1'));
@@ -368,29 +370,37 @@ async function letter() {
     check('demo is running on the camera with no second prompt', (await p.eval('window.__live.mode')) === 'camera', await p.eval("document.getElementById('gate-message').textContent"));
     check('the demo shows no video, only the skeleton panel', await p.eval("[...document.querySelectorAll('video')].every(v => v.closest('#sink'))"));
     const st = await p.eval("document.documentElement.dataset.go");
-    check('only the two GitHub requests left the site, once each', JSON.stringify(offOrigin(w, LETTER_ALLOWED)) === '[]' && w.requests.filter((r) => r.url === STARS_URL).length === 1 && w.requests.filter((r) => r.url === CLONES_URL).length === 1, offOrigin(w, LETTER_ALLOWED).join(' '));
+    check('only the two GitHub requests left the site, once each', JSON.stringify(offOrigin(w, LETTER_ALLOWED)) === '[]' && w.requests.filter((r) => r.url === STARS_URL).length === 1 && w.requests.filter((r) => r.url === RELEASES_URL).length === 1 && !w.requests.some((r) => r.url.startsWith('https://raw.githubusercontent.com/')), offOrigin(w, LETTER_ALLOWED).join(' '));
     check('no console errors', real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
 
 async function lettersStars() {
-  say('scenario stars: stars and clones, each shown from 5 up; below that the line invites the first stars');
-  const LEDGER = { total: 1342, total_short: '1.3k' };
-  for (const [name, stars, clones, want] of [
-    ['12 stars, no ledger yet', 12, 'missing', /^12 stars$/],
-    ['12 stars, 1.3k clones', 12, LEDGER, /^1\.3k clones · 12 stars$/],
-    ['clones without total_short', 12, { total: 1342 }, /^1,342 clones · 12 stars$/],
-    ['3 stars, 1.3k clones', 3, LEDGER, /^1\.3k clones · be the first to ★ star it$/],
-    ['12 stars, 4 clones', 12, { total: 4, total_short: '4' }, /^12 stars$/],
-    ['0 stars, no ledger', 0, 'missing', /^Be the first to ★ star it$/],
-    ['stars fail, 1.3k clones', 'fail', LEDGER, /^1\.3k clones · be the first to ★ star it$/],
-    ['stars rate limit, ledger fails', 'limit', 'fail', /^Be the first to ★ star it$/],
-    ['12 stars, ledger is not JSON', 12, 'limit', /^12 stars$/],
+  say('scenario stars: downloads of Ensemble.dmg and stars, each shown from 5 up; below that the line invites the first stars');
+  const asset = (name, download_count) => ({ name, download_count });
+  // Only the fixed-name Ensemble.dmg counts (500 + 800 + 42 = 1,342); the versioned files are the app's own update check.
+  const RELEASES = [
+    { assets: [asset('Ensemble.dmg', 500), asset('Ensemble-1.2.0.dmg', 9000)] },
+    { assets: [asset('Ensemble.dmg', 800), asset('Ensemble-1.1.0.dmg', 7000)] },
+    { assets: [asset('Ensemble.dmg', 42), asset('Ensemble-1.0.0.dmg', 5000)] },
+  ];
+  const FEW = [{ assets: [asset('Ensemble.dmg', 4), asset('Ensemble-1.0.0.dmg', 9000)] }];
+  for (const [name, stars, releases, want] of [
+    ['12 stars, no releases yet', 12, 'missing', /^12 stars$/],
+    ['12 stars, 1,342 downloads', 12, RELEASES, /^1,342 downloads · 12 stars$/],
+    ['3 stars, 1,342 downloads', 3, RELEASES, /^1,342 downloads · be the first to ★ star it$/],
+    ['12 stars, 4 downloads and big versioned counts', 12, FEW, /^12 stars$/],
+    ['12 stars, releases without assets', 12, [{}], /^12 stars$/],
+    ['0 stars, no releases', 0, 'missing', /^Be the first to ★ star it$/],
+    ['stars fail, 1,342 downloads', 'fail', RELEASES, /^1,342 downloads · be the first to ★ star it$/],
+    ['stars rate limit, releases fail', 'limit', 'fail', /^Be the first to ★ star it$/],
+    ['12 stars, releases rate limited', 12, 'limit', /^12 stars$/],
+    ['12 stars, releases are not a list', 12, { message: 'oops' }, /^12 stars$/],
   ]) {
     const c = await launch({ port: 9352, flags: FAKE });
     const p = await Page.open(c.port); const w = await p.watch();
     try {
-      await stub(p, stars, clones);
+      await stub(p, stars, releases);
       await p.send('Page.navigate', { url: LETTER });
       await p.waitFor("document.readyState === 'complete'", 15000);
       await sleep(3500);
