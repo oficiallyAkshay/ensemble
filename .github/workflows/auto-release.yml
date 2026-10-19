@@ -1,0 +1,229 @@
+# Releases after every merge to main that changes app logic (docs/RELEASING.md, "Release on every merge"):
+# builds, signs with the pinned "Ensemble Local Signing" identity, publishes the GitHub Release and the appcast.
+# Secrets live only in the `release` environment, which is limited to the main branch: ENSEMBLE_SIGN_P12_BASE64,
+# ENSEMBLE_SIGN_P12_PASSWORD, SPARKLE_ED_PRIVATE_KEY.
+# Dry run (builds, signs and checks, publishes nothing): gh workflow run auto-release.yml -f dry_run=true
+name: auto-release
+
+on:
+  # A workflow_run trigger is how a release waits for `ci` on main. The usual danger (running a pull request's code with
+  # secrets) is closed three ways: only a push to main that ci passed starts a release, this workflow only ever checks out
+  # a commit that is still the tip of main, and the secrets are in the `release` environment, which only main may use.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build, sign and check everything, publish nothing (the due check is skipped so there is always something to build)
+        type: boolean
+        default: true
+
+permissions: {}
+
+# One release at a time. A run waiting behind another is replaced by a newer one, which is harmless: every run works
+# out what is due from main's tip and the newest tag, so the newest run covers every merge.
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+jobs:
+  # Decides without secrets and without the environment, so a docs-only merge never touches either.
+  decide:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      due: ${{ steps.decide.outputs.due }}
+      version: ${{ steps.decide.outputs.version }}
+      sha: ${{ steps.decide.outputs.sha }}
+      dry: ${{ steps.decide.outputs.dry }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+          echo "due=false" >> "$GITHUB_OUTPUT"
+
+          # Only the tip of main is ever released; a commit that main has moved past is covered by the newer run.
+          TIP="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "$RUN_SHA" != "$TIP" ]; then
+            echo "::notice::${RUN_SHA:0:7} is no longer the tip of main (${TIP:0:7}); the run for the newer commit decides"
+            exit 0
+          fi
+
+          TAG="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -1)"
+          [ -n "$TAG" ] || { echo "::error::no v* tag exists; the first release is cut by hand"; exit 1; }
+          git merge-base --is-ancestor "$TAG" "$RUN_SHA" || { echo "::error::$TAG is not an ancestor of ${RUN_SHA:0:7}; not guessing which commits are unreleased"; exit 1; }
+
+          # App logic: Sources/, Package.swift, Package.resolved (docs/RELEASING.md). Anything else waits for the next release.
+          CHANGED="$(git diff --name-only "$TAG" "$RUN_SHA" -- Sources Package.swift Package.resolved)"
+          if [ -z "$CHANGED" ] && [ "$DRY" != "true" ]; then
+            echo "::notice::nothing due: no app-logic change between $TAG and ${RUN_SHA:0:7}"
+            exit 0
+          fi
+
+          CUR="${TAG#v}"
+          case "$CUR" in [0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::$TAG is not major.minor.patch"; exit 1 ;; esac
+          VERSION="${CUR%.*}.$(( ${CUR##*.} + 1 ))"
+          # Never reuse a version, as a tag or as a GitHub release.
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null || [ -n "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ] \
+             || gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::v$VERSION already exists (tag or GitHub release); versions are never reused"; exit 1
+          fi
+
+          echo "::notice::release due: v$VERSION from ${RUN_SHA:0:7} (previous $TAG, $(printf '%s\n' "$CHANGED" | grep -c . || true) app-logic files changed, dry run: $DRY)"
+          {
+            echo "due=true"
+            echo "version=$VERSION"
+            echo "sha=$RUN_SHA"
+          } >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: decide
+    if: ${{ needs.decide.outputs.due == 'true' }}
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: release
+    permissions:
+      contents: write   # the GitHub Release and its tag, and the appcast file on gh-pages, both through the API (scripts/ship-release.sh)
+    env:
+      VERSION: ${{ needs.decide.outputs.version }}
+      DRY: ${{ needs.decide.outputs.dry }}
+      ENSEMBLE_SIGN_IDENTITY: Ensemble Local Signing
+    # Explicit bash turns on pipefail, so a failing `swift build | tee` fails the step instead of tee's exit code hiding it.
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Exactly the commit that was decided on. The release is built from it, never from a branch name.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.decide.outputs.sha }}
+          fetch-depth: 0   # the build number is the commit count, which Sparkle needs to grow every release
+          persist-credentials: false
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          command -v uvx >/dev/null || brew install uv   # scripts/release.sh runs dmgbuild through uvx
+
+      # Same as scripts/auto-release.sh: where the repository has the tool, an untracked summary of the release for the
+      # update window, written from the commit subjects. Not in the tree, so the build still matches what was merged.
+      - name: What's new
+        run: |
+          if ! git cat-file -e "HEAD:scripts/whats-new.sh" 2>/dev/null || git cat-file -e "HEAD:docs/whats-new/$VERSION.txt" 2>/dev/null; then
+            echo "no docs/whats-new file to write"; exit 0
+          fi
+          TAG="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -1)"
+          SUBJECTS="$(git log --first-parent --no-merges --format='%s' "$TAG..HEAD" | sed -E 's/ \(#[0-9]+\)$//' | head -5)"
+          icons=(sparkles wand.and.stars hand.raised gearshape bolt); n=0
+          mkdir -p docs/whats-new
+          {
+            while IFS= read -r subject; do
+              [ -n "$subject" ] || continue
+              subject="${subject//|/-}"
+              heading="$(printf '%s' "$subject" | awk '{ for (i = 1; i <= NF && i <= 6; i++) printf "%s%s", (i > 1 ? " " : ""), $i }')"
+              echo "${icons[$(( n % ${#icons[@]} ))]} | $heading | $subject"
+              n=$(( n + 1 ))
+            done <<< "$SUBJECTS"
+            while [ "$n" -lt 3 ]; do
+              echo "checkmark.circle | Fixes and polish | Smaller fixes and behind-the-scenes improvements."
+              n=$(( n + 1 ))
+            done
+          } > "docs/whats-new/$VERSION.txt"
+          scripts/whats-new.sh check "docs/whats-new/$VERSION.txt"
+
+      - name: Import the signing identity into a temporary keychain
+        env:
+          ENSEMBLE_SIGN_P12_BASE64: ${{ secrets.ENSEMBLE_SIGN_P12_BASE64 }}
+          ENSEMBLE_SIGN_P12_PASSWORD: ${{ secrets.ENSEMBLE_SIGN_P12_PASSWORD }}
+          # The one certificate every release has been signed with (releases 0.2.24 to 0.2.26). A different one resets
+          # every user's Camera and Accessibility grants, so anything else stops the run here.
+          EXPECTED_SHA1: 40B0779A528926B904971BBDB913DC4860CD1D49
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/ensemble-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+          [ -n "$ENSEMBLE_SIGN_P12_BASE64" ] && [ -n "$ENSEMBLE_SIGN_P12_PASSWORD" ] || { echo "::error::the signing secrets are not set in the release environment (docs/RELEASING.md)"; exit 1; }
+          printf '%s' "$ENSEMBLE_SIGN_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/signing.p12" -P "$ENSEMBLE_SIGN_P12_PASSWORD" -f pkcs12 -A -T /usr/bin/codesign -k "$KEYCHAIN" >/dev/null
+          rm -f "$RUNNER_TEMP/signing.p12"
+          # Lets codesign use the key without a prompt, which nobody is there to answer.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # shellcheck disable=SC2046
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+
+          IDENTITIES="$(security find-identity -p codesigning "$KEYCHAIN" | grep -F "\"$ENSEMBLE_SIGN_IDENTITY\"" || true)"
+          [ "$(printf '%s' "$IDENTITIES" | grep -c .)" = 1 ] || { echo "::error::expected exactly one identity named $ENSEMBLE_SIGN_IDENTITY in the imported file"; exit 1; }
+          FOUND="$(printf '%s' "$IDENTITIES" | awk '{print $2}')"
+          [ "$FOUND" = "$EXPECTED_SHA1" ] || { echo "::error::the imported identity's SHA-1 is $FOUND, not the pinned $EXPECTED_SHA1; refusing to sign"; exit 1; }
+          echo "signing identity $ENSEMBLE_SIGN_IDENTITY ($FOUND) imported"
+
+      # Everything in scripts/ship-release.sh up to and including the signed DMG and the signed appcast item runs in a
+      # dry run; only a real run then creates the tag and the release and pushes the appcast, through the API with this
+      # run's token (no stored git credentials).
+      - name: Build, sign and ship (scripts/ship-release.sh)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+          ENSEMBLE_EXPECTED_REQUIREMENT: 'identifier "dev.ensemble.app" and certificate leaf = H"40b0779a528926b904971bbdb913dc4860cd1d49"'
+        run: |
+          [ -n "$SPARKLE_ED_PRIVATE_KEY" ] || { echo "::error::SPARKLE_ED_PRIVATE_KEY is not set in the release environment (docs/RELEASING.md)"; exit 1; }
+          if [ "$DRY" = "true" ]; then export ENSEMBLE_SHIP_DRY_RUN=1; fi
+          scripts/ship-release.sh "$VERSION"
+
+      - name: Check that the release is public
+        if: ${{ needs.decide.outputs.dry != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          FEED: https://oficiallyakshay.github.io/ensemble/appcast.xml
+        run: |
+          RELEASE_OK=0; FEED_OK=0
+          for _ in $(seq 1 12); do
+            [ "$RELEASE_OK" = 1 ] || { gh release view "v$VERSION" >/dev/null 2>&1 && RELEASE_OK=1; }
+            [ "$FEED_OK" = 1 ] || { curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$FEED" 2>/dev/null | grep -F "releases/download/v$VERSION/" >/dev/null && FEED_OK=1; }
+            [ "$RELEASE_OK" = 1 ] && [ "$FEED_OK" = 1 ] && break
+            sleep 15
+          done
+          echo "release=$RELEASE_OK feed=$FEED_OK"
+          [ "$RELEASE_OK" = 1 ] && [ "$FEED_OK" = 1 ] || { echo "::error::v$VERSION shipped but the release or the feed does not show it yet"; exit 1; }
+          echo "::notice::released v$VERSION: the GitHub release exists and the feed lists it"
+
+      - name: Keep the logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: auto-release-logs
+          path: |
+            build/ship.log
+            build/release.log
+            build/bundle.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove the temporary keychain
+        if: ${{ always() }}
+        run: |
+          security delete-keychain "$RUNNER_TEMP/ensemble-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/signing.p12"

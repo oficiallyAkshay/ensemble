@@ -7,6 +7,13 @@
 # Everything that can refuse (the DMG, the signed appcast) happens before the tag and the release exist, so a refusal
 # leaves nothing public to take back.
 # Log: build/ship.log
+# Settings for the GitHub workflow .github/workflows/auto-release.yml, all optional and unset on this Mac:
+#   ENSEMBLE_SIGN_IDENTITY, ENSEMBLE_SIGN_CERT_PEM  as in scripts/release.sh: the identity is looked up in the keychain search list,
+#                            so a runner's temporary keychain works the same as the login keychain here.
+#   SPARKLE_ED_PRIVATE_KEY   the update key's text, read by scripts/appcast.sh instead of the login keychain.
+#   ENSEMBLE_EXPECTED_REQUIREMENT  the designated requirement the app inside the DMG must have; anything else refuses
+#                            before the tag and the release exist (a different certificate would reset every user's grants).
+#   ENSEMBLE_SHIP_DRY_RUN=1  build, sign and check everything, then stop before the tag, the release and the appcast push.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -66,7 +73,8 @@ NOTES_DIR="$(mktemp -d)"
 NOTES="$NOTES_DIR/notes.md"
 PAGES="$(mktemp -d)"
 # The gh-pages checkout is a git worktree: remove it on every exit, or a failed run leaves it registered.
-cleanup() { rm -rf "$NOTES_DIR"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES"; }
+MNT=""
+cleanup() { [ -z "$MNT" ] || hdiutil detach -quiet -force "$MNT" 2>/dev/null || true; rm -rf "$NOTES_DIR"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES"; }
 trap cleanup EXIT
 # First parent only: a pull request's merge of main into its branch would add its conflict list as a line.
 # A merge commit contributes its body (the pull request title); a squash-merged pull request is an ordinary commit and contributes its subject.
@@ -81,6 +89,27 @@ mkdir -p build/appcast
 [ ! -f "$PAGES/appcast.xml" ] || cp "$PAGES/appcast.xml" build/appcast/appcast.xml
 ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
 [ -s build/appcast/appcast.xml ] || { log "error: no appcast was produced; nothing was tagged or published"; exit 1; }
+# What the DMG really holds: the signing authority and the designated requirement of the app inside it. Anything but
+# the expected requirement refuses here, while nothing is public.
+if [ -n "${ENSEMBLE_EXPECTED_REQUIREMENT:-}" ] || [ "${ENSEMBLE_SHIP_DRY_RUN:-}" = "1" ]; then
+  MNT="$(mktemp -d)"
+  hdiutil attach -nobrowse -readonly -noverify -mountpoint "$MNT" "$DMG" >/dev/null || { log "error: could not open $DMG to check its signature"; exit 1; }
+  AUTH="$(codesign -dvv "$MNT/Ensemble.app" 2>&1 | sed -n 's/^Authority=//p' | head -1)"
+  REQ="$(codesign -d -r- "$MNT/Ensemble.app" 2>&1 | sed -n 's/^designated => //p')"
+  codesign --verify --strict "$MNT/Ensemble.app" 2>&1 | tee -a "$LOG"
+  hdiutil detach -quiet -force "$MNT" && MNT=""
+  log "the app in $DMG: authority \"$AUTH\"; designated requirement: $REQ"
+  if [ -n "${ENSEMBLE_EXPECTED_REQUIREMENT:-}" ]; then
+    if [ "$(printf '%s' "$REQ" | tr 'A-F' 'a-f')" = "$(printf '%s' "$ENSEMBLE_EXPECTED_REQUIREMENT" | tr 'A-F' 'a-f')" ]; then
+      log "designated requirement equals the expected one"
+    else
+      log "error: designated requirement differs from the expected one ($ENSEMBLE_EXPECTED_REQUIREMENT); nothing was tagged or published"; exit 1
+    fi
+  fi
+fi
+if [ "${ENSEMBLE_SHIP_DRY_RUN:-}" = "1" ]; then
+  log "dry run: $DMG is signed and the appcast item is signed; nothing was tagged or published"; exit 0
+fi
 PAGES_SHA="$(gh api "repos/$REPO/contents/appcast.xml?ref=gh-pages" --jq .sha 2>/dev/null || true)"
 
 # The tag and the appcast go through GitHub's API, not git push: the production Mac's job service lets a job push
