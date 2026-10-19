@@ -47,3 +47,20 @@ A send that does not get a 2xx answer is kept and tried again at the next hourly
 ## Rotating the key
 
 If the key is abused, create a new project key in PostHog, change `usageWriteKey`, release, and delete the old key in PostHog. Old installs keep sending to the old key until they update; those reports are refused once it is deleted.
+
+## Reading the data
+
+The daily analysis is `scripts/usage-triage.py`. It makes one read query for the `daily_summary` events of the last N days (default 14) and treats every event as untrusted, because the write key is public: it keeps an event only when `schema_version` is 1, `chk` recomputes, `app_version` is a plain version that is not a test value, the property names are on the list above and every count is a plausible non-negative whole number (and succeeded is not above attempted). It reports how many it discarded and why. It then works out, per app version and overall, the gesture success rates, safety stops per active hour, refused sends per Send attempt, launches per install-day and the camera, app and macOS version mix.
+
+Findings come only from the rules in `scripts/usage-thresholds.json` (id, description, metric, comparator, threshold, minimums, and a line on what to look at first). Every rule has a minimum number of installs and of events (default 5 and 30); below them the report says "not enough data" for that rule instead of firing, and it always states the sample size. The thresholds are starting values to be tuned once real data exists.
+
+The read key (`query:read` only) is kept in 1Password and in the GitHub secret `POSTHOG_PERSONAL_API_KEY`, never in the tree. The script takes it, and `POSTHOG_PROJECT_ID`, from the environment and never prints or stores it.
+
+```
+POSTHOG_PERSONAL_API_KEY=... POSTHOG_PROJECT_ID=... scripts/usage-triage.py            # report and a dry run of the issues
+scripts/usage-triage.py --json                                                          # the same, machine-readable
+scripts/usage-triage.py --file-issues                                                   # file or update one GitHub issue per firing rule
+python3 -I -m unittest discover -s scripts -p 'test_usage_triage.py'                    # its tests, no network
+```
+
+An issue carries a hidden marker per rule, so a rule that keeps firing updates its one open issue (a comment, only when the numbers moved by a quarter or the affected versions changed) and never opens a second. Issues hold aggregate numbers and version names only: never an install id or a raw event, because the repository is public.
