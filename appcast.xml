@@ -3,6 +3,25 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.27</title>
+            <pubDate>Mon, 19 Oct 2026 12:45:40 -0400</pubDate>
+            <sparkle:version>496</sparkle:version>
+            <sparkle:shortVersionString>0.2.27</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.26:
+
+- Known test traps are refused before push, and the initialiser-order trap is in the gotchas (#152)
+- The friends' texts on the website are light, like iOS Messages, instead of dark notifications (#156)
+- A GitHub workflow releases every merge that changes app logic, signed with the same certificate as before, so the launchd job can go once it has succeeded (#155)
+- A send never presses Send after typing or a click since dictation, even when the press waited in line (#153)
+- The home page counts real downloads, says Open source on GitHub, and drops the demo-runs-in-browser line (#150)
+- A plain launchd job on the owner's Mac releases after every merge that changes app logic, once the checks pass (#154)
+- An agent session may open and look at the installed app to check a change on the owner's Mac (#151)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.27/Ensemble-0.2.27.dmg" length="6444974" type="application/octet-stream" sparkle:edSignature="GuSKe4SJYVadGIL+e34VKxfeYvZ6tesRiHT//acPDb63h+cAhKapVSkwh9A2JVR517zUMl+HOcihaEAn9/OKAw=="/>
+        </item>
+        <item>
             <title>0.2.26</title>
             <pubDate>Mon, 19 Oct 2026 10:20:38 -0400</pubDate>
             <sparkle:version>489</sparkle:version>
@@ -35,19 +54,6 @@
 - Nose dot is off on a new install, and the first-run tour asks whether to show it (#136)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.25/Ensemble-0.2.25.dmg" length="6434934" type="application/octet-stream" sparkle:edSignature="o31DwcyFjA7ERFu/qi1A+kMTP6c24uofDqTGzjxyOBlyB1YMGaUEgJ7O/1WOzsUCB1pkCMyBzzIfyggOITR5DQ=="/>
-        </item>
-        <item>
-            <title>0.2.24</title>
-            <pubDate>Sun, 18 Oct 2026 22:15:29 -0400</pubDate>
-            <sparkle:version>479</sparkle:version>
-            <sparkle:shortVersionString>0.2.24</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.23:
-
-- Facing an archived session outlines its Unarchive bar instead of drawing no outline (#133)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.24/Ensemble-0.2.24.dmg" length="6407670" type="application/octet-stream" sparkle:edSignature="wgWTzEbF/UXSWE2phwSlXhrEMS64Er6h8ghzryFsbd8OLHbz50TSgEbXPWH9ZKyVTx/GYJ4fN+0U0Pj1GW6jDw=="/>
         </item>
     </channel>
 </rss>
