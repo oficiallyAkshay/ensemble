@@ -243,8 +243,7 @@
         <button class="ens-btn primary mac-only" type="button" id="copy">Copy the link for your Mac</button>
         <a class="ens-btn dl-btn" id="dl-btn" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download</a>
       </div>
-      <p class="src"><a id="src" href="https://github.com/oficiallyAkshay/ensemble"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>See the source code on GitHub</a><span class="counts" id="counts" hidden></span></p>
-      <p class="note desktop-cta">The demo runs in this browser. Your video never leaves it.</p>
+      <p class="src"><a id="src" href="https://github.com/oficiallyAkshay/ensemble"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>Open source on GitHub</a><span class="counts" id="counts" hidden></span></p>
       <p class="note mac-only" id="copied" aria-live="polite">Ensemble is a Mac app, and the demo needs a laptop or desktop camera.</p>
       <div class="pop ens-pop" id="cam-pop" role="dialog" aria-labelledby="pop-title" aria-live="polite" data-state="asking">
         <h2 id="pop-title"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6.5" width="13" height="11" rx="3"/><path d="m16 11 5-3v8l-5-3"/></svg><span id="pop-head">Ensemble needs your camera</span></h2>
@@ -573,15 +572,17 @@
   }
 
   // ---- the counts: two GitHub requests after load, low priority, nothing about the visitor ----
-  // Stars come from the repo API; clones come from the clonometer ledger on the badges branch. Any failure, or a count under 5, leaves that number out.
+  // Stars come from the repo API; downloads are the summed download_count of the assets named exactly Ensemble.dmg (the file the Download buttons fetch)
+  // in the releases list. The versioned Ensemble-x.y.z.dmg files are the app's own update check, so they are not counted. The count is an upper bound on
+  // people: GitHub counts repeat fetches and bots. Any failure, or a count under 5, leaves that number out.
   const GH = { credentials: 'omit', referrerPolicy: 'no-referrer', priority: 'low' };
   const fmt = (n) => n.toLocaleString('en-US');
   async function counts() {
     const out = $('counts'); if (!out) return;
-    const got = { clones: '', stars: '' };
+    const got = { downloads: '', stars: '' };
     // Under 5 stars (or when GitHub does not answer) the line invites the first stars instead of showing a small number.
     const paint = () => {
-      const parts = [got.clones && `${got.clones} clones`, got.stars ? `${got.stars} stars` : 'be the first to \u2605 star it'].filter(Boolean);
+      const parts = [got.downloads && `${got.downloads} downloads`, got.stars ? `${got.stars} stars` : 'be the first to \u2605 star it'].filter(Boolean);
       const text = parts.join(' · ');
       out.textContent = text.charAt(0).toUpperCase() + text.slice(1); out.hidden = false;
     };
@@ -597,11 +598,13 @@
       })(),
       (async () => {
         try {
-          const r = await fetch('https://raw.githubusercontent.com/oficiallyAkshay/ensemble/badges/clones.json', GH);
+          // One page of 100 releases: with more releases than that the newest 100 are counted and the total undercounts.
+          const r = await fetch('https://api.github.com/repos/oficiallyAkshay/ensemble/releases?per_page=100', { ...GH, headers: { Accept: 'application/vnd.github+json' } });
           if (!r.ok) return;
-          const j = await r.json();
-          if (Number.isInteger(j.total) && j.total >= 5) { got.clones = typeof j.total_short === 'string' && j.total_short ? j.total_short : fmt(j.total); paint(); }
-        } catch { /* the ledger does not exist yet, or is unreachable: leave the clones out */ }
+          let n = 0;
+          for (const rel of await r.json()) for (const a of rel.assets || []) if (a.name === 'Ensemble.dmg' && Number.isInteger(a.download_count)) n += a.download_count;
+          if (n >= 5) { got.downloads = fmt(n); paint(); }
+        } catch { /* unreachable, rate limited or not a list: leave the downloads out */ }
       })(),
     ]);
   }
