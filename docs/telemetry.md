@@ -57,10 +57,9 @@ Findings come only from the rules in `scripts/usage-thresholds.json` (id, descri
 The read key (`query:read` only) is kept in 1Password and in the GitHub secret `POSTHOG_PERSONAL_API_KEY`, never in the tree. The script takes it, and `POSTHOG_PROJECT_ID`, from the environment and never prints or stores it.
 
 ```
-POSTHOG_PERSONAL_API_KEY=... POSTHOG_PROJECT_ID=... scripts/usage-triage.py            # report and a dry run of the issues
-scripts/usage-triage.py --json                                                          # the same, machine-readable
-scripts/usage-triage.py --file-issues                                                   # file or update one GitHub issue per firing rule
+POSTHOG_PERSONAL_API_KEY=... POSTHOG_PROJECT_ID=... scripts/usage-triage.py            # report, then the ticket drafts as a dry run
+scripts/usage-triage.py --json                                                          # the same, machine-readable, with ticket_drafts
 python3 -I -m unittest discover -s scripts -p 'test_usage_triage.py'                    # its tests, no network
 ```
 
-An issue carries a hidden marker per rule, so a rule that keeps firing updates its one open issue (a comment, only when the numbers moved by a quarter or the affected versions changed) and never opens a second. Issues hold aggregate numbers and version names only: never an install id or a raw event, because the repository is public.
+The script never talks to GitHub or to any ticket system. Tickets live in Linear. With `--json` it adds `ticket_drafts` to the report: one ready-to-file draft per firing rule, `{rule_id, marker, title, body_markdown, observed_value, affected_versions}`, where `marker` is the hidden comment `<!-- usage-triage:<rule_id> -->`. The caller, an AI scheduled task using the Linear connector, files and dedupes: it searches Linear for the marker; if no ticket has it, it creates one in team Ensemble (key ENS), project "Ensemble: Board"; if one does, it adds a comment only when `observed_value` moved by 25 percent or more or the affected versions changed, so a rule that keeps firing never opens a second ticket. The read key stays in 1Password and in the GitHub secret `POSTHOG_PERSONAL_API_KEY`. A draft holds aggregate numbers and version names only: never an install id or a raw event (the script refuses to produce a draft that does), because the repository is public.

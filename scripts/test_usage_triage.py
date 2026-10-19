@@ -1,4 +1,4 @@
-"""Tests for scripts/usage-triage.py. No network: PostHog and gh are replaced.
+"""Tests for scripts/usage-triage.py. No network: PostHog is not contacted.
 Run: python3 -I -m unittest scripts/test_usage_triage.py   (from the repository root)"""
 import importlib.util
 import json
@@ -154,93 +154,55 @@ class Rules(unittest.TestCase):
         self.assertIn("Small sample", ut.render(report))
 
 
-class FakeGh:
-    def __init__(self, issues=None, labels=("bug",)):
-        self.calls, self.issues, self.labels = [], issues or {}, labels
-        self.bodies = []
-
-    def __call__(self, args, input_text=None):
-        self.calls.append(args)
-        if args[:2] == ["repo", "view"]:
-            return "owner/repo\n"
-        if args[:2] == ["label", "list"]:
-            return json.dumps([{"name": n} for n in self.labels])
-        if args[:2] == ["issue", "list"]:
-            return json.dumps([{"number": n, "body": b} for n, b in self.issues.items()])
-        if args[:2] == ["issue", "view"]:
-            return self.issues[int(args[2])]
-        if args[:2] in (["issue", "create"], ["issue", "comment"]):
-            path = args[args.index("--body-file") + 1]
-            with open(path) as f:
-                self.bodies.append(f.read())
-            return "https://example.invalid/issues/1\n"
-        raise AssertionError(args)
-
-
-class Filing(unittest.TestCase):
+class Drafts(unittest.TestCase):
     def firing(self):
         rows = crowd("1.0.0", 6, 10, 3)
         report = ut.analyse(rows, rules(), 14)
-        ids = {r[1] for r in rows}
-        return [r for r in report["rules"] if r["status"] == "FIRING"], ids
+        return report, {r[1] for r in rows}
 
-    def test_dry_run_files_nothing(self):
-        res, ids = self.firing()
-        gh = FakeGh()
-        out = []
-        ut.file_issues(res, ids, False, gh=gh, log=out.append)
-        self.assertFalse([c for c in gh.calls if c[:2] in (["issue", "create"], ["issue", "comment"])])
-        self.assertTrue(any("would create" in l for l in out))
+    def test_one_draft_per_firing_rule_with_contract_fields(self):
+        report, ids = self.firing()
+        drafts = ut.ticket_drafts(report["rules"], ids)
+        firing = [r for r in report["rules"] if r["status"] == "FIRING"]
+        self.assertEqual([d["rule_id"] for d in drafts], [r["id"] for r in firing])
+        d = next(d for d in drafts if d["rule_id"] == "pinch_success_low")
+        self.assertEqual(set(d), {"rule_id", "marker", "title", "body_markdown", "observed_value",
+                                  "affected_versions"})
+        self.assertEqual(d["marker"], "<!-- usage-triage:pinch_success_low -->")
+        self.assertTrue(d["title"].startswith("Usage report: "))
+        self.assertIn(d["marker"], d["body_markdown"])
+        self.assertIn("6 installs, 120 events", d["body_markdown"])
+        self.assertIn("Suggested investigation:", d["body_markdown"])
+        self.assertIn("Threshold:", d["body_markdown"])
+        self.assertIn("Versions affected:", d["body_markdown"])
+        self.assertTrue(d["body_markdown"].rstrip().endswith(ut.FOOTER))
+        self.assertAlmostEqual(d["observed_value"], 0.3)
 
-    def test_creates_with_marker_label_and_no_ids(self):
-        res, ids = self.firing()
-        gh = FakeGh()
-        ut.file_issues(res, ids, True, gh=gh, log=lambda s: None)
-        create = next(c for c in gh.calls if c[:2] == ["issue", "create"])
-        self.assertIn("--body-file", create)
-        self.assertEqual(create[create.index("--label") + 1], "bug")
-        self.assertTrue(create[create.index("--title") + 1].startswith("Usage report: "))
-        body = gh.bodies[0]
-        self.assertIn("<!-- usage-triage:pinch_success_low -->", body)
-        self.assertIn(ut.FOOTER, body)
-        for body in gh.bodies:
+    def test_no_drafts_when_nothing_fires(self):
+        rows = crowd("1.0.0", 6, 10, 9)
+        report = ut.analyse(rows, rules(), 14)
+        self.assertEqual(ut.ticket_drafts(report["rules"], {r[1] for r in rows}), [])
+
+    def test_drafts_never_hold_an_install_id(self):
+        report, ids = self.firing()
+        for d in ut.ticket_drafts(report["rules"], ids):
             for i in ids:
-                self.assertNotIn(i, body)
-        self.assertFalse(any(len(a) > 400 for c in gh.calls for a in c))
+                self.assertNotIn(i, json.dumps(d))
 
     def test_refuses_body_with_install_id(self):
-        res, ids = self.firing()
-        res[0]["detail"] = "leak %s" % next(iter(ids))
+        report, ids = self.firing()
+        firing = [r for r in report["rules"] if r["status"] == "FIRING"]
+        firing[0]["detail"] = "leak %s" % next(iter(ids))
         with self.assertRaises(ut.HardError):
-            ut.file_issues(res, ids, True, gh=FakeGh(), log=lambda s: None)
+            ut.ticket_drafts(firing, ids)
 
-    def test_existing_issue_unchanged_gets_no_comment(self):
-        res, ids = self.firing()
-        gh = FakeGh({7: ut.issue_body(res[0])})
-        ut.file_issues(res[:1], ids, True, gh=gh, log=lambda s: None)
-        self.assertFalse([c for c in gh.calls if c[:2] in (["issue", "create"], ["issue", "comment"])])
-
-    def test_existing_issue_material_change_comments(self):
-        res, ids = self.firing()
-        old = dict(res[0], value=res[0]["value"] * 2)
-        gh = FakeGh({7: ut.issue_body(old)})
-        ut.file_issues(res[:1], ids, True, gh=gh, log=lambda s: None)
-        self.assertTrue([c for c in gh.calls if c[:2] == ["issue", "comment"]])
-        self.assertFalse([c for c in gh.calls if c[:2] == ["issue", "create"]])
-
-    def test_marker_must_match_exactly(self):
-        res, ids = self.firing()
-        other = ut.issue_body(dict(res[0], id="pinch_success_low_extra"))
-        gh = FakeGh({7: other})
-        ut.file_issues(res[:1], ids, True, gh=gh, log=lambda s: None)
-        self.assertTrue([c for c in gh.calls if c[:2] == ["issue", "create"]])
-
-    def test_missing_bug_label_is_skipped(self):
-        res, ids = self.firing()
-        gh = FakeGh(labels=())
-        ut.file_issues(res[:1], ids, True, gh=gh, log=lambda s: None)
-        create = next(c for c in gh.calls if c[:2] == ["issue", "create"])
-        self.assertNotIn("--label", create)
+    def test_affected_versions_listed(self):
+        rows = crowd("1.0.0", 6, 10, 9) + crowd("1.1.0", 6, 10, 5)
+        report = ut.analyse(rows, rules(), 14)
+        d = next(d for d in ut.ticket_drafts(report["rules"], {r[1] for r in rows})
+                 if d["rule_id"] == "pinch_regression")
+        self.assertEqual(d["affected_versions"], ["1.0.0", "1.1.0"])
+        self.assertIn("1.0.0, 1.1.0", d["body_markdown"])
 
 
 if __name__ == "__main__":

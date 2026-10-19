@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
 """Reads the anonymous `daily_summary` events from PostHog Cloud (US), checks them against the rules in
-scripts/usage-thresholds.json and, with --file-issues, files or updates one GitHub issue per firing rule.
+scripts/usage-thresholds.json and prints the findings. It never talks to GitHub or to any ticket system.
 
 Usage:
-  POSTHOG_PERSONAL_API_KEY=... POSTHOG_PROJECT_ID=... scripts/usage-triage.py [--days 14] [--json] [--file-issues]
+  POSTHOG_PERSONAL_API_KEY=... POSTHOG_PROJECT_ID=... scripts/usage-triage.py [--days 14] [--json]
 
-The key is a read key (query:read). It comes from the environment only and is never printed or stored. Without
---file-issues nothing is filed; the issues that would be filed are printed. Exit status is 0 unless something is broken
-(no key, PostHog or gh refused, bad rules file). No event is trusted: the project write key is public, so every event is
-checked (schema, checksum, version string, bounds) and the rest is discarded and counted. Nothing that identifies an
-install ever goes into an issue. See docs/telemetry.md.
+The key is a read key (query:read). It comes from the environment only and is never printed or stored. Exit status is 0
+unless something is broken (no key, PostHog refused, bad rules file). No event is trusted: the project write key is
+public, so every event is checked (schema, checksum, version string, bounds) and the rest is discarded and counted.
+Nothing that identifies an install ever goes into a ticket draft. See docs/telemetry.md.
+
+Contract with the caller. Tickets live in Linear. With --json the output holds, next to the report, `ticket_drafts`: one
+ready-to-file draft per FIRING rule, each {rule_id, marker, title, body_markdown, observed_value, affected_versions}.
+Without --json the text report ends with the same drafts as a dry run. The caller (an AI scheduled task using the Linear
+connector) files and dedupes:
+  1. Search Linear for the draft's `marker` (the hidden comment `<!-- usage-triage:<rule_id> -->`).
+  2. No ticket has it: create one in team Ensemble (key ENS), project "Ensemble: Board", with the draft's title and
+     body_markdown.
+  3. A ticket has it: add a comment only if observed_value moved by 25 percent or more from the value last recorded
+     there, or affected_versions changed; otherwise do nothing.
 """
 import argparse
 import collections
@@ -18,9 +27,7 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
-import tempfile
 import urllib.error
 import urllib.request
 
@@ -476,28 +483,17 @@ def fetch_rows(key, project_id, days, opener=urllib.request.urlopen):
     return rows
 
 
-# ---------------------------------------------------------------- GitHub issues
+# ---------------------------------------------------------------- ticket drafts
 
 MARKER = "<!-- usage-triage:%s -->"
-VALUE_RE = re.compile(r"<!-- usage-triage-value:([0-9.eE+-]+) -->")
-VERSIONS_RE = re.compile(r"<!-- usage-triage-versions:([^>]*) -->")
-FOOTER = "Filed by scripts/usage-triage.py from anonymous daily summaries; see docs/telemetry.md."
-MATERIAL_RELATIVE_CHANGE = 0.25
+FOOTER = ("Filed from anonymous daily summaries by the usage triage; "
+          "see docs/telemetry.md in the Ensemble repository.")
 
 
-def run_gh(args, input_text=None):
-    p = subprocess.run(["gh"] + args, capture_output=True, text=True, input=input_text)
-    if p.returncode != 0:
-        raise HardError("gh %s failed: %s" % (" ".join(args[:2]), p.stderr.strip()[:300]))
-    return p.stdout
-
-
-def issue_body(result):
+def draft_body(result):
     versions = ", ".join(result["versions"]) or "all versions together"
     return "\n".join([
         MARKER % result["id"],
-        "<!-- usage-triage-value:%s -->" % fmt(result["value"]),
-        "<!-- usage-triage-versions:%s -->" % ",".join(result["versions"]),
         "",
         "Rule: %s" % result["description"],
         "",
@@ -515,102 +511,19 @@ def issue_body(result):
     ])
 
 
-def comment_body(result):
-    return "\n".join([
-        "<!-- usage-triage-value:%s -->" % fmt(result["value"]),
-        "<!-- usage-triage-versions:%s -->" % ",".join(result["versions"]),
-        "Numbers changed. Observed: %s" % result["detail"],
-        "Sample size: %d installs, %d events. Versions affected: %s." % (
-            result["installs"], result["events"], ", ".join(result["versions"]) or "all versions together"),
-        "",
-        FOOTER,
-        "",
-    ])
-
-
-def materially_changed(result, text):
-    """text is the issue body plus its comments; the newest recorded value and version list win."""
-    values, versions = VALUE_RE.findall(text), VERSIONS_RE.findall(text)
-    if not values:
-        return True
-    try:
-        old = float(values[-1])
-    except ValueError:
-        return True
-    new = result["value"]
-    if old == 0:
-        change = abs(new)
-    else:
-        change = abs(new - old) / abs(old)
-    if change >= MATERIAL_RELATIVE_CHANGE:
-        return True
-    return bool(versions) and set(filter(None, versions[-1].split(","))) != set(result["versions"])
-
-
-def find_open_issue(gh, repo, rule_id):
-    out = gh(["issue", "list", "--repo", repo, "--state", "open", "--search",
-              '"usage-triage:%s" in:body' % rule_id, "--json", "number,body", "--limit", "20"])
-    for issue in json.loads(out or "[]"):
-        if MARKER % rule_id in (issue.get("body") or ""):
-            return issue["number"]
-    return None
-
-
-def file_issues(results, distinct_ids, apply, gh=run_gh, log=print):
-    """Files or updates one issue per FIRING rule. With apply False it only says what it would do."""
-    firing = [r for r in results if r["status"] == "FIRING"]
-    if not firing:
-        log("No rule is firing; nothing to file.")
-        return []
-    repo = gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]).strip()
-    labels = {l["name"] for l in json.loads(gh(["label", "list", "--repo", repo, "--json", "name", "--limit", "200"]))}
-    label_args = ["--label", "bug"] if "bug" in labels else []
-    if not label_args:
-        log("note: label 'bug' does not exist in %s; filing without a label" % repo)
-    actions = []
-    for r in firing:
-        body = issue_body(r)
+def ticket_drafts(results, distinct_ids):
+    """One draft per FIRING rule. Refuses outright if a body holds an install id."""
+    drafts = []
+    for r in results:
+        if r["status"] != "FIRING":
+            continue
+        body = draft_body(r)
         if any(i in body for i in distinct_ids):
-            raise HardError("refusing to file %s: body contains an install id" % r["id"])
-        title = "Usage report: %s" % r["description"]
-        number = find_open_issue(gh, repo, r["id"])
-        if number is None:
-            actions.append(("create", r["id"]))
-            log("%s: would create issue %r" % (r["id"], title) if not apply else "%s: creating issue" % r["id"])
-            if not apply:
-                log(body)
-                continue
-            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
-                f.write(body)
-                path = f.name
-            try:
-                log(gh(["issue", "create", "--repo", repo, "--title", title, "--body-file", path] + label_args).strip())
-            finally:
-                os.unlink(path)
-            continue
-        text = gh(["issue", "view", str(number), "--repo", repo, "--json", "body,comments", "-q",
-                   '.body + "\\n" + ([.comments[].body] | join("\\n"))'])
-        if not materially_changed(r, text):
-            actions.append(("unchanged", r["id"]))
-            log("%s: open issue #%d is current; nothing to do" % (r["id"], number))
-            continue
-        actions.append(("comment", r["id"]))
-        comment = comment_body(r)
-        if any(i in comment for i in distinct_ids):
-            raise HardError("refusing to comment on %s: body contains an install id" % r["id"])
-        if not apply:
-            log("%s: would comment on #%d" % (r["id"], number))
-            log(comment)
-            continue
-        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
-            f.write(comment)
-            path = f.name
-        try:
-            gh(["issue", "comment", str(number), "--repo", repo, "--body-file", path])
-            log("%s: commented on #%d" % (r["id"], number))
-        finally:
-            os.unlink(path)
-    return actions
+            raise HardError("refusing to draft %s: body contains an install id" % r["id"])
+        drafts.append({"rule_id": r["id"], "marker": MARKER % r["id"],
+                       "title": "Usage report: %s" % r["description"], "body_markdown": body,
+                       "observed_value": r["value"], "affected_versions": list(r["versions"])})
+    return drafts
 
 
 # ---------------------------------------------------------------- main
@@ -618,8 +531,7 @@ def file_issues(results, distinct_ids, apply, gh=run_gh, log=print):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Find issues worth a ticket in the anonymous usage summaries.")
     ap.add_argument("--days", type=int, default=14, help="how many days back to read (default 14)")
-    ap.add_argument("--json", action="store_true", help="machine-readable output")
-    ap.add_argument("--file-issues", action="store_true", help="file or update GitHub issues (default: dry run)")
+    ap.add_argument("--json", action="store_true", help="machine-readable output, with a ticket draft per firing rule")
     ap.add_argument("--thresholds", default=DEFAULT_THRESHOLDS, help="rules file")
     args = ap.parse_args(argv)
     try:
@@ -635,15 +547,19 @@ def main(argv=None):
         rows = fetch_rows(key, project, args.days)
         report = analyse(rows, rules, args.days)
         ids = {r[1] for r in rows if isinstance(r, list) and len(r) > 1 and isinstance(r[1], str)}
+        drafts = ticket_drafts(report["rules"], ids)
         if args.json:
-            print(json.dumps(report, indent=2, sort_keys=True))
-            log = lambda s: sys.stderr.write(s + "\n")
+            print(json.dumps(dict(report, ticket_drafts=drafts), indent=2, sort_keys=True))
         else:
             print(render(report))
             print("")
-            print("## Issues (%s)" % ("filing" if args.file_issues else "dry run"))
-            log = print
-        file_issues(report["rules"], ids, args.file_issues, log=log)
+            print("## Ticket drafts (dry run; the caller files them in Linear)")
+            if not drafts:
+                print("No rule is firing; nothing to file.")
+            for d in drafts:
+                print("")
+                print("### %s" % d["title"])
+                print(d["body_markdown"])
     except HardError as e:
         sys.stderr.write("error: %s\n" % e)
         return 1
