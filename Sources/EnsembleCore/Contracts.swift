@@ -59,6 +59,8 @@ public struct HeadObservation: Sendable {
     public var pitch: Double
     public var faceCount: Int
     public var position: HeadPosition?
+    /// True for the last reading handed on again while the picture is still (`StillFace`), not a new measurement.
+    public var repeated = false
     public init(t: TimeInterval, yaw: Double, pitch: Double, faceCount: Int, position: HeadPosition? = nil) {
         self.t = t; self.yaw = yaw; self.pitch = pitch; self.faceCount = faceCount; self.position = position
     }

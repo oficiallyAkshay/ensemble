@@ -305,6 +305,7 @@ final class VisionEngine {
                 MainActor.assumeIsolated {
                     guard let self, self.isRunning, self.generation == mine, var head = self.lastHead, head.t < t else { return }
                     head.t = t
+                    head.repeated = true
                     self.deliver(head)
                 }
             }
