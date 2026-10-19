@@ -1,0 +1,9 @@
+# Keeps the default rules. The one allowed value is the PostHog project token in Sources/Ensemble/App/UsageReporter.swift:
+# PostHog documents it as write-only and safe to ship in a public app (docs/telemetry.md). It is not a secret, and a
+# read key (phx_...) must never appear here or anywhere in the tree.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "PostHog write-only project token"
+regexes = ['''phc_BGLN5bXDwYbwdzkzci7L2tNbyWXtUfwokDRhP6TG5w2Q''']
