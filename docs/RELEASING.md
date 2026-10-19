@@ -72,28 +72,21 @@ scripts/ship-release.sh 0.2.0
 
 It builds and signs the DMG with the local identity, adds it to the appcast with the update key in this Mac's login keychain (a refusal here stops the run before anything is public), then tags `main`, publishes the GitHub Release, and pushes `appcast.xml` to `gh-pages`, which GitHub Pages serves at the feed address in `UpdateController.swift`. Installed copies then see the version on their next check, or at once with Check for Updates. The release page and the appcast item carry the same notes, the titles of the pull requests merged into `main` since the previous tag, whether by merge commit or by squash, so the update window shows what changed. The update key and feed are set; the private key is also kept outside the keychain by the owner. Copies signed with the local identity update only on this Mac.
 
-## Automatic releases
+## Release on every merge
 
-The owner's release routine, a scheduled task on the owner's Mac, may run `scripts/ship-release.sh` without a person pressing the button. It signs with the same login keychain a manual release uses, so it runs only on that Mac and only through the gates below. Nothing else is automatic: an interactive agent session still never touches the keychain, and the GitHub workflow stays as described above.
+Every pull request that changes app logic is released as soon as it merges to `main`. Bug fixes are app logic, so they ship the same way and at once. The agent that merges the pull request cuts the release; if a person merged it, the next agent session that sees an unreleased merge cuts it.
 
-**When it releases.** The routine checks once a day. It releases when all of these hold:
+**What counts as app logic.** A change to any file under `Sources/` (the app, `EnsembleCore` and the bundled resources) or to `Package.swift` or `Package.resolved`. A change that touches only docs, tests, scripts, CI or the website does not release by itself; it ships with the next release.
 
-| Gate | Value |
-|---|---|
-| User-facing change | `docs/CHANGELOG.md` "Unreleased" has at least one entry. A change that touches only docs, CI or tests has none. |
-| Time since the last release | At least 5 days, or at least 1 day when a merged pull request carries the label `release:now` (a fix to dictation safety, sending, or a crash). |
-| Releases per day | At most one. |
-| `main` | Clean checkout of `main`, latest commit on `main` has every required check passing (`gate`). |
-| Blockers | No open issue labelled `release-blocker`. No open issue titled "Usage report: ..." (filed by `scripts/usage-triage.py`) that names the current version. |
-| Local checks | `swift test` passes on the checkout it releases. |
+**How.** From a clean checkout of `main` whose latest commit has passing checks (`gate`):
 
-If any gate fails the routine releases nothing and says which gate in its report. It never retries a failed release more than once and never publishes after `ship-release.sh` refused (the script already stops before anything is public).
+```
+scripts/ship-release.sh <next version>
+```
 
-**Which version.** The routine takes the latest tag and adds one to the patch number (`0.2.24` becomes `0.2.25`). It adds one to the minor number and resets the patch to 0 (`0.3.0`) when a pull request merged since the last release carries the label `release:minor`: a new gesture or action, a changed first-run tour, or a Settings change users will notice. The major number changes only when the owner decides (`1.0.0`). A version is never reused or lowered, and a tag is never moved.
+The next version is the latest tag with one added to the patch number (`0.2.24` becomes `0.2.25`). There is no major or minor policy; the owner changes the leading numbers by naming a version. A version is never reused or lowered, and a tag is never moved. The release notes are the `docs/CHANGELOG.md` "Unreleased" entries. `ship-release.sh` signs with the owner's login keychain, so this runs on the owner's Mac. It stops before anything is public if the build, the signature or the appcast refuses; fix the cause and run it again, do not work around it.
 
-**What users see.** Installed copies pick a release up through the update check (off by default, hourly when on) and install only while idle, so a release every five days or so does not interrupt anyone. The release notes are the "Unreleased" entries.
-
-**Taking it back.** Pause the routine in the Scheduled section of the app, or label an issue `release-blocker`. A bad release is fixed by a new patch release with the label `release:now`; the version that shipped stays published because installed copies compare build numbers.
+**Taking it back.** A bad release is fixed by the next release; the version that shipped stays published because installed copies compare build numbers. Stop the releases by removing this section and the exception in `AGENTS.md`.
 
 ## Cut a release
 
