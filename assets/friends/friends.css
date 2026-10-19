@@ -4,7 +4,7 @@
 .friends .ens-chip { margin-bottom: 18px; }
 .friends h2 { margin: 0; font: 700 clamp(34px, calc(5.2 * var(--u)), 84px)/0.98 var(--e-display); letter-spacing: -0.045em; text-wrap: balance; max-width: 12em; }
 .friends .lede { margin: 18px 0 0; font: 500 clamp(16px, calc(1.5 * var(--u)), 21px)/1.45 var(--e-font); color: #404040; max-width: 36em; text-wrap: pretty; }
-.friends .hint { margin: 14px 0 0; font: 500 12px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--e-muted); }
+.friends .hint { margin: 14px 0 0; font: 500 14px var(--e-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--e-muted); }
 
 .table { position: relative; margin-top: 26px; height: clamp(520px, 54vw, 640px); border-radius: 28px; touch-action: pan-y; user-select: none; -webkit-user-select: none;
   background:
