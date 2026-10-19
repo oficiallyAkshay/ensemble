@@ -8,7 +8,7 @@ It needs an Apple Silicon Mac with macOS 14.2 or later, a webcam that sees your 
 
 ## Install and the tour
 
-To install, download the app as a disk image from the [latest release](https://github.com/oficiallyAkshay/ensemble/releases/latest), drag Ensemble to Applications and open it, then, because the app is not notarized yet, macOS says Apple could not verify it is free of malware: press Done, choose Open Anyway in System Settings under Privacy and Security, and enter your Mac password when asked, then follow the five-step tour that opens on first launch: it asks for Camera, calibrates each screen and asks for Accessibility (skip it any time, and replay it from the menu bar panel's Replay tour button; while the tour is open Ensemble acts on nothing in Claude).
+To install, download the app as a disk image from the [latest release](https://github.com/oficiallyAkshay/ensemble/releases/latest), drag Ensemble to Applications and open it, then, because the app is not notarized yet, macOS says Apple could not verify it is free of malware: press Done, choose Open Anyway in System Settings under Privacy and Security, and enter your Mac password when asked, then follow the six-step tour that opens on first launch: it asks for Camera, calibrates each screen, asks whether to show the nose dot and asks for Accessibility (skip it any time, and replay it from the menu bar panel's Replay tour button; while the tour is open Ensemble acts on nothing in Claude).
 
 ## Saved setups
 

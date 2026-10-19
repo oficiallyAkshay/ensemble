@@ -25,6 +25,7 @@ struct TourView: View {
         case .welcome: TourWelcomeStep()
         case .calibrate: TourCalibrateStep(model: model, state: state, settings: settings)
         case .gestures: TourGesturesStep(model: model)
+        case .noseDot: TourNoseDotStep(settings: settings)
         case .permissions: TourPermissionsStep(model: model)
         case .done: TourDoneStep()
         }

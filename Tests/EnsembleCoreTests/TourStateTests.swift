@@ -11,7 +11,7 @@ import Testing
 
     @Test func nextWalksForwardAndStopsAtDone() {
         let m = TourStateMachine()
-        for expected: TourStep in [.calibrate, .gestures, .permissions, .done] {
+        for expected: TourStep in [.calibrate, .gestures, .noseDot, .permissions, .done] {
             #expect(m.next())
             #expect(m.step == expected)
         }
@@ -22,6 +22,8 @@ import Testing
 
     @Test func backWalksBackwardAndStopsAtWelcome() {
         let m = TourStateMachine(startAt: .permissions)
+        #expect(m.back())
+        #expect(m.step == .noseDot)
         #expect(m.back())
         #expect(m.step == .gestures)
         #expect(m.back())
@@ -46,6 +48,12 @@ import Testing
         m.skip()
         #expect(m.skipped)
         #expect(m.finished)
+    }
+
+    @Test func noseDotStepSitsAfterGesturesAndTheTourHasSixSteps() {
+        #expect(TourStep.allCases.count == 6)
+        #expect(TourStep.noseDot.rawValue == TourStep.gestures.rawValue + 1)
+        #expect(TourStep.noseDot.title == "Nose dot")
     }
 
     @Test func singleStepDisablesBackAndNext() {

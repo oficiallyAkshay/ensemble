@@ -1,14 +1,15 @@
 import Foundation
 
-/// The five steps of the first-run tour, in order.
+/// The six steps of the first-run tour, in order.
 public enum TourStep: Int, CaseIterable, Sendable {
-    case welcome, calibrate, gestures, permissions, done
+    case welcome, calibrate, gestures, noseDot, permissions, done
 
     public var title: String {
         switch self {
         case .welcome: return "Welcome"
         case .calibrate: return "Calibrate every screen"
         case .gestures: return "Three gestures"
+        case .noseDot: return "Nose dot"
         case .permissions: return "Permissions"
         case .done: return "You're set"
         }

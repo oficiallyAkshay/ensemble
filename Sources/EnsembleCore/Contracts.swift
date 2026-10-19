@@ -59,6 +59,8 @@ public struct HeadObservation: Sendable {
     public var pitch: Double
     public var faceCount: Int
     public var position: HeadPosition?
+    /// True for the last reading handed on again while the picture is still (`StillFace`), not a new measurement.
+    public var repeated = false
     public init(t: TimeInterval, yaw: Double, pitch: Double, faceCount: Int, position: HeadPosition? = nil) {
         self.t = t; self.yaw = yaw; self.pitch = pitch; self.faceCount = faceCount; self.position = position
     }
@@ -145,8 +147,13 @@ public struct ClaudeSession: Equatable, Sendable {
     public var windowNumber: Int
     /// The session's name as Claude shows it in the pane header; nil when it could not be read.
     public var title: String?
-    public init(id: String, frame: CGRect, windowNumber: Int, title: String? = nil) {
-        self.id = id; self.frame = frame; self.windowNumber = windowNumber; self.title = title
+    /// Set for an archived session: the note bar with the Unarchive button, global top-left. Such a session has no
+    /// message box or dictation checkbox, so the app can look at it but never press anything in it.
+    public var archivedBar: CGRect?
+    /// What the focus outline is drawn around.
+    public var highlightFrame: CGRect { archivedBar ?? frame }
+    public init(id: String, frame: CGRect, windowNumber: Int, title: String? = nil, archivedBar: CGRect? = nil) {
+        self.id = id; self.frame = frame; self.windowNumber = windowNumber; self.title = title; self.archivedBar = archivedBar
     }
 }
 

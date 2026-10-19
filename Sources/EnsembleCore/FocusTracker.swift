@@ -88,7 +88,9 @@ public struct NoseDot {
     public var wakeRadius: CGFloat = 32
     public var settleRadius: CGFloat = 6
     public var settleTime: TimeInterval = 0.15
-    /// Readings in a row the nose must spend beyond `wakeRadius`: one noisy reading never wakes the dot.
+    /// Readings in a row the nose must spend beyond `wakeRadius`: one noisy reading never wakes the dot. Only fresh
+    /// readings count: while the picture is still the camera engine hands the last reading on again ten times a
+    /// second, and one stray real reading repeated that way would otherwise wake the dot once a second.
     public var wakeReadings = 3
 
     public private(set) var dot: CGPoint?
@@ -103,12 +105,13 @@ public struct NoseDot {
 
     /// The dot's position for this filtered nose reading at time `t`.
     @discardableResult
-    public mutating func follow(nose p: CGPoint, at t: TimeInterval) -> CGPoint {
+    public mutating func follow(nose p: CGPoint, at t: TimeInterval, fresh: Bool = true) -> CGPoint {
         guard let d = dot else {
             dot = p; moving = false
             return p
         }
         if !moving {
+            guard fresh else { return d }
             guard hypot(p.x - d.x, p.y - d.y) > wakeRadius else { outside = 0; return d }
             outside += 1
             guard outside >= wakeReadings else { return d }

@@ -22,9 +22,9 @@ final class DotPlacement {
 
     var hasDot: Bool { dot != nil }
 
-    func follow(nose p: CGPoint, at t: TimeInterval, onSession: Bool) {
+    func follow(nose p: CGPoint, at t: TimeInterval, onSession: Bool, fresh: Bool) {
         lastNose = p
-        if onSession { rest.follow(nose: p, at: t) } else { rest.reset() }
+        if onSession { rest.follow(nose: p, at: t, fresh: fresh) } else { rest.reset() }
     }
 
     var hasEdgeWarning: Bool { edgeWarning != nil }
@@ -48,7 +48,7 @@ final class DotPlacement {
             ctx.nosePoint = ctx.settings.showNoseDot ? dot : nil
         }
         let resized = ctx.resizeFrame.flatMap { $0.id == target?.id ? $0.frame : nil }
-        ctx.targetFrame = ctx.listening?.frame ?? resized ?? target?.frame
+        ctx.targetFrame = ctx.listening?.frame ?? resized ?? target?.highlightFrame
     }
 }
 

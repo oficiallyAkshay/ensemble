@@ -1,7 +1,7 @@
 import AppKit
 import EnsembleCore
 
-/// Drives one open tour window: the step machine, the live permission facts for step 4, and (while step 3 is
+/// Drives one open tour window: the step machine, the live permission facts for step 5, and (while step 3 is
 /// open) turning real gesture intents into "this tab is done" checkmarks instead of letting
 /// them reach Claude.
 @MainActor
@@ -146,7 +146,7 @@ final class TourModel: ObservableObject, TourPracticeSink {
         practiceDone = machine.practiceDone
     }
 
-    // MARK: - Permissions (step 4)
+    // MARK: - Permissions (step 5)
 
     private func refreshPermissions() {
         cameraAccess = Permissions.cameraAccess

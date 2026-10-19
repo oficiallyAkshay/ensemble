@@ -146,6 +146,19 @@ import Testing
         #expect(!d.moving)
     }
 
+    @Test func aReadingHandedOnAgainNeverCountsTowardWaking() {
+        var d = NoseDot()
+        d.follow(nose: CGPoint(x: 100, y: 100), at: 0)
+        // One fresh reading far away, then the same reading repeated for the rest of the second.
+        d.follow(nose: CGPoint(x: 400, y: 100), at: 0.1)
+        for i in 2...10 { #expect(d.follow(nose: CGPoint(x: 400, y: 100), at: Double(i) / 10, fresh: false) == CGPoint(x: 100, y: 100)) }
+        #expect(!d.moving)
+        // Fresh readings keep saying the nose is there: three in a row wake it.
+        d.follow(nose: CGPoint(x: 400, y: 100), at: 1.1)
+        #expect(d.follow(nose: CGPoint(x: 400, y: 100), at: 2.1) == CGPoint(x: 400, y: 100))
+        #expect(d.moving)
+    }
+
     @Test func onceMovingTheDotIsExactlyOnTheNoseAndRestsWhereItStopped() {
         var d = NoseDot()
         d.follow(nose: .zero, at: 0)

@@ -452,7 +452,7 @@ final class Coordinator: AppCoordinating {
                 // while keyboard focus and the windows stay put.
                 let under = focus.observe(nose: p, at: head.t, held: gestures.pinchHeld || scroll.isActive, paused: ctx.handsBusy)
                 focusNose = p
-                dot.follow(nose: p, at: head.t, onSession: under != nil)
+                dot.follow(nose: p, at: head.t, onSession: under != nil, fresh: !head.repeated)
                 EnsembleTrace.write(head.t, "head nose=\(Int(p.x)),\(Int(p.y)) under=\(under?.id ?? "-") \(focus.traceState(at: head.t))\(ctx.handsBusy ? " paused" : "") faces=\(head.faceCount)")
             }
         } else if head.faceCount != 1 && head.t - ctx.lastOneFaceT <= 1.5 {
