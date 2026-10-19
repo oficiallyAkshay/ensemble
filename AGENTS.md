@@ -24,7 +24,7 @@ scripts/bundle.sh           # build/Ensemble.app, signed; needs a signing identi
 ## Working rules
 
 - Branch before editing; open a pull request; `gate` (which waits for `ci`, `hygiene`, coverage and the other checks) must pass. No force-push to `main`, no `git add -A`, no amended commits, no skipped hooks.
-- After a pull request that changes app logic merges to `main`, cut the release (`docs/RELEASING.md`, "Release on every merge"). Never reuse or lower a version, never move a tag, never release from anything but a clean, green `main`.
+- After a pull request that changes app logic merges to `main`, the release is cut (`docs/RELEASING.md`, "Release on every merge"): by the owner's launchd job within about 5 minutes, or by hand with `scripts/ship-release.sh` if it is off. Never reuse or lower a version, never move a tag, never release from anything but a clean, green `main`.
 - Commit messages state the outcome. No emojis in commits, code, comments or docs.
 - Do not revert values the owner set by hand (`docs/gotchas.md`, 9). Never merge a branch created before the history rewrite (10).
 - `Sources/EnsembleCore` has no UI and no camera, and every change there comes with a test. Never edit a fixture to make a test pass. Only `Coordinator` decides to press Claude's controls.

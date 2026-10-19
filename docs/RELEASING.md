@@ -1,6 +1,6 @@
 # Releasing Ensemble
 
-How a release is built, signed, notarized, published, and delivered to installed copies. Nothing in this repo signs, uploads, or publishes by itself: the scripts run on your command, and the GitHub workflow runs only when a tag named `v*` is pushed.
+How a release is built, signed, notarized, published, and delivered to installed copies. Nothing in this repo signs, uploads, or publishes by itself except the launchd job the owner installs on their Mac (see "Release on every merge"): the other scripts run on your command, and the GitHub workflow runs only when a tag named `v*` is pushed.
 
 ## The pieces
 
@@ -74,17 +74,25 @@ It builds and signs the DMG with the local identity, adds it to the appcast with
 
 ## Release on every merge
 
-Every pull request that changes app logic is released as soon as it merges to `main`. Bug fixes are app logic, so they ship the same way and at once. The agent that merges the pull request cuts the release; if a person merged it, the next agent session that sees an unreleased merge cuts it.
+Every pull request that changes app logic is released as soon as it merges to `main`. Bug fixes are app logic, so they ship the same way and at once. A plain launchd job on the owner's Mac cuts the release within about 5 minutes of the checks passing: `scripts/install-auto-release.sh` installs the agent `dev.ensemble.releaser`, which runs `scripts/auto-release.sh` every 5 minutes. No Claude session or routine is involved, so nobody has to remember to release. An agent or a person may still run `scripts/ship-release.sh` by hand; the job then sees the new tag and has nothing to do.
 
 **What counts as app logic.** A change to any file under `Sources/` (the app, `EnsembleCore` and the bundled resources) or to `Package.swift` or `Package.resolved`. A change that touches only docs, tests, scripts, CI or the website does not release by itself; it ships with the next release.
 
-**How.** From a clean checkout of `main` whose latest commit has passing checks (`gate`):
+**What the job does.** Each run fetches `origin`, finds the newest `v*` tag and compares it with `origin/main`. If nothing under `Sources/`, `Package.swift` or `Package.resolved` changed, it stops without a word. Otherwise it waits for the `ci` run on the newest commit of `main` to finish green (pending: it tries again in 5 minutes; failed: it logs that once and does not release), works out the next patch version, refuses a version that exists as a tag or a GitHub release, makes a throwaway worktree of that exact commit, runs `scripts/ship-release.sh <version>` there and removes the worktree on every exit path. Where `scripts/whats-new.sh` exists it first writes an untracked `docs/whats-new/<version>.txt` from the commit subjects and checks it. Afterwards it confirms that the GitHub release exists and the appcast lists the version (retrying for 3 minutes). A macOS notification appears on a release or a refusal, never when nothing is due. One run at a time (a lock directory, taken over after 30 minutes).
+
+- Log, one UTC line per decision: `~/Library/Logs/Ensemble/releaser.log`; the build output of each release: `~/Library/Logs/Ensemble/releaser-ship.log`; the agent's own output: `~/Library/Logs/Ensemble/releaser.out`.
+- See what it would do now, building and publishing nothing: `scripts/auto-release.sh --dry-run`.
+- Off switch: `launchctl bootout "gui/$(id -u)/dev.ensemble.releaser"`, or `scripts/install-auto-release.sh --uninstall` (also removes the agent file). Releases are then cut by hand as below.
+- The agent runs the copy of `scripts/auto-release.sh` on `origin/main`, so an old checkout still releases with the current script. A checkout under Desktop, Documents or Downloads is hidden from background agents, so the installer gives the agent its own clone in `~/Library/Application Support/Ensemble/releaser-checkout`.
+- It needs `gh` signed in, `jq`, and the signing identity in the login keychain (the first run may ask to let `codesign` use the key: choose Always Allow, as for `scripts/dev-install.sh`).
+
+**By hand.** From a clean checkout of `main` whose latest commit has passing checks (`gate`):
 
 ```
 scripts/ship-release.sh <next version>
 ```
 
-The next version is the latest tag with one added to the patch number (`0.2.24` becomes `0.2.25`). There is no major or minor policy; the owner changes the leading numbers by naming a version. A version is never reused or lowered, and a tag is never moved. The release notes are the `docs/CHANGELOG.md` "Unreleased" entries. `ship-release.sh` signs with the owner's login keychain, so this runs on the owner's Mac. It stops before anything is public if the build, the signature or the appcast refuses; fix the cause and run it again, do not work around it.
+The next version is the latest tag with one added to the patch number (`0.2.24` becomes `0.2.25`). There is no major or minor policy; the owner changes the leading numbers by naming a version. A version is never reused or lowered, and a tag is never moved. The release notes are the `docs/CHANGELOG.md` "Unreleased" entries. `ship-release.sh` signs with the owner's login keychain, so this runs on the owner's Mac (the launchd job above runs it for you). It stops before anything is public if the build, the signature or the appcast refuses; fix the cause and run it again, do not work around it.
 
 **Taking it back.** A bad release is fixed by the next release; the version that shipped stays published because installed copies compare build numbers. Stop the releases by removing this section and the exception in `AGENTS.md`.
 
