@@ -71,7 +71,7 @@ final class AppEnvironment {
     private init() {
         let info = Bundle.main.infoDictionary
         let os = ProcessInfo.processInfo.operatingSystemVersion
-        usage = UsageTracker(defaults: settings.defaults, sharing: settings.shareUsage,
+        usage = UsageTracker(defaults: settings.defaults, sharing: settings.shareUsage, disclosed: settings.usageNoticeShown,
                              appVersion: info?["CFBundleShortVersionString"] as? String ?? "dev",
                              macOSVersion: "\(os.majorVersion).\(os.minorVersion)")
         usageReporter = UsageReporter(tracker: usage)
@@ -115,6 +115,7 @@ final class AppEnvironment {
         usage.count(.launch)
         usageReporter.start()
         settings.$shareUsage.dropFirst().sink { [weak self] on in self?.usage.setSharing(on) }.store(in: &cancellables)
+        settings.$usageNoticeShown.dropFirst().sink { [weak self] shown in self?.usage.setDisclosed(shown) }.store(in: &cancellables)
 
         notifier.overlay = overlay
         notifier.settings = settings

@@ -98,6 +98,7 @@ struct MenuPanelView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .glassSurface(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .onAppear { settings.usageNoticeShown = true }
     }
 
     private var statusCard: some View {

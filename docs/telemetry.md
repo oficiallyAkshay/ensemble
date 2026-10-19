@@ -10,7 +10,7 @@ The default lives in one constant, `UsagePolicy.sharingDefault` in `Sources/Ense
 
 ## What is sent
 
-One event named `daily_summary` per install per local day, sent after the day ends (and on launch or at the next hourly check if yesterday's is still unsent). It is a JSON `POST` over HTTPS to PostHog Cloud (US): `{api_key, event, distinct_id, timestamp, properties}`. `timestamp` is noon UTC on the date of the day reported.
+Nothing is sent until the one-time notice in the menu bar panel has been on screen at least once. One event named `daily_summary` per install per local day, sent after the day ends (and on launch or at the next hourly check if yesterday's is still unsent). It is a JSON `POST` over HTTPS to PostHog Cloud (US): `{api_key, event, distinct_id, timestamp, properties}`. `timestamp` is noon UTC on the date of the day reported.
 
 Every property is a number, a flag or a short word (letters, digits, dot, dash, underscore, at most 32). A count that is zero is left out, so a missing count means zero. The app refuses to send any property not in this list.
 

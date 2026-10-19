@@ -36,6 +36,7 @@ final class SettingsStore: ObservableObject {
         static let lastRestoreSignature = "lastRestoreSignature"
         static let shareUsage = "shareUsage"
         static let usageNoticeDismissed = "usageNoticeDismissed"
+        static let usageNoticeShown = "usageNoticeShown"
     }
 
     static let countdownRange: ClosedRange<Double> = 0.5...3
@@ -90,6 +91,8 @@ final class SettingsStore: ObservableObject {
     @Published var fitFocusedSession: Bool { didSet { defaults.set(fitFocusedSession, forKey: Key.fitFocusedSession) } }
     /// Anonymous daily usage counts (docs/telemetry.md). The default is `UsagePolicy.sharingDefault`.
     @Published var shareUsage: Bool { didSet { defaults.set(shareUsage, forKey: Key.shareUsage) } }
+    /// The first-run notice about usage sharing has been on screen at least once; the first report waits for it.
+    @Published var usageNoticeShown: Bool { didSet { defaults.set(usageNoticeShown, forKey: Key.usageNoticeShown) } }
     /// The first-run notice about usage sharing was dismissed.
     @Published var usageNoticeDismissed: Bool { didSet { defaults.set(usageNoticeDismissed, forKey: Key.usageNoticeDismissed) } }
     /// Set only through `setLaunchAtLogin`, which talks to the system first.
@@ -138,6 +141,7 @@ final class SettingsStore: ObservableObject {
         fitFocusedSession = bool(Key.fitFocusedSession, true)
         shareUsage = bool(Key.shareUsage, UsagePolicy.sharingDefault)
         usageNoticeDismissed = bool(Key.usageNoticeDismissed, false)
+        usageNoticeShown = bool(Key.usageNoticeShown, false)
         LoginAgent.repointIfStale()
         launchAtLogin = LoginAgent.isEnabled
         calibration = store.data(forKey: Key.calibration)

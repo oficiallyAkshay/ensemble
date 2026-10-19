@@ -34,6 +34,17 @@ import Testing
         #expect(t.todaySoFar.day == "2026-10-15")
     }
 
+    @Test func nothingIsSentUntilTheNoticeHasBeenShown() {
+        let rig = Rig()
+        let t = UsageTracker(defaults: rig.defaults, sharing: true, disclosed: false, appVersion: "1.4.2", macOSVersion: "26.0",
+                             calendar: rig.calendar, now: { rig.date })
+        t.count(.launch)
+        rig.advance(days: 1)
+        #expect(t.daysToSend(force: true).isEmpty)           // a finished day waits for the notice
+        t.setDisclosed(true)
+        #expect(t.daysToSend(force: true).map(\.day) == ["2026-10-14"])
+    }
+
     @Test func aDayWithNothingInItIsNotReported() {
         let rig = Rig(); let t = rig.tracker()
         t.count(.focusMoved)

@@ -68,6 +68,8 @@ public final class UsageTracker: UsageCounting {
     }
 
     public private(set) var sharing: Bool
+    /// The first-run notice has been shown to this user. Nothing is sent until it has: on by default must not mean unseen.
+    public private(set) var disclosed: Bool
     private let defaults: UserDefaults
     private let appVersion: String
     private let macOSVersion: String
@@ -77,10 +79,11 @@ public final class UsageTracker: UsageCounting {
     private var lastActive: Date?
     private var lastCheck: Date?
 
-    public init(defaults: UserDefaults, sharing: Bool, appVersion: String, macOSVersion: String,
+    public init(defaults: UserDefaults, sharing: Bool, disclosed: Bool = true, appVersion: String, macOSVersion: String,
                 calendar: Calendar = .current, now: @escaping () -> Date = Date.init) {
         self.defaults = defaults
         self.sharing = sharing
+        self.disclosed = disclosed
         self.appVersion = appVersion
         self.macOSVersion = macOSVersion
         self.calendar = calendar
@@ -98,6 +101,8 @@ public final class UsageTracker: UsageCounting {
         sharing = on
         if !on { erase() }
     }
+
+    public func setDisclosed(_ shown: Bool) { disclosed = shown }
 
     private func erase() {
         ledger = UsageLedger()
@@ -140,11 +145,12 @@ public final class UsageTracker: UsageCounting {
 
     // MARK: Sending
 
-    /// The finished days to send now, oldest first: nothing while sharing is off, and nothing unless a check is due.
+    /// The finished days to send now, oldest first: nothing while sharing is off or before the notice has been shown, and
+    /// nothing unless a check is due.
     /// A check is due at the first call, then once `UsagePolicy.checkInterval` has passed; `force` is for the day
     /// rolling over. A failed send is simply asked for again at the next due check.
     public func daysToSend(force: Bool = false) -> [UsageDay] {
-        guard sharing else { return [] }
+        guard sharing, disclosed else { return [] }
         let at = now()
         if !force, let last = lastCheck, at.timeIntervalSince(last) >= 0, at.timeIntervalSince(last) < UsagePolicy.checkInterval { return [] }
         lastCheck = at
