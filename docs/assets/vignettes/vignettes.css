@@ -3,7 +3,7 @@
    visitor who asks for reduced motion sees stills; the animations are only added when motion is welcome. */
 
 .vigs { position: relative; max-width: 1280px; margin-inline: auto; padding: clamp(56px, 8vw, 110px) var(--gut) 0; }
-.vigs-head .ens-chip { background: #fff; font-size: 12px; padding: 8px 14px; box-shadow: 0 6px 16px rgba(80, 60, 160, 0.12); }
+.vigs-head .ens-chip { background: #fff; font-size: 14px; padding: 8px 14px; box-shadow: 0 6px 16px rgba(80, 60, 160, 0.12); }
 .vigs h2 { margin: 18px 0 0; font: 700 clamp(40px, 6.2vw, 96px)/0.92 var(--e-display); letter-spacing: -0.05em; text-wrap: balance; }
 .vigs-lede { margin: 14px 0 0; max-width: 30em; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.45; color: #404040; letter-spacing: -0.01em; text-wrap: pretty; }
 .vig-grid { margin-top: clamp(24px, 3vw, 40px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(32px, 4vw, 56px) clamp(20px, 3vw, 40px); }
