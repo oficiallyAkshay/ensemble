@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Step 4: three cards. Camera and Accessibility can each be granted here, or sent to System Settings when
+/// Step 5: three cards. Camera and Accessibility can each be granted here, or sent to System Settings when
 /// macOS will not ask again; Microphone is shown struck out, because Ensemble never asks for it.
 struct TourPermissionsStep: View {
     @ObservedObject var model: TourModel

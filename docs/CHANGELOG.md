@@ -15,6 +15,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 - The menu panel's camera row opens a choice of Automatic and every connected camera, with the current one ticked, and switches the camera at once; it is the same setting as Settings' Camera picker. A chosen camera that is unplugged stays listed as "(not connected)", in the panel and in Settings, and the list is read again each time the panel opens.
 - While you pinch and drag to scroll, the nose dot turns into the up-and-down scroll arrows, and turns back into the dot when the pinch releases; the website demo does the same.
 - The menu bar icon gains a small upward arrow beside the three dots while a newer version has been found and not yet installed; with automatic checks off it appears only after you press Check for Updates.
+- The nose dot is off on a new install, and the first-run tour gains a "Show the nose dot?" step after the gestures with On and Off, Off preselected. Installs that already had Ensemble keep the setting they have; Settings' "Show nose dot" is the same choice.
 
 ## 0.2.21 - 2026-10-15
 

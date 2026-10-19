@@ -117,8 +117,9 @@ final class SettingsStore: ObservableObject {
         self.defaults = store
         func bool(_ key: String, _ fallback: Bool) -> Bool { store.object(forKey: key) as? Bool ?? fallback }
 
+        NoseDotDefault.migrate(store)
         enabled = bool(Key.enabled, true)
-        showNoseDot = bool(Key.showNoseDot, true)
+        showNoseDot = bool(Key.showNoseDot, false)
         showHighlight = bool(Key.showHighlight, true)
         cameraName = store.string(forKey: Key.cameraName)
         playSounds = bool(Key.playSounds, true)

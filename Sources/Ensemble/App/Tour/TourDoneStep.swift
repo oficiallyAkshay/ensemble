@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Step 5: nothing left to decide, just where to find this again.
+/// Step 6: nothing left to decide, just where to find this again.
 struct TourDoneStep: View {
     var body: some View {
         VStack(spacing: 22) {
