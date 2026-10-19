@@ -50,7 +50,7 @@ final class TourModel: ObservableObject, TourPracticeSink {
     var canGoBack: Bool { machine.canGoBack }
     var canGoNext: Bool { machine.canGoNext }
     var isLastStep: Bool { machine.isLastStep }
-    var allPracticeDone: Bool { practiceDone.count == TourGestureTab.allCases.count }
+    var allPracticeDone: Bool { machine.allPracticeDone }
 
     func onAppear() { enteringStep(machine.step) }
 
@@ -139,6 +139,11 @@ final class TourModel: ObservableObject, TourPracticeSink {
 
     func tourPractice(hand: HandObservation) {
         handInset.ingest(hand)
+    }
+
+    func tourPractice(headphone: HeadphoneAction) {
+        guard settings.headphonePresses, activeTab == .headphones else { return }
+        markDone(.headphones)
     }
 
     private func markDone(_ tab: TourGestureTab) {

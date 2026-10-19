@@ -8,16 +8,25 @@ public enum TourStep: Int, CaseIterable, Sendable {
         switch self {
         case .welcome: return "Welcome"
         case .calibrate: return "Calibrate every screen"
-        case .gestures: return "Three gestures"
+        case .gestures: return "Gestures"
         case .permissions: return "Permissions"
         case .done: return "You're set"
         }
     }
 }
 
-/// The three gestures practiced, in the order their tabs appear.
+/// The tabs of the gestures step, in the order they appear: three hand gestures, then the headphone presses.
 public enum TourGestureTab: Int, CaseIterable, Sendable {
-    case dictate, send, scroll
+    case dictate, send, scroll, headphones
+
+    /// The headphone tab is guidance only: presses may never arrive during the tour (they reach the app only
+    /// while it holds Now Playing), so finishing practice never waits for it.
+    public var isHandGesture: Bool { self != .headphones }
+
+    /// The tabs to offer: the headphone tab only while the Settings switch for headphone presses is on.
+    public static func shown(headphones: Bool) -> [TourGestureTab] {
+        allCases.filter { headphones || $0.isHandGesture }
+    }
 }
 
 /// Drives the tour's step, Back/Next bounds, and which gesture tabs have been practiced. Pure: no UI, no
@@ -73,5 +82,5 @@ public final class TourStateMachine {
         practiceDone.insert(tab)
     }
 
-    public var allPracticeDone: Bool { practiceDone.count == TourGestureTab.allCases.count }
+    public var allPracticeDone: Bool { TourGestureTab.allCases.allSatisfy { !$0.isHandGesture || practiceDone.contains($0) } }
 }
