@@ -18,6 +18,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 - While you pinch and drag to scroll, the nose dot turns into the up-and-down scroll arrows, and turns back into the dot when the pinch releases; the website demo does the same.
 - The menu bar icon gains a small upward arrow beside the three dots while a newer version has been found and not yet installed; with automatic checks off it appears only after you press Check for Updates.
 - The nose dot is off on a new install, and the first-run tour gains a "Show the nose dot?" step after the gestures with On and Off, Off preselected. Installs that already had Ensemble keep the setting they have; Settings' "Show nose dot" is the same choice.
+- Check for Updates and "Update to x.y.z" now open a small "What's new" window with the release's three to five items, each an icon, a heading and a line of plain words, with Install and Later as before; a release whose summary is missing or malformed shows the plain "Install now?" prompt. Every release now carries this summary in the update feed and cannot be cut without it.
 
 ## 0.2.21 - 2026-10-15
 

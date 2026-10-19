@@ -1,5 +1,6 @@
 import AppKit
 import Sparkle
+import SwiftUI
 import EnsembleCore
 
 /// Release-channel settings. The owner edits this file and Info.plist (SUPublicEDKey) once; see docs/RELEASING.md.
@@ -22,9 +23,9 @@ enum UpdateConfig {
 /// - No network until the user turns on automatic updates (Settings > General) or presses the update button.
 /// - Automatic updates (opt-in) check 15 s after launch and then every hour (`UpdatePolicy`), download in the
 ///   background and install after 30 s of unbroken idle time, with no question.
-/// - Otherwise a found version asks once, "Ensemble x.y.z is available. Install now?", with Install and Later.
-///   Install downloads, installs and relaunches with no further window; a press of "Update to x.y.z" is the
-///   go-ahead itself and asks nothing.
+/// - Otherwise a found version asks once, in a "What's new" window of three to five items from the feed (or the
+///   plain "Ensemble x.y.z is available. Install now?" when the feed has none), with Install and Later. Check for
+///   Updates and "Update to x.y.z" both open it. Install downloads, installs and relaunches with no further window.
 /// - Nothing is shown and nothing installs while Ensemble is busy (dictating, sending, calibrating, the tour): the
 ///   alert waits and the button says "Installs x.y.z when you finish".
 /// - The copy that opens after an update says "Updated to x.y.z" and logs it; with open at login on, it hands itself
@@ -54,7 +55,7 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
     private var pendingAutoInstall: (() -> Void)?
     /// An error from a flow the owner started, shown once with Retry.
     private var pendingError: Error?
-    /// The owner pressed "Update to x.y.z", Install or Retry: no idle grace period and no further question.
+    /// The owner pressed Install or Retry: no idle grace period and no further question.
     private var installRequested = false
     private var userCheckInFlight = false
     private var alertShowing = false
@@ -108,8 +109,8 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
         if on { updater.checkForUpdatesInBackground() }
     }
 
-    /// The update button. "Update to x.y.z" installs end to end in one press; "Check for Updates" checks and, if a
-    /// version is found, shows the one alert. A press while Ensemble is busy never installs at once: the install
+    /// The update button. Both "Check for Updates" and "Update to x.y.z" check and, if a version is found, show the
+    /// one window; Install is the go-ahead. An Install while Ensemble is busy never installs at once: the install
     /// waits for the first idle moment and the button says so.
     func checkForUpdates() {
         guard isConfigured else {
@@ -122,10 +123,9 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
         }
         guard installingVersion == nil else { return }
         declined.removeAll()
-        if let offer = pendingOffer {
-            // A found version waiting for its alert: the press is the answer.
-            pendingOffer = nil
-            accept(offer.item.displayVersionString, stage: offer.stage, reply: offer.reply)
+        if pendingOffer != nil {
+            // A found version waiting for its window: the press brings it up now.
+            tick()
             return
         }
         if pendingAutoInstall != nil, let version = availableVersion {
@@ -135,16 +135,10 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
             tick()
             return
         }
-        switch UpdatePress.decide(availableVersion: availableVersion) {
-        case .install(let version):
-            installRequested = true
-            installingVersion = version
-        case .check:
-            installRequested = false
-            checking = true
-        }
+        installRequested = false
+        checking = true
         userCheckInFlight = true
-        EnsembleLog.write(installRequested ? "update: install of \(availableVersion ?? "") requested by the user" : "update: check requested by the user")
+        EnsembleLog.write("update: check requested by the user")
         updater.checkForUpdates()
     }
 
@@ -235,7 +229,6 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
         let version = offer.item.displayVersionString
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = UpdatePolicy.offerMessage(version: version)
         alert.informativeText = "Ensemble downloads it, installs it and opens again by itself."
         // No button answers Return: a Return typed for Claude as the alert comes up must never install. Escape is Later.
         alert.addButton(withTitle: "Install").keyEquivalent = ""
@@ -243,12 +236,22 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
         let item = offer.item
         notesLink = UpdatePolicy.releaseNotesLink(fullNotes: item.fullReleaseNotesURL, notes: item.releaseNotesURL,
                                                   info: item.infoURL, download: item.fileURL)
-        if notesLink != nil {
-            let link = NSButton(title: "What's new in \(version)", target: self, action: #selector(openReleaseNotes))
-            link.isBordered = false
-            link.contentTintColor = .linkColor
-            link.sizeToFit()
-            alert.accessoryView = link
+        // The summary comes from the feed already on disk, so the window needs no connection. A missing or malformed
+        // one leaves the plain prompt.
+        if let items = WhatsNew.parse(item.propertiesDictionary["whatsNew"] as? String) {
+            alert.messageText = "What's new in Ensemble \(version)"
+            let host = NSHostingView(rootView: WhatsNewView(items: items, notesLink: notesLink == nil ? nil : { [weak self] in self?.openReleaseNotes() }))
+            host.frame.size = host.fittingSize
+            alert.accessoryView = host
+        } else {
+            alert.messageText = UpdatePolicy.offerMessage(version: version)
+            if notesLink != nil {
+                let link = NSButton(title: "What's new in \(version)", target: self, action: #selector(openReleaseNotes))
+                link.isBordered = false
+                link.contentTintColor = .linkColor
+                link.sizeToFit()
+                alert.accessoryView = link
+            }
         }
         alert.window.level = .floating
         if alert.runModal() == .alertFirstButtonReturn {

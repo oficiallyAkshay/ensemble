@@ -57,6 +57,10 @@ REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 PREV="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 log "shipping $TAG from $(git rev-parse --short HEAD) of $REPO (previous: ${PREV:-none})"
 
+# Every release carries its "What's new" summary, committed on main before the release is cut.
+WHATS_NEW="docs/whats-new/$VERSION.txt"
+bash scripts/whats-new.sh check "$WHATS_NEW" || { log "error: $TAG has no valid release summary; write $WHATS_NEW (docs/RELEASING.md)"; exit 1; }
+
 ENSEMBLE_VERSION="$VERSION" scripts/release.sh 2>&1 | tee -a "$LOG"
 DMG="build/Ensemble-$VERSION.dmg"
 [ -f "$DMG" ] || { log "error: $DMG was not built"; exit 1; }
@@ -79,7 +83,7 @@ git worktree add --quiet "$PAGES" origin/gh-pages --detach
 rm -rf build/appcast
 mkdir -p build/appcast
 [ ! -f "$PAGES/appcast.xml" ] || cp "$PAGES/appcast.xml" build/appcast/appcast.xml
-ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
+ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" ENSEMBLE_WHATS_NEW="$WHATS_NEW" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
 [ -s build/appcast/appcast.xml ] || { log "error: no appcast was produced; nothing was tagged or published"; exit 1; }
 PAGES_SHA="$(gh api "repos/$REPO/contents/appcast.xml?ref=gh-pages" --jq .sha 2>/dev/null || true)"
 
