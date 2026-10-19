@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import EnsembleCore
+import os
 
 /// Wires the camera engine, the gesture rules, the nose pointer and the Claude bridge together. Each job has
 /// its own controller; this routes camera readings and gesture intents to them, runs the tick, and keeps the steps
@@ -23,6 +24,8 @@ final class Coordinator: AppCoordinating {
     /// Return while dictating: the first press stops, a second sends. See `handleKey`.
     private let keyTap = ReturnKeyTap()
     private var returnKeys = ReturnKeys()
+    /// `returnKeys.lastOtherKeyAt`, readable off the main thread (`mirrorOtherKey`).
+    private let otherKeyAt = OSAllocatedUnfairLock<TimeInterval>(initialState: -.infinity)
     /// Fits the focused session to Claude's chat column once focus has settled on it; see `fitFocusedSession`.
     private var fitTrigger = SessionFit.Trigger()
     /// The last tick a calibration was running: no fit for a few seconds after it (`SessionFit.Hold`).
@@ -123,13 +126,16 @@ final class Coordinator: AppCoordinating {
             return self.handleKey(isReturn: isReturn, modified: modified, isRepeat: isRepeat)
         }
         keyTap.onReturnUp = { [weak self] in self?.returnKeys.returnReleased() }
-        keyTap.onUnseenKeys = { [weak self] in self?.returnKeys.noteUnseenKeys(now: CACurrentMediaTime()) }
+        keyTap.onUnseenKeys = { [weak self] in
+            self?.returnKeys.noteUnseenKeys(now: CACurrentMediaTime())
+            self?.mirrorOtherKey()
+        }
         send.lookedAt = { [weak self] in self?.focus.target }
         send.playStopSound = { [weak self] in self?.dictation.playStopSound() }
-        send.returnInputAge = { [weak self] in
-            let clicks = ClaudeBridge.secondsSinceClick()
-            guard let self else { return clicks }
-            return ReturnKeys.inputAge(clickAge: clicks, lastOtherKeyAt: self.returnKeys.lastOtherKeyAt, now: CACurrentMediaTime())
+        // Read on the bridge queue at the press, so from the lock, not from the main-thread key state.
+        let otherKeyAt = self.otherKeyAt
+        send.returnInputAge = {
+            ReturnKeys.inputAge(clickAge: ClaudeBridge.secondsSinceClick(), lastOtherKeyAt: otherKeyAt.withLock { $0 }, now: CACurrentMediaTime())
         }
 
         ctx.pointer.correctsForPosition = settings.correctForPosition
@@ -851,6 +857,11 @@ final class Coordinator: AppCoordinating {
         }
     }
 
+    private func mirrorOtherKey() {
+        let at = returnKeys.lastOtherKeyAt
+        otherKeyAt.withLock { $0 = at }
+    }
+
     /// A key press while the key watch is on (an Ensemble dictation, or just after one). Only Return without
     /// modifiers, with Claude in front, is ever kept from Claude; the rules are in `ReturnKeys`.
     private func handleKey(isReturn: Bool, modified: Bool, isRepeat: Bool) -> Bool {
@@ -859,6 +870,7 @@ final class Coordinator: AppCoordinating {
                                         claudeInFront: ctx.bridge.claudeIsFrontmost(),
                                         dictating: ctx.listening != nil || claudeDictatingHere,
                                         returnSendPending: send.returnSendPending, now: now)
+        mirrorOtherKey()
         if decision != .pass { lastHeldBackKeyAt = now }
         switch decision {
         case .pass:

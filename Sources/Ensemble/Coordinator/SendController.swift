@@ -18,7 +18,8 @@ final class SendController {
     /// The pending send was asked for with Return, so the Return presses are not "typing since dictation".
     var afterStopByReturn = false
     /// For a send asked for with Return: seconds since a click or any key other than those Returns.
-    var returnInputAge: () -> Double = { ClaudeBridge.secondsSinceTypingOrClick() }
+    /// Called on the bridge queue at the press as well, so it must not touch main-thread state.
+    var returnInputAge: @Sendable () -> Double = { ClaudeBridge.secondsSinceTypingOrClick() }
     /// The stop sound for the dictation this send followed, through the same look at Claude's own sound as the stop.
     var playStopSound: () -> Void = { Notifier.shared.playDictationSound(.stop) }
     /// A send is between its request and its result (reading the draft, waiting for it to settle, pressing Send).
@@ -141,7 +142,8 @@ final class SendController {
 
     /// Every send rule again, right before the press: the gesture send setting, Claude in front, nothing else started,
     /// the stop counted as dictated (an interrupted dictation never does), the common refusals, no typing since the
-    /// dictation ended, and a draft that is not empty. The bridge checks Claude in front once more at the press.
+    /// dictation ended, and a draft that is not empty. The bridge checks Claude in front and no typing or click since
+    /// the dictation ended once more at the press, on its own queue.
     private func pressEarly() {
         let timeline = early.timeline()
         early.drop()
@@ -162,7 +164,7 @@ final class SendController {
         guard let text else { finish("Could not read the dictated session's message box"); return }
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { finish("The draft is empty"); return }
         EnsembleLog.write("sending (\(text.count) characters)")
-        sendNow(session, shown: text)
+        sendNow(session, shown: text, stoppedAt: spoken.stoppedAt, inputAge: { ClaudeBridge.secondsSinceTypingOrClick() })
     }
 
     /// The stop a pending send waited for is confirmed: send once the transcript has settled.
@@ -180,7 +182,8 @@ final class SendController {
         inFlight = true
         inFlightByReturn = byReturn
         guard byReturn || ctx.settings.mapping.send != nil else { finish(nil); return }
-        let inputAge = { byReturn ? self.returnInputAge() : ClaudeBridge.secondsSinceTypingOrClick() }
+        let inputAge: @Sendable () -> Double
+        if byReturn { inputAge = returnInputAge } else { inputAge = { ClaudeBridge.secondsSinceTypingOrClick() } }
         // Acting only on Claude: a thumbs-up made while another app is in front sends nothing.
         guard claudeInFront() else { finish(nil); return }
         guard ctx.listening == nil, !ctx.busy else {
@@ -223,7 +226,7 @@ final class SendController {
                 self.finish(why); return
             }
             EnsembleLog.write("sending (\(text.count) characters)")
-            self.sendNow(session, shown: text)
+            self.sendNow(session, shown: text, stoppedAt: spoken.stoppedAt, inputAge: inputAge)
         }
     }
 
@@ -259,11 +262,11 @@ final class SendController {
         ctx.overlay.setSending(name: session.map(ctx.name(of:)))
     }
 
-    private func sendNow(_ session: ClaudeSession, shown: String) {
+    private func sendNow(_ session: ClaudeSession, shown: String, stoppedAt: Date, inputAge: @escaping @Sendable () -> Double) {
         guard claudeInFront() else { finish(nil); return }
         ctx.busy = true
         Task { @MainActor in
-            let result = await self.ctx.bridge.sendDraft(session, shown: shown)
+            let result = await self.ctx.bridge.sendDraft(session, shown: shown, stoppedAt: stoppedAt, inputAge: inputAge)
             self.ctx.busy = false
             switch result {
             case .done:

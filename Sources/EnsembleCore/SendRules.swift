@@ -38,6 +38,11 @@ public enum SendRules {
         claudeInFront ? nil : "Claude is not the app in front"
     }
 
+    /// The last check, right before Send is pressed and on the queue that presses it, however long the press waited.
+    public static func pressRefusal(claudeInFront: Bool, spokenAgo: TimeInterval, inputAge: TimeInterval) -> String? {
+        frontRefusal(claudeInFront: claudeInFront) ?? typedRefusal(spokenAgo: spokenAgo, inputAge: inputAge)
+    }
+
     /// The draft may have been edited by hand after dictation: input more recent than the dictation's end.
     public static func typedRefusal(spokenAgo: TimeInterval, inputAge: TimeInterval) -> String? {
         inputAge < spokenAgo ? "Typed or clicked since dictation; not sending" : nil

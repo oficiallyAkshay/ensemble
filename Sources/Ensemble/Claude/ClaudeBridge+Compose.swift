@@ -38,11 +38,13 @@ extension ClaudeBridge {
 
     /// Presses Claude's own Send button. Refuses unless every guard holds; never types a key.
     /// `shown` is the draft read just before sending: if the composer no longer holds exactly that, nothing is sent.
-    func sendDraft(_ s: ClaudeSession, shown: String) async -> BridgeResult {
-        await run { self.sendNow(s, shown: shown) }
+    /// `stoppedAt` is when the dictation ended and `inputAge` the send's own reader of the time since typing or a
+    /// click; both are used on the queue, right before the press (`SendRules.pressRefusal`).
+    func sendDraft(_ s: ClaudeSession, shown: String, stoppedAt: Date, inputAge: @escaping @Sendable () -> Double) async -> BridgeResult {
+        await run { self.sendNow(s, shown: shown, stoppedAt: stoppedAt, inputAge: inputAge) }
     }
 
-    private func sendNow(_ s: ClaudeSession, shown: String) -> BridgeResult {
+    private func sendNow(_ s: ClaudeSession, shown: String, stoppedAt: Date, inputAge: () -> Double) -> BridgeResult {
         guard let entry = dictatedEntry(s) else { return .refused("the dictated session is no longer where it was") }
         let e = entry.elements
 
@@ -67,8 +69,12 @@ extension ClaudeBridge {
             return .refused("Send button changed before pressing")
         }
         guard (v[3] as? NSNumber)?.boolValue == true else { return .refused("Send button is disabled") }
-        // The last check before the press: another app may have come to the front while this waited in the queue.
-        if let why = SendRules.frontRefusal(claudeInFront: claudeIsFrontmost()) { return .refused(why) }
+        // The last check before the press: while this waited in the queue another app may have come to the front, or a
+        // click that leaves the draft unchanged may have landed.
+        if let why = SendRules.pressRefusal(claudeInFront: claudeIsFrontmost(),
+                                            spokenAgo: Date().timeIntervalSince(stoppedAt), inputAge: inputAge()) {
+            return .refused(why)
+        }
 
         let err = AX.perform(send, kAXPressAction)
         if err != .success { return .unknown("Send press returned error \(err.rawValue)") }
