@@ -1,6 +1,7 @@
 // The notification tiles on the table: placed like they were thrown, and they can be picked up and flung. Pointer drag with momentum, spin from the
 // throw, bounce off the table's edges; arrow keys give a push. Tiles with `sample: true` stay hidden unless the page address has ?samples=1.
 import { MESSAGES } from './messages.js';
+import { track } from '../../analytics.js';
 
 const root = document.getElementById('friends');
 const showSamples = new URLSearchParams(location.search).get('samples') === '1';
@@ -88,6 +89,7 @@ if (!root || !items.length) {
     const el = t.el;
     el.addEventListener('pointerdown', (e) => {
       if (e.button > 0) return;
+      track('contacts_played');
       el.setPointerCapture(e.pointerId);
       const r = table.getBoundingClientRect();
       t.held = { dx: e.clientX - r.left - t.x, dy: e.clientY - r.top - t.y, trail: [{ t: e.timeStamp, x: t.x, y: t.y }] };
