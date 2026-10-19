@@ -1,54 +1,22 @@
 {
   "kind": "fan",
-  "style": "flat",
-  "title": "Your face and your hands feed four gestures, look to focus, double pinch to dictate, thumbs-up to send, pinch and drag to scroll, into one hands-free Claude Code session",
+  "style": "window",
+  "title": "Look at a Claude session, pinch twice to talk, hold a thumbs-up to send, all from across the room with only a webcam; pinch and drag scrolls, a peace sign widens the session, scissors even out the sessions",
+  "headline": "Look. Pinch twice. Thumbs-up.",
+  "subhead": "Talk to the Claude session you face, from across the room, with only a webcam.",
   "sources": [
-    {
-      "label": "Your face",
-      "icon": "target",
-      "gives": "where you look"
-    },
-    {
-      "label": "Your hands",
-      "icon": "sparkles",
-      "gives": "gestures"
-    }
+    { "label": "Your face", "icon": "target" },
+    { "label": "Your hand", "icon": "sparkles" }
   ],
+  "hub": { "label": "Ensemble", "icon": "target" },
   "handled": [
-    {
-      "label": "Focus",
-      "icon": "target"
-    },
-    {
-      "label": "Dictate",
-      "icon": "zap"
-    },
-    {
-      "label": "Send",
-      "icon": "mail"
-    },
-    {
-      "label": "Scroll",
-      "icon": "refresh"
-    },
-    {
-      "label": "Pause audio",
-      "icon": "bell"
-    },
-    {
-      "label": "Stop safely",
-      "icon": "shield"
-    },
-    {
-      "label": "Stay local",
-      "icon": "lock"
-    }
+    { "label": "Look", "sub": "at the session you want", "icon": "target" },
+    { "label": "Talk", "sub": "pinch twice, then speak", "icon": "zap" },
+    { "label": "Send", "sub": "hold a thumbs-up", "icon": "mail" },
+    { "label": "Scroll", "sub": "pinch and drag", "icon": "refresh" },
+    { "label": "Widen", "sub": "hold a peace sign", "icon": "image" },
+    { "label": "Even out", "sub": "close it like scissors", "icon": "scissors" }
   ],
   "more": false,
-  "deliverable": {
-    "label": "hands-free Claude",
-    "heading": "Session",
-    "kind": "document",
-    "backing": "focused, dictated, sent"
-  }
+  "deliverable": { "label": "Sent", "kind": "document" }
 }

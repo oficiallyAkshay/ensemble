@@ -117,6 +117,9 @@ jobs:
       - name: Website tests
         run: node --test docs/live/test/logic.test.mjs docs/live/test/capture-events.test.mjs
 
+      - name: README hero matches its spec
+        run: node scripts/make-hero.mjs --check
+
   # Line coverage of EnsembleCore only: the app target needs a camera and Accessibility, so it is not measured. Every
   # line this change adds or edits under Sources/EnsembleCore must be covered, and the total may not fall below the
   # recorded baseline.
