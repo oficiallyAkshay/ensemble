@@ -7,11 +7,13 @@ import EnsembleCore
 enum TourScene: String {
     case welcome, calibrate, dictate, send, scroll
 
-    init(_ tab: TourGestureTab) {
+    /// The headphone tab has no 3D scene: the app draws its illustration itself.
+    init?(_ tab: TourGestureTab) {
         switch tab {
         case .dictate: self = .dictate
         case .send: self = .send
         case .scroll: self = .scroll
+        case .headphones: return nil
         }
     }
 }

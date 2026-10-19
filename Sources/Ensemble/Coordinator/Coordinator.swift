@@ -791,7 +791,8 @@ final class Coordinator: AppCoordinating {
     /// thumbs-up (the narrow send rules in SendController, unchanged).
     private func apply(headphone action: HeadphoneAction) {
         // Tour practice promises nothing reaches Claude; a stem press is no exception.
-        guard practiceSink == nil, !tourOpen else { return }
+        if let sink = practiceSink { sink.tourPractice(headphone: action); return }
+        guard !tourOpen else { return }
         ctx.headphoneUntil = CACurrentMediaTime() + 5
         ctx.overlay.clearBanner()
         switch action {

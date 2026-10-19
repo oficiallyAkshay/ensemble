@@ -4,6 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- The first-launch tour's gestures step has a Headphones tab while Headphone presses is on: one stem press does what a double pinch does, two presses send like thumbs-up, Bluetooth output only. It shows a check if a press arrives (the press never reaches Claude during the tour) and can always be skipped; with the setting off the step is unchanged.
 - Ensemble sends one anonymous usage report a day (counts of gestures, refusals and safety stops, versions and the camera format, under a random id), on by default with a one-time notice in the menu bar panel. Settings, General, Privacy turns it off at once, shows the exact report and resets the id; every field is in [telemetry.md](telemetry.md).
 - Automatic camera now starts a camera that has a saved calibration before one that has none, so a phone camera that appears on its own no longer leaves Ensemble uncalibrated; with no saved calibration the order is unchanged (external, built-in, any other).
 - A missing permission shows one button that opens the right list; Restart Ensemble and Reset sit behind a small "Still stuck?" link.

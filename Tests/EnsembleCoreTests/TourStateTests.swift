@@ -76,4 +76,20 @@ import Testing
         m.markPracticeDone(.scroll)   // re-observing the same gesture does not break anything
         #expect(m.allPracticeDone)
     }
+
+    @Test func headphonesTabIsShownOnlyWhenTheSettingIsOn() {
+        #expect(TourGestureTab.shown(headphones: false) == [.dictate, .send, .scroll])
+        #expect(TourGestureTab.shown(headphones: true) == [.dictate, .send, .scroll, .headphones])
+    }
+
+    @Test func headphonesTabNeverBlocksFinishingPractice() {
+        let m = TourStateMachine(startAt: .gestures)
+        m.markPracticeDone(.headphones)
+        #expect(!m.allPracticeDone)       // a press alone does not stand in for a hand gesture
+        for tab in [TourGestureTab.dictate, .send, .scroll] { m.markPracticeDone(tab) }
+        #expect(m.allPracticeDone)
+        let without = TourStateMachine(startAt: .gestures)
+        for tab in [TourGestureTab.dictate, .send, .scroll] { without.markPracticeDone(tab) }
+        #expect(without.allPracticeDone)  // done without ever pressing the stem
+    }
 }
