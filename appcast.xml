@@ -3,6 +3,25 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.31</title>
+            <pubDate>Tue, 20 Oct 2026 15:00:10 +0000</pubDate>
+            <sparkle:version>513</sparkle:version>
+            <sparkle:shortVersionString>0.2.31</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.30:
+
+- The hand is a deeper skin tone in the light theme so it stands out against the white stage (#176)
+- The website's link preview uses the repository's own social image (#174)
+- The home page hero is one 3D scene of the head, the Claude window and the hand, with a short note from the maker (#173)
+- A link to the website shows a preview image in Slack (ENS-116) (#172)
+- The friends' texts on the website are light lock-screen notifications, and Incredibly intuitive follows them directly (#171)
+- The home page closed-lid step shows the 3D closed laptop (#170)
+- The download section's gradient circle no longer overlaps the gallery (#169)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.31/Ensemble-0.2.31.dmg" length="6451054" type="application/octet-stream" sparkle:edSignature="NQWjfj9Ykb0xR8l3b6AeESkqPCs6bboWIZJSF0V6XdSs1v1LbV3wNCkb01rPE92pp4ghBrH+BXU2427hfKb8AQ=="/>
+        </item>
+        <item>
             <title>0.2.30</title>
             <pubDate>Tue, 20 Oct 2026 02:29:17 +0000</pubDate>
             <sparkle:version>506</sparkle:version>
@@ -29,24 +48,6 @@
 - The website counts anonymous visits, download views, scroll depth, contact cards and demo drop-off in PostHog, with no cookie and nothing sent under Do Not Track (#160)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.29/Ensemble-0.2.29.dmg" length="6450842" type="application/octet-stream" sparkle:edSignature="xi7wLGQQOQT4x+CsUz0ojwHpjOSCUoEdko2dl3d/wL4H0uIvzHAeqKvmG4fW9e74OJAFoOS9fBjESo0JaIj3AQ=="/>
-        </item>
-        <item>
-            <title>0.2.28</title>
-            <pubDate>Mon, 19 Oct 2026 18:17:54 +0000</pubDate>
-            <sparkle:version>502</sparkle:version>
-            <sparkle:shortVersionString>0.2.28</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.27:
-
-- Update (#164)
-- A merge that lands while the release job is queued ends the run with a notice instead of failing it (#163)
-- The README opens with a new hero, look then pinch twice then thumbs-up with the real hand, and reads in a minute from what it is to where the docs are (#162)
-- The dead tag-triggered release workflow is gone; releases run only through auto-release.yml and the docs say Developer ID signing is not in use (#157)
-- The demo loads its trackers in the background and its sees panel shows a skeleton when nothing is tracked (#159)
-- The home page shows the real star count from 1, and invites the first star only at zero (#158)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.28/Ensemble-0.2.28.dmg" length="6450470" type="application/octet-stream" sparkle:edSignature="VD/eLl6WgkOCmm5IWQ8qjuC0KD9Jym6CXe5IH5fuesfWi7olaCCQTtaeLKV4Hv7TiPvx9V5oNqS6+r5sYokmCg=="/>
         </item>
     </channel>
 </rss>
