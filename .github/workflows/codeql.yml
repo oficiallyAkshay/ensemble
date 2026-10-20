@@ -1,12 +1,19 @@
-# CodeQL static analysis of the Swift sources, on every pull request to main and once a week. Swift needs a real build
+# CodeQL static analysis of the Swift sources, on pull requests to main that change what `swift build` compiles, and once a week. Swift needs a real build
 # to be analysed, so the build mode is manual and the build step is the same `swift build` the repository uses. Results
 # appear under Security, Code scanning. This needs the repository's CodeQL default setup to stay off, or GitHub
 # reports a conflict.
 name: codeql
 
 on:
+  # A full macOS build takes about 20 minutes, so a pull request that cannot change the analysed code (website, docs,
+  # scripts, tests) skips it. CodeQL is not a required check, and the weekly run still covers main.
   pull_request:
     branches: [main]
+    paths:
+      - "Sources/**"
+      - "Package.swift"
+      - "Package.resolved"
+      - ".github/workflows/codeql.yml"
   schedule:
     - cron: "17 5 * * 1"
 
