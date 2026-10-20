@@ -129,6 +129,16 @@ public enum DictationRules {
         return writeRecord() ? nil : "Could not write the safety record; not starting"
     }
 
+    /// The one log line written when the safety check begins a stop. Numbers only, so a later reader can tell this app's
+    /// own leftover (a hold that just ended, a microphone not yet read off) from a capture begun by hand afterwards.
+    /// A nil time means it never happened since the record was opened.
+    public static func safetyStopLine(reason: String, sinceHoldEnded: TimeInterval?, sinceReadOff: TimeInterval?,
+                                      startInFlight: Bool, recordAge: TimeInterval) -> String {
+        func seconds(_ value: TimeInterval?) -> String { value.map { "\(Int($0.rounded())) s ago" } ?? "never" }
+        return "safety stop begun (\(reason)): hold ended \(seconds(sinceHoldEnded)), microphone last read off \(seconds(sinceReadOff)), "
+            + "start press in flight \(startInFlight ? "yes" : "no"), record age \(Int(recordAge.rounded())) s"
+    }
+
     /// A new dictation may not start while an earlier one is still owed a confirmed stop: starting would replace
     /// that dictation's record and abandon its stop, its alarm and its mute. `muteInEffect` counts only a safety
     /// mute still set on a connected device.

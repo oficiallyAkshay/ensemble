@@ -23,6 +23,21 @@ import Testing
         }
     }
 
+    @Test func theSafetyStopLineCarriesTheReasonAndEveryNumber() {
+        let line = DictationRules.safetyStopLine(reason: "Claude is capturing audio with no hold active", sinceHoldEnded: 12.4,
+                                                 sinceReadOff: 3.6, startInFlight: true, recordAge: 40)
+        #expect(line == "safety stop begun (Claude is capturing audio with no hold active): hold ended 12 s ago, "
+                + "microphone last read off 4 s ago, start press in flight yes, record age 40 s")
+    }
+
+    @Test func theSafetyStopLineSaysNeverWhenNothingHappened() {
+        let line = DictationRules.safetyStopLine(reason: "recording found at launch from a previous run", sinceHoldEnded: nil,
+                                                 sinceReadOff: nil, startInFlight: false, recordAge: 0)
+        #expect(line.contains("hold ended never"))
+        #expect(line.contains("microphone last read off never"))
+        #expect(line.contains("start press in flight no"))
+    }
+
     @Test func disarmWaitsForAPressInFlight() {
         #expect(DictationRules.disarmStep(stepInFlight: true, startInFlight: true, waited: 0) == .wait)
         #expect(DictationRules.disarmStep(stepInFlight: true, startInFlight: true, waited: 3.5) == .wait)   // the old 3 s wait

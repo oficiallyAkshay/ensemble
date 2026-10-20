@@ -48,6 +48,8 @@ final class DictationSafety: @unchecked Sendable {
     private var lastHeartbeat = Date.distantPast
     private var holdEndedAt = Date.distantPast
     private var offSince: Date?
+    /// When the standing check last read the microphone off since this record was opened.
+    private var lastReadOffAt: Date?
     /// Since when, with a record open and no hold, the microphone state could not be read.
     private var unreadableSince: Date?
     private var stopInFlight = false
@@ -98,6 +100,7 @@ final class DictationSafety: @unchecked Sendable {
         holdActive = true
         lastHeartbeat = Date()
         offSince = nil
+        lastReadOffAt = nil
         unreadableSince = nil
         return true
     }
@@ -244,6 +247,7 @@ final class DictationSafety: @unchecked Sendable {
             }
         case .some(false):
             unreadableSince = nil
+            lastReadOffAt = now
             if stopStartedAt != nil || escalated { stopConfirmed() }
             // The hold can end (an Accessibility stall, the dead-man check) while a start press is still queued or
             // running, and that press can open the microphone after this reading: off settles only once it has landed.
@@ -278,8 +282,16 @@ final class DictationSafety: @unchecked Sendable {
 
     private func beginStop(_ reason: String) {
         if stopStartedAt == nil {
-            stopStartedAt = Date()
+            let now = Date()
+            stopStartedAt = now
             stopReason = reason
+            // Logged once per stop, not per retry: a stop on a capture begun by hand reads differently from a leftover of ours.
+            EnsembleLog.write(DictationRules.safetyStopLine(
+                reason: reason,
+                sinceHoldEnded: holdEndedAt == .distantPast ? nil : now.timeIntervalSince(holdEndedAt),
+                sinceReadOff: lastReadOffAt.map { now.timeIntervalSince($0) },
+                startInFlight: bridge.startPressInFlight,
+                recordAge: episode.map { now.timeIntervalSince($0.startedAt) } ?? 0))
         }
         driveStop(Date())
     }
