@@ -150,9 +150,10 @@
   .wave i { width: 10px; border-radius: 999px; background: var(--g); display: block; height: var(--h); }
 
   /* ---- spread 4: download ---- */
-  .dl { position: relative; padding: clamp(70px, calc(10 * var(--u)), 150px) 0 0; }
+  /* The circle starts 18px down, the drift lifts it at most 18px, so it never rises above the section into the gallery; the margin keeps a clear gap below the last vignette. */
+  .dl { position: relative; margin-top: clamp(24px, 4vw, 56px); padding: clamp(70px, calc(10 * var(--u)), 150px) 0 0; }
   .dl .giant { position: relative; z-index: 2; margin: 0; white-space: nowrap; font: 700 clamp(70px, calc(21 * var(--u)), 340px)/0.82 var(--e-display); letter-spacing: -0.07em; margin-left: calc(-1.6 * var(--u)); background: linear-gradient(95deg, #d6336c 0%, #b23bc4 38%, #6a46e8 68%, #2f5fe0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 0 0.08em; }
-  .dl .d1 { width: calc(26 * var(--u)); height: calc(26 * var(--u)); right: calc(-6 * var(--u)); top: calc(-12 * var(--u)); --g: linear-gradient(150deg, #ffe9a6, #ffcb9a 45%, #ffaaa0 85%); --dur: 19s; }
+  .dl .d1 { width: calc(26 * var(--u)); height: calc(26 * var(--u)); right: calc(-6 * var(--u)); top: 18px; --g: linear-gradient(150deg, #ffe9a6, #ffcb9a 45%, #ffaaa0 85%); --dur: 19s; }
   .app-icon { position: absolute; z-index: 3; right: calc(4 * var(--u)); top: calc(1 * var(--u)); width: calc(17 * var(--u)); min-width: 150px; rotate: 9deg; }
   .app-icon img { width: 100%; height: auto; display: block; }
   .notes { position: relative; z-index: 3; display: flex; flex-wrap: wrap; gap: 26px; padding: 0 clamp(20px, calc(8 * var(--u)), 150px); margin-top: clamp(-20px, calc(-2 * var(--u)), 0px); align-items: flex-start; }
@@ -191,7 +192,7 @@
     .hero .h1 { opacity: 0.9; }
     .dl .giant { font-size: calc(22 * var(--u)); margin-bottom: 18px; }
     .notes { margin-top: 8px; }
-    .dl .d1 { width: calc(60 * var(--u)); height: calc(60 * var(--u)); right: calc(-26 * var(--u)); top: calc(-10 * var(--u)); }
+    .dl .d1 { width: calc(60 * var(--u)); height: calc(60 * var(--u)); right: calc(-26 * var(--u)); top: 18px; }
     .app-icon { width: calc(30 * var(--u)); right: calc(8 * var(--u)); top: calc(12 * var(--u)); }
     .note-card:nth-child(n) { width: min(320px, 90%); }
   }
