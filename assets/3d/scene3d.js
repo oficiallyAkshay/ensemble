@@ -25,7 +25,7 @@
       accentInk: 0x2d6ae0,   // the app's blue darkened to read on white
       line: 0x2a3140, lineDim: 0xa4abb8, clear: 0xffffff, bgTop: 0xffffff, bgHorizon: 0xf0f3f8,
       gridCol: 0xb4c0d4, gridMajor: 0x6f84a6,
-      skin: 0xe8b996, alu: 0xb4bac4, hinge: 0x23262d, bodyLine: 0x7a4515,
+      skin: 0xb97650, alu: 0xb4bac4, hinge: 0x23262d, bodyLine: 0x7a4515,
       monBody: 0xffffff, monScreen: 0xf4f6fa, paneDim: 0xcdd2dc, paneText: 0xb3bccb, off: 0xc8483f,
       panel: 'linear-gradient(180deg,#ffffff,#f1f4f9)', panelBorder: '#e5e5e5', panelShadow: 'rgba(10,10,10,0.08)',
       frame: {
