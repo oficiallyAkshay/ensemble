@@ -3,6 +3,20 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.29</title>
+            <pubDate>Tue, 20 Oct 2026 00:58:49 +0000</pubDate>
+            <sparkle:version>504</sparkle:version>
+            <sparkle:shortVersionString>0.2.29</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.28:
+
+- Log a line when the safety check begins stopping Claude's microphone (#166)
+- The website counts anonymous visits, download views, scroll depth, contact cards and demo drop-off in PostHog, with no cookie and nothing sent under Do Not Track (#160)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.29/Ensemble-0.2.29.dmg" length="6450842" type="application/octet-stream" sparkle:edSignature="xi7wLGQQOQT4x+CsUz0ojwHpjOSCUoEdko2dl3d/wL4H0uIvzHAeqKvmG4fW9e74OJAFoOS9fBjESo0JaIj3AQ=="/>
+        </item>
+        <item>
             <title>0.2.28</title>
             <pubDate>Mon, 19 Oct 2026 18:17:54 +0000</pubDate>
             <sparkle:version>502</sparkle:version>
@@ -38,23 +52,6 @@
 - An agent session may open and look at the installed app to check a change on the owner's Mac (#151)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.27/Ensemble-0.2.27.dmg" length="6444974" type="application/octet-stream" sparkle:edSignature="GuSKe4SJYVadGIL+e34VKxfeYvZ6tesRiHT//acPDb63h+cAhKapVSkwh9A2JVR517zUMl+HOcihaEAn9/OKAw=="/>
-        </item>
-        <item>
-            <title>0.2.26</title>
-            <pubDate>Mon, 19 Oct 2026 10:20:38 -0400</pubDate>
-            <sparkle:version>489</sparkle:version>
-            <sparkle:shortVersionString>0.2.26</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.25:
-
-- Show a light hint when the picture stays dim, and trace every head reading so lighting can be compared (#149)
-- Small website and demo labels now read at 14 px or more (#148)
-- The first-run tour teaches headphone stem presses on an optional Headphones tab (#147)
-- The contributor guide's docs row links the setup page (#145)
-- The usage triage hands ticket drafts to its caller and no longer files GitHub issues; tickets live in Linear (#144)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.26/Ensemble-0.2.26.dmg" length="6444758" type="application/octet-stream" sparkle:edSignature="rJHx5UJagmN8l2XkFoCLuz/qAP8MbdhV0tjQVVVUCq6gh+HY1Zby5zX5l9WfC2BziD35503Iw+0afgL3rjM8Bg=="/>
         </item>
     </channel>
 </rss>
