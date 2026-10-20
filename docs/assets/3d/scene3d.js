@@ -5,7 +5,8 @@
  *   window.EnsembleScene.mount(el, { scene, reducedMotion, onFrame, handUrl, handOnly, theme }) -> { setScene, setTheme, destroy, canvas }
  *   handOnly (gesture scenes only): the 3D hand fills el and no Claude window is drawn.
  *   theme: 'light' (default) or 'dark'. The page decides (the tour reads the colour-scheme media query); setTheme switches a mounted scene.
- *   The welcome and calibrate scenes fill el with one 3D canvas (desk, head, monitors). The gesture scenes (dictate,
+ *   The welcome and calibrate scenes fill el with one 3D canvas (desk, head, monitors). The closed-lid scene fills it with a closed
+ *   laptop on the same light rig and materials; no page mounts it yet. The gesture scenes (dictate,
  *   send, scroll) mount the frame layout instead: a flat 2D Claude window with one focused session, and over its
  *   right COLUMN share a top panel holding the 3D hand alone. The bottom half of that column is left empty for the
  *   app to draw the camera's hand skeleton in, except on dictate, where the panel takes the whole column.
@@ -23,7 +24,7 @@
       accentInk: 0x2d6ae0,   // the app's blue darkened to read on white
       line: 0x2a3140, lineDim: 0xa4abb8, clear: 0xffffff, bgTop: 0xffffff, bgHorizon: 0xf0f3f8,
       gridCol: 0xb4c0d4, gridMajor: 0x6f84a6,
-      woodFill: 0xd9a469, woodRim: 0x6b3d14, woodJoint: 0x7a4515, woodBone: 0x9a5a22,
+      skin: 0xe8b996, alu: 0xb4bac4, hinge: 0x23262d, bodyLine: 0x7a4515,
       monBody: 0xffffff, monScreen: 0xf4f6fa, paneDim: 0xcdd2dc, paneText: 0xb3bccb, off: 0xc8483f,
       panel: 'linear-gradient(180deg,#ffffff,#f1f4f9)', panelBorder: '#e5e5e5', panelShadow: 'rgba(10,10,10,0.08)',
       frame: {
@@ -37,7 +38,7 @@
       accentInk: 0x8ab4ff,
       line: 0xc3cada, lineDim: 0x56607a, clear: 0x0f1218, bgTop: 0x0f1218, bgHorizon: 0x1b2232,
       gridCol: 0x2a3347, gridMajor: 0x4a5b82,
-      woodFill: 0xd9a469, woodRim: 0xf2c48d, woodJoint: 0xf2c48d, woodBone: 0xd9a469,
+      skin: 0xd4a07e, alu: 0x9aa2af, hinge: 0x0c0e12, bodyLine: 0xf2c48d,
       monBody: 0x1d222c, monScreen: 0x151922, paneDim: 0x3a4254, paneText: 0x4a5367, off: 0xff6b62,
       panel: 'linear-gradient(180deg,#171b23,#0f1218)', panelBorder: '#2a3040', panelShadow: 'rgba(0,0,0,0.4)',
       frame: {
@@ -49,8 +50,8 @@
     }
   };
 
-  var DURATIONS = { welcome: 8, look: 8, calibrate: 12, dictate: 6.4, send: 5.2, scroll: 5.6 };
-  var STATIC_T = { welcome: 0.8, look: 0.8, calibrate: 3.0, dictate: 0.66, send: 1.5, scroll: 2.3 };
+  var DURATIONS = { welcome: 8, look: 8, calibrate: 12, dictate: 6.4, send: 5.2, scroll: 5.6, 'closed-lid': 6 };
+  var STATIC_T = { welcome: 0.8, look: 0.8, calibrate: 3.0, dictate: 0.66, send: 1.5, scroll: 2.3, 'closed-lid': 1.5 };
   var HAND_SCENES = { dictate: 1, send: 1, scroll: 1 };
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
@@ -120,62 +121,89 @@
   }
 
   // ------------------------------------------------------------------
-  // Outlined-fill material: translucent body, crisp fresnel rim.
-  // Works for plain and skinned meshes.
+  // The shared look: one light rig, one environment light and one set of lit materials for the head, the hand and the
+  // laptop. The renderer keeps its linear output because the stage and the props are unlit, so the lights are set to add
+  // up to about one on a face that meets them, and the hex colours are used as authored.
   // ------------------------------------------------------------------
-  function rimMaterial(fill, rim, opacity, skinned, edge) {
-    var vsHead = skinned
-      ? '#include <common>\n#include <skinning_pars_vertex>\n'
-      : '';
-    var vsBody = skinned
-      ? [
-        '#include <skinbase_vertex>',
-        '#include <beginnormal_vertex>',
-        '#include <skinnormal_vertex>',
-        '#include <begin_vertex>',
-        '#include <skinning_vertex>'
-      ].join('\n')
-      : 'vec3 objectNormal = normal; vec3 transformed = position;';
-    return new THREE.ShaderMaterial({
-      skinning: !!skinned,
-      transparent: true, depthWrite: false, side: THREE.FrontSide,
-      uniforms: {
-        uFill: { value: fill.clone() }, uRim: { value: rim.clone() },
-        uOp: { value: opacity }, uEdge: { value: edge || 0.52 }, uGrain: { value: 0.0 }, uFadeLen: { value: 0.0 },
-        uGS: { value: 1.0 }   // grain scale: the hand is modelled in metres, the head in scene units
-      },
-      vertexShader: vsHead + [
-        'varying vec3 vN; varying vec3 vV; varying vec3 vP;',
-        'void main(){',
-        vsBody,
-        '  vP = position;',
-        '  vec4 mv = modelViewMatrix * vec4(transformed, 1.0);',
-        '  vN = normalize(normalMatrix * objectNormal);',
-        '  vV = -mv.xyz;',
-        '  gl_Position = projectionMatrix * mv;',
-        '}'
-      ].join('\n'),
-      fragmentShader: [
-        'uniform vec3 uFill; uniform vec3 uRim; uniform float uOp; uniform float uEdge; uniform float uGrain; uniform float uFadeLen; uniform float uGS;',
-        'varying vec3 vN; varying vec3 vV; varying vec3 vP;',
-        'void main(){',
-        '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
-        '  float f = 1.0 - abs(dot(n, v));',
-        '  float rim = smoothstep(uEdge, uEdge + 0.07, f);',
-        '  float glow = smoothstep(0.15, 0.9, f) * 0.35;',
-        '  float lit = 0.62 + 0.38 * clamp(dot(n, normalize(vec3(0.35, 0.65, 0.7))), 0.0, 1.0);',
-        '  vec3 q = vP * uGS;',
-        '  float gr = sin(q.z * 330.0 + sin(q.y * 70.0) * 1.6 + sin(q.x * 110.0 + q.y * 30.0) * 1.1);',
-        '  float grain = smoothstep(0.35, 1.0, gr) * uGrain;',
-        '  vec3 c = uFill * lit * (1.0 - 0.28 * grain) + uRim * glow;',
-        '  c = mix(c, uRim, rim);',
-        '  float a = clamp(uOp + glow * 0.25, 0.0, 1.0);',
-        '  a = mix(a, 0.96, rim);',
-        '  if (uFadeLen > 0.0) a *= 1.0 - smoothstep(0.0, uFadeLen, vP.y);',
-        '  gl_FragColor = vec4(c, a);',
-        '}'
-      ].join('\n')
+  function buildLook(renderer, scene, disposables, T) {
+    // key from the camera side and above, a cool fill, and a rim from behind that outlines the shape on the pale and dark panels
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x8590a6, 0.6));
+    [[0xfff3e4, 0.7, 2.5, 6, 6], [0xcfdcff, 0.22, -6, 2, 3], [0xffffff, 0.45, 0, 3, -6]].forEach(function (l) {
+      var light = new THREE.DirectionalLight(l[0], l[1]);
+      light.position.set(l[2], l[3], l[4]);
+      scene.add(light);
     });
+
+    // The environment light is a small room drawn here (a top box, a warm side box, a dim floor), so no image is fetched.
+    // If the graphics card cannot render it, the lights above still light the scene.
+    try {
+      var room = new THREE.Scene();
+      room.background = new THREE.Color(0x8a93a3);
+      [[new THREE.Color(3, 3, 3), 6, 6, 0, 5, 1], [new THREE.Color(1.6, 1.4, 1.2), 4, 4, 5, 1, 2], [new THREE.Color(0.25, 0.27, 0.32), 12, 12, 0, -4, 0]].forEach(function (b) {
+        var geo = new THREE.PlaneGeometry(b[1], b[2]), mat = new THREE.MeshBasicMaterial({ color: b[0], side: THREE.DoubleSide });
+        var m = new THREE.Mesh(geo, mat);
+        m.position.set(b[3], b[4], b[5]);
+        m.lookAt(0, 0, 0);
+        room.add(m);
+        disposables.push(geo, mat);
+      });
+      var pmrem = new THREE.PMREMGenerator(renderer);
+      var env = pmrem.fromScene(room, 0.04);
+      pmrem.dispose();
+      scene.environment = env.texture;
+      disposables.push(env);
+    } catch (e) { if (window.console) console.warn('[EnsembleScene] environment light skipped', e); }
+
+    // soft skin (a thin satin coat gives the sheen), plus the same skin on the skinned hand and on the forearm that fades out
+    var skin = new THREE.MeshPhysicalMaterial({ color: T.skin, roughness: 0.58, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.45, envMapIntensity: 0.5 });
+    var skinned = skin.clone();
+    skinned.skinning = true;
+    var fadeCanvas = document.createElement('canvas');
+    fadeCanvas.width = 4; fadeCanvas.height = 64;
+    var fadeCtx = fadeCanvas.getContext('2d'), fadeGrad = fadeCtx.createLinearGradient(0, 0, 0, 64);
+    fadeGrad.addColorStop(0, '#000'); fadeGrad.addColorStop(1, '#fff');   // the top of the canvas is the far end of the forearm
+    fadeCtx.fillStyle = fadeGrad; fadeCtx.fillRect(0, 0, 4, 64);
+    var fadeTex = new THREE.CanvasTexture(fadeCanvas);
+    var armFade = skin.clone();
+    armFade.transparent = true; armFade.depthWrite = false; armFade.alphaMap = fadeTex;
+    var alu = new THREE.MeshStandardMaterial({ color: T.alu, roughness: 0.45, metalness: 0.75, envMapIntensity: 1.2 });
+    var dark = new THREE.MeshStandardMaterial({ color: T.hinge, roughness: 0.6, metalness: 0.2 });
+
+    // a soft blob under an object: the cheap shadow that keeps a laptop on the floor on a phone
+    var shadowCanvas = document.createElement('canvas');
+    shadowCanvas.width = shadowCanvas.height = 128;
+    var shadowCtx = shadowCanvas.getContext('2d'), shadowGrad = shadowCtx.createRadialGradient(64, 64, 4, 64, 64, 64);
+    shadowGrad.addColorStop(0, 'rgba(0,0,0,0.55)'); shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    shadowCtx.fillStyle = shadowGrad; shadowCtx.fillRect(0, 0, 128, 128);
+    var shadowTex = new THREE.CanvasTexture(shadowCanvas);
+
+    disposables.push(skin, skinned, armFade, alu, dark, fadeTex, shadowTex);
+    return {
+      skin: skin, skinned: skinned, armFade: armFade, alu: alu, dark: dark,
+      shadow: function (w, d) {
+        var geo = new THREE.PlaneGeometry(w, d), mat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false });
+        var m = new THREE.Mesh(geo, mat);
+        m.rotation.x = -Math.PI / 2; m.renderOrder = -4;   // above the grid, below everything lit
+        disposables.push(geo, mat);
+        return m;
+      },
+      apply: function (T2) {
+        [skin, skinned, armFade].forEach(function (m) { m.color.setHex(T2.skin); });
+        alu.color.setHex(T2.alu); dark.color.setHex(T2.hinge);
+      }
+    };
+  }
+
+  // a rounded slab, w wide and d deep in the floor plane, h tall plus a small bevel all round, its bottom just under y = 0
+  function roundedSlab(w, d, h, r, bevel) {
+    var x = -w / 2, y = -d / 2, s = new THREE.Shape();
+    s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+    s.lineTo(x + w, y + d - r); s.quadraticCurveTo(x + w, y + d, x + w - r, y + d);
+    s.lineTo(x + r, y + d); s.quadraticCurveTo(x, y + d, x, y + d - r);
+    s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+    var g = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 4, curveSegments: 10 });
+    g.rotateX(-Math.PI / 2);
+    return g;
   }
 
   function lineMat(color, opacity) {
@@ -204,7 +232,7 @@
   // ------------------------------------------------------------------
   // Desk: head, two monitors, four session panes
   // ------------------------------------------------------------------
-  function buildDesk(scene, disposables, T0) {
+  function buildDesk(scene, disposables, T0, look) {
     var root = new THREE.Group();
     scene.add(root);
     function track(o) { disposables.push(o); return o; }
@@ -212,7 +240,6 @@
     var T = T0, painters = [];
     function paint(fn) { painters.push(fn); fn(T); }
     function paintLine(mat, key) { paint(function (t) { mat.color.setHex(t[key]); }); }
-    function paintFill(mat, fillKey, rimKey) { paint(function (t) { mat.uniforms.uFill.value.setHex(t[fillKey]); mat.uniforms.uRim.value.setHex(t[rimKey]); }); }
 
     var HEAD_POS = new THREE.Vector3(0.1, 1.6, 0.7);
 
@@ -225,59 +252,31 @@
     rig.scale.setScalar(1.22);
     neck.add(rig);
 
-    // The head is drawn like the hands: translucent wood with a grained fill and a crisp rim, so it reads as the same kind of object.
-    var HEAD_GRAIN = 0.27;
-    function woodMat(opacity, edge) {
-      var m = track(rimMaterial(new THREE.Color(0), new THREE.Color(0), opacity, false, edge));
-      m.uniforms.uGrain.value = 1.0; m.uniforms.uGS.value = HEAD_GRAIN;
-      paintFill(m, 'woodFill', 'woodRim');
-      return m;
-    }
+    // The head wears the same lit skin as the hand, so the two read as one kind of object.
     var skullGeo = track(new THREE.SphereGeometry(0.42, 40, 28));
-    var skullMat = woodMat(0.85, 0.84);
-    var skull = new THREE.Mesh(skullGeo, skullMat);
+    var skull = new THREE.Mesh(skullGeo, look.skin);
     skull.scale.set(0.9, 1.1, 1.0);
     rig.add(skull);
 
-    var lm = track(lineMat(0x000000, 0.55));
-    paintLine(lm, 'woodJoint');
-    [-0.3, 0.0, 0.3].forEach(function (yy) {
-      var rr = Math.sqrt(1 - Math.pow(yy / 0.462, 2)) * 0.42;
-      var g = track(new THREE.BufferGeometry().setFromPoints(circlePts(rr, 48, 'xz')));
-      var l = new THREE.Line(g, lm);
-      l.scale.set(0.9, 1, 1.0);
-      l.position.y = yy;
-      rig.add(l);
-    });
-    var mer = track(new THREE.BufferGeometry().setFromPoints(circlePts(0.42, 56, 'yz')));
-    var merL = new THREE.Line(mer, lm); merL.scale.set(1, 1.1, 1.0); rig.add(merL);
-
-    var noseMat = woodMat(0.9, 0.7);
     var noseGeo = track(new THREE.ConeGeometry(0.1, 0.28, 4));
-    var nose = new THREE.Mesh(noseGeo, noseMat);
+    var nose = new THREE.Mesh(noseGeo, look.skin);
     nose.rotation.x = -Math.PI / 2 - 0.12;   // tip toward -z
     nose.position.set(0, -0.03, -0.52);
     rig.add(nose);
 
     var earGeo = track(new THREE.SphereGeometry(0.1, 14, 10));
     [-1, 1].forEach(function (sx) {
-      var ear = new THREE.Mesh(earGeo, noseMat);
+      var ear = new THREE.Mesh(earGeo, look.skin);
       ear.scale.set(0.35, 1.0, 0.7);
       ear.position.set(sx * 0.4, -0.02, 0.03);
       rig.add(ear);
     });
-    // brow marker so facing reads even at a distance
-    var browGeo = track(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.2, 0.1, -0.4), new THREE.Vector3(-0.1, 0.14, -0.42), new THREE.Vector3(0.1, 0.14, -0.42), new THREE.Vector3(0.2, 0.1, -0.4)]));
-    var browMat = track(lineMat(0x000000, 0.9));
-    paintLine(browMat, 'woodJoint');
-    rig.add(new THREE.Line(browGeo, browMat));
-
     var gazeMat = track(new THREE.LineBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.55 }));
     var gaze = new THREE.Line(track(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -0.62), new THREE.Vector3(0, 0, -2.4)])), gazeMat);
     rig.add(gaze);
     // neck + shoulders (static)
     var lineM = track(lineMat(0x000000, 0.9));
-    paintLine(lineM, 'woodJoint');
+    paintLine(lineM, 'bodyLine');
     var neckPts = [];
     [-1, 1].forEach(function (sx) { neckPts.push(new THREE.Vector3(sx * 0.17, -0.42, 0.03), new THREE.Vector3(sx * 0.2, -0.78, 0.05)); });
     neck.add(new THREE.LineSegments(track(new THREE.BufferGeometry().setFromPoints(neckPts)), lineM));
@@ -590,6 +589,41 @@
     }
 
     return { root: root, update: update, apply: function (T2) { T = T2; painters.forEach(function (fn) { fn(T); }); } };
+  }
+
+  // ------------------------------------------------------------------
+  // Closed laptop: aluminium base and lid with a dark seam and hinge, no logo, a soft shadow on the floor.
+  // Hidden until the closed-lid scene is shown.
+  // ------------------------------------------------------------------
+  function buildLid(scene, disposables, look) {
+    var root = new THREE.Group();
+    root.visible = false;
+    scene.add(root);
+    var W = 3.0, D = 2.1, R = 0.14, B = 0.01, FOOT = 0.012, HB = 0.055, GAP = 0.012, HL = 0.05;
+    var baseTop = FOOT + HB + 2 * B;
+    function slab(w, d, h, r, bevel, mat, y) {
+      var m = new THREE.Mesh(roundedSlab(w, d, h, r, bevel), mat);
+      m.position.y = y;
+      root.add(m);
+      disposables.push(m.geometry);
+    }
+    slab(W, D, HB, R, B, look.alu, FOOT + B);                                          // base
+    slab(W - 0.03, D - 0.03, GAP + 0.008, R - 0.01, 0.004, look.dark, baseTop - 0.008);   // the recessed seam between base and lid
+    slab(W, D, HL, R, B, look.alu, baseTop + GAP + B);                                   // lid
+    var hingeGeo = new THREE.CylinderGeometry(0.022, 0.022, W * 0.7, 16);
+    var hinge = new THREE.Mesh(hingeGeo, look.dark);
+    hinge.rotation.z = Math.PI / 2;
+    hinge.position.set(0, baseTop + GAP / 2, -D / 2 + 0.005);
+    root.add(hinge);
+    disposables.push(hingeGeo);
+    var shadow = look.shadow(W * 1.7, D * 1.9);
+    shadow.position.set(-0.12, 0.003, 0.08);
+    root.add(shadow);
+    return {
+      root: root,
+      // a slow turn back and forth that ends where it began, so the loop has no seam
+      update: function (t) { root.rotation.y = -0.5 + Math.sin(t / DURATIONS['closed-lid'] * Math.PI * 2) * 0.22; }
+    };
   }
 
   // ------------------------------------------------------------------
@@ -929,8 +963,7 @@
     return new THREE.Quaternion().setFromRotationMatrix(m);
   }
 
-  function buildHand(scene, gltf, disposables, T) {
-    var WOOD_FILL = new THREE.Color(T.woodFill), WOOD_RIM = new THREE.Color(T.woodRim);
+  function buildHand(scene, gltf, disposables, look) {
     var model = gltf.scene;
     model.updateMatrixWorld(true);
     var bones = {}, skinned = null;
@@ -938,7 +971,6 @@
       if (o.isBone) bones[o.name] = o;
       if (o.isSkinnedMesh) skinned = o;
     });
-    var armature = skinned.parent;
     var W = {}, P = {};
     Object.keys(bones).forEach(function (n) {
       W[n] = bones[n].getWorldQuaternion(new THREE.Quaternion());
@@ -990,75 +1022,20 @@
       iteration: 1
     }]);
 
-    // materials: translucent wood with a clean rim, plus joint rings
-    var fillMat = rimMaterial(WOOD_FILL, WOOD_RIM, 0.85, true, 0.84);
-    fillMat.uniforms.uGrain.value = 1.0;
-    fillMat.stencilWrite = true; fillMat.stencilRef = 1; fillMat.stencilFunc = THREE.AlwaysStencilFunc; fillMat.stencilZPass = THREE.ReplaceStencilOp;
-    skinned.material = fillMat;
+    // the shared lit skin; the skeleton and every bone stay as the glTF has them
+    skinned.material = look.skinned;
     skinned.frustumCulled = false;
-    skinned.renderOrder = 2;
-    var hullMesh = null;
-    disposables.push(fillMat);
 
-    // stencil-free outer hull: back faces pushed out along the normal, drawn behind the fill
-    var hullMat = new THREE.ShaderMaterial({
-      skinning: true, side: THREE.BackSide, transparent: true, depthWrite: false,
-      uniforms: { uCol: { value: WOOD_RIM.clone() }, uW: { value: 0.0014 } },
-      stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilFail: THREE.KeepStencilOp, stencilZFail: THREE.KeepStencilOp, stencilZPass: THREE.KeepStencilOp,
-      vertexShader: '#include <common>\n#include <skinning_pars_vertex>\nuniform float uW;\nvoid main(){\n#include <skinbase_vertex>\n#include <beginnormal_vertex>\n#include <skinnormal_vertex>\n#include <begin_vertex>\n#include <skinning_vertex>\n transformed += normalize(objectNormal) * uW;\n gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed,1.0);\n}',
-      fragmentShader: 'uniform vec3 uCol; void main(){ gl_FragColor = vec4(uCol, 1.0); }'
-    });
-    disposables.push(hullMat);
-    hullMesh = new THREE.SkinnedMesh(skinned.geometry, hullMat);
-    hullMesh.frustumCulled = false;
-    hullMesh.renderOrder = 3;
-    armature.add(hullMesh);
-    hullMesh.bind(sk, skinned.bindMatrix);
-
-    var jointMat = new THREE.LineBasicMaterial({ color: T.woodJoint, transparent: true, opacity: 0.8 });
-    var boneMat = new THREE.LineBasicMaterial({ color: T.woodBone, transparent: true, opacity: 0.55 });
-    disposables.push(jointMat, boneMat);
-    var radii = { thumb: 0.0085, 'index-finger': 0.0075, 'middle-finger': 0.0078, 'ring-finger': 0.0072, 'pinky-finger': 0.0062 };
-    Object.keys(chains).forEach(function (f) {
-      var list = chains[f];
-      for (var i = 0; i < list.length - 1; i++) {
-        var b = list[i], c = list[i + 1];
-        var dir = c.position.clone();
-        var len = dir.length();
-        dir.normalize();
-        var u = Math.abs(dir.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
-        var a1 = new THREE.Vector3().crossVectors(dir, u).normalize();
-        var a2 = new THREE.Vector3().crossVectors(dir, a1).normalize();
-        if (i > 0) {   // ring at the joint
-          var pts = [], rr = radii[f] * (1 - i * 0.06);
-          for (var k = 0; k <= 28; k++) {
-            var ang = (k / 28) * Math.PI * 2;
-            pts.push(a1.clone().multiplyScalar(Math.cos(ang) * rr).add(a2.clone().multiplyScalar(Math.sin(ang) * rr)));
-          }
-          var g = new THREE.BufferGeometry().setFromPoints(pts);
-          disposables.push(g);
-          var ring = new THREE.Line(g, jointMat);
-          b.add(ring);
-        }
-        var bg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), c.position.clone()]);
-        disposables.push(bg);
-        b.add(new THREE.Line(bg, boneMat));
-      }
-    });
-
-    // short forearm so the wrist is not cut off flat
+    // short forearm so the wrist is not cut off flat; its far end fades out through an alpha map
     var mc = chains['middle-finger'][0].position.clone();   // wrist -> middle metacarpal, in wrist space
     var fdir = mc.clone().normalize().negate();
     var armGeo = new THREE.CylinderGeometry(0.046, 0.031, 0.42, 24, 1, true);
     armGeo.translate(0, 0.21, 0);
-    var armMat = rimMaterial(WOOD_FILL, WOOD_RIM, 0.6, false, 0.8);
-    armMat.uniforms.uGrain.value = 1.0; armMat.uniforms.uFadeLen.value = 0.42;
-    var arm = new THREE.Mesh(armGeo, armMat);
+    var arm = new THREE.Mesh(armGeo, look.armFade);
     arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), fdir);
     arm.position.copy(fdir.clone().multiplyScalar(0.004));
-    arm.renderOrder = 1;
     wrist.add(arm);
-    disposables.push(armGeo, armMat);
+    disposables.push(armGeo);
 
     // hierarchy for posing
     var wristQ = W['wrist'];
@@ -1071,12 +1048,7 @@
 
     var hand = {
       pivot: pivot, model: model, bones: bones, chains: chains, W: W, P: P, solver: solver,
-      skinned: skinned, scale: scale, tmp: new THREE.Quaternion(),
-      apply: function (T2) {
-        [fillMat, armMat].forEach(function (m) { m.uniforms.uFill.value.setHex(T2.woodFill); m.uniforms.uRim.value.setHex(T2.woodRim); });
-        hullMat.uniforms.uCol.value.setHex(T2.woodRim);
-        jointMat.color.setHex(T2.woodJoint); boneMat.color.setHex(T2.woodBone);
-      }
+      skinned: skinned, scale: scale, tmp: new THREE.Quaternion()
     };
     // pre-computed thumb swing for the thumbs-up
     var d0 = P['thumb-tip'].clone().sub(P['thumb-metacarpal']).normalize();
@@ -1961,14 +1933,17 @@
 
     var scene = new THREE.Scene();
     var disposables = [];
+    var look = buildLook(renderer, scene, disposables, theme);
     var stage = frameMode ? null : buildStage(scene, disposables, theme);
-    var desk = frameMode ? null : buildDesk(scene, disposables, theme);
+    var desk = frameMode ? null : buildDesk(scene, disposables, theme, look);
+    var lid = frameMode ? null : buildLid(scene, disposables, look);
     var camera = new THREE.PerspectiveCamera(40, 1.6, 0.1, 500);
     var hand = null, handLoading = false, handFailed = false;
 
     var CAMS = {
       desk: { pos: new THREE.Vector3(1.2, 3.6, 4.3), look: new THREE.Vector3(-0.25, 1.45, -1.2), fov: 48 },
-      hand: { pos: new THREE.Vector3(3.35, 3.3, 5.0), look: new THREE.Vector3(3.35, 2.85, -3.2), fov: 43 }
+      hand: { pos: new THREE.Vector3(3.35, 3.3, 5.0), look: new THREE.Vector3(3.35, 2.85, -3.2), fov: 43 },
+      lid: { pos: new THREE.Vector3(0, 1.7, 5.2), look: new THREE.Vector3(0, 0.15, 0), fov: 36 }
     };
 
     function loadHand() {
@@ -1977,7 +1952,7 @@
       var onHand = function (gltf) {
         handLoading = false;
         if (destroyed) return;
-        try { hand = buildHand(scene, gltf, disposables, theme); } catch (e) { handFailed = true; if (window.console) console.warn('[EnsembleScene] hand build failed', e); return; }
+        try { hand = buildHand(scene, gltf, disposables, look); } catch (e) { handFailed = true; if (window.console) console.warn('[EnsembleScene] hand build failed', e); return; }
         hand.pivot.visible = !!HAND_SCENES[current];
         if (reduced) renderNow(); else if (frozen) frozenDirty = true;
       };
@@ -2009,7 +1984,7 @@
 
     function renderFrame(name, t, drift) {
       var isHand = !!HAND_SCENES[name];
-      var c = isHand ? (window.__camHand || CAMS.hand) : (window.__camDesk || CAMS.desk);
+      var c = isHand ? (window.__camHand || CAMS.hand) : name === 'closed-lid' ? CAMS.lid : (window.__camDesk || CAMS.desk);
       var d = drift ? t : 0;
       // A hand panel narrower than the half-column one (dictate's full-height panel) widens the view so the hand keeps its size and is not cut off.
       var narrow = frameMode && !opts.handOnly ? Math.max(1, HAND_PANEL_ASPECT / camera.aspect) : 1;
@@ -2028,7 +2003,11 @@
           var ctk = capTake(name);
           if (ctk) poseHandCapture(hand, ctk, t, name); else poseHand(hand, handPose(name, t));
         }
+      } else if (name === 'closed-lid') {
+        desk.root.visible = false; lid.root.visible = true;
+        lid.update(t);
       } else {
+        desk.root.visible = true; lid.root.visible = false;
         extra = desk.update(name, t);
       }
       renderer.render(scene, camera);
@@ -2065,7 +2044,7 @@
         paintPanel();
         if (stage) stage.apply(theme);
         if (desk) desk.apply(theme);
-        if (hand) hand.apply(theme);
+        look.apply(theme);
         if (frameView) frameView.setTheme(theme);
         if (reduced) renderNow(); else if (frozen) frozenDirty = true;
       },
