@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ensemble: talk to all your Claude sessions without touching a key</title>
-<meta name="description" content="A note from the person who made Ensemble, a free Mac app that lets you pick a Claude session by looking at it, dictate with a pinch and send with a thumbs-up. Try it in your browser with your camera.">
+<meta name="description" content="Ensemble is a free Mac app that lets you pick a Claude session by looking at it, dictate with a pinch and send with a thumbs-up. Try it in your browser with your camera.">
 <meta property="og:title" content="Ensemble">
 <meta property="og:description" content="Look at a Claude session. Pinch. Talk. Thumbs-up. Try it in your browser.">
 <meta property="og:type" content="website">
@@ -27,12 +27,12 @@
   body { margin: 0; color: var(--e-ink); background: #fff; font-family: var(--e-font); -webkit-font-smoothing: antialiased; overflow-x: clip; }
   a { color: inherit; text-underline-offset: 3px; }
   .page { position: relative; overflow-x: clip; }
-  .hero, .letter-sec, .how, .dl, footer { max-width: var(--wrap); margin-inline: auto; }
+  .hero, .how, .dl, footer { max-width: var(--wrap); margin-inline: auto; }
   .disp { font-family: var(--e-display); letter-spacing: -0.04em; }
 
   /* ---- gradient shapes, with grain. Every gradient is linear: no centre point can show. ---- */
   .blob { opacity: 0.7; filter: saturate(0.6) brightness(1.08); position: absolute; display: block; pointer-events: none; background: var(--g); border-radius: var(--r, 50%); rotate: var(--rot, 0deg); animation: drift var(--dur, 22s) ease-in-out infinite alternate; }
-  .blob::after, .cap::after { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0.12; mix-blend-mode: multiply; background-image: var(--grain); pointer-events: none; }
+  .blob::after { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0.12; mix-blend-mode: multiply; background-image: var(--grain); pointer-events: none; }
   .blob.soft::after { opacity: 0.08; }
   @keyframes drift { from { translate: 0 0; } to { translate: var(--dx, 14px) var(--dy, -18px); } }
   .shadowed { filter: drop-shadow(0 18px 24px rgba(40, 30, 90, 0.22)) drop-shadow(0 3px 5px rgba(40, 30, 90, 0.12)); }
@@ -56,22 +56,11 @@
   .hero .sub { margin: 20px 0 0; font: 600 clamp(18px, calc(1.7 * var(--u)), 25px)/1.3 var(--e-display); letter-spacing: -0.025em; color: #0a0a0a; max-width: 30em; }
   .hero .copy { margin: 12px 0 0; max-width: 33em; font-size: clamp(15.5px, calc(1.2 * var(--u)), 18px); line-height: 1.5; color: #404040; letter-spacing: -0.01em; }
 
-  .caps { position: absolute; right: calc(-3 * var(--u)); top: calc(-2 * var(--u)); width: calc(44 * var(--u)); height: 100%; display: flex; gap: calc(1.3 * var(--u)); align-items: flex-start; justify-content: flex-end; z-index: 1; }
-  .cap { filter: saturate(0.62) brightness(1.07); opacity: 0.86; position: relative; flex: none; width: calc(5.6 * var(--u)); border-radius: 999px; background: var(--g); overflow: hidden; translate: 0 calc(-2 * var(--u)); transition: translate 0.9s var(--e-spring), box-shadow 0.8s ease, filter 0.8s ease; box-shadow: 0 20px 30px -12px rgba(40, 30, 90, 0.25); }
-  .cap::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, #a9c8ff, #5294ff 50%, #2f6fee); opacity: 0; transition: opacity 0.7s var(--e-ease); z-index: 1; }
-  .cap.lit { translate: 0 calc(1.2 * var(--u)); box-shadow: 0 0 0 5px rgba(82, 148, 255, 0.28), 0 30px 60px -10px rgba(47, 111, 238, 0.6); }
-  .cap.lit::before { opacity: 1; }
-  .cap .ens-mark { position: absolute; left: 50%; bottom: calc(2.2 * var(--u)); translate: -50% 0; width: calc(2.6 * var(--u)); height: calc(2.6 * var(--u)); min-width: 18px; min-height: 18px; color: #fff; opacity: 0; transition: opacity 0.6s ease; z-index: 2; }
-  .cap.lit .ens-mark { opacity: 1; }
-  .island-slot { position: absolute; left: calc(60 * var(--u)); top: calc(16 * var(--u)); z-index: 6; pointer-events: none; }
-  /* straight and at reading size: every line of the island is 14px or more */
-  .island-slot .ens-island:not([data-mode="idle"]) { height: 60px; min-width: 380px; max-width: min(94vw, 470px); }
-  .island-slot .ens-text .l1 { font-size: 15px; }
-  .island-slot .ens-text .l2, .island-slot .ens-hint { font-size: 14px; }
-  .hero-bead { transition: left 1s var(--e-spring), top 1s var(--e-spring); margin: calc(-2.2 * var(--u)) 0 0 calc(-2.2 * var(--u)); }
-  .bead-obj { position: absolute; z-index: 5; left: calc(62 * var(--u)); top: calc(22 * var(--u)); width: calc(4.4 * var(--u)); height: calc(4.4 * var(--u)); min-width: 36px; min-height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); -webkit-backdrop-filter: blur(6px) saturate(1.8); backdrop-filter: blur(6px) saturate(1.8);
-    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.8), inset 0 -8px 16px rgba(255, 255, 255, 0.3), 0 14px 26px rgba(20, 40, 120, 0.3); }
-  .bead-obj::after { content: ""; position: absolute; left: 22%; top: 15%; width: 32%; height: 19%; border-radius: 50%; background: rgba(255, 255, 255, 0.95); rotate: -30deg; }
+  .hero .maker { margin: 26px 0 0; max-width: 33em; padding-left: 16px; border-left: 3px solid #5294ff; font-size: clamp(15.5px, calc(1.2 * var(--u)), 18px); line-height: 1.5; color: #262626; letter-spacing: -0.01em; }
+  /* the one hero scene: the head, the Claude window and the hand together; the canvas is transparent, so the page and the blobs show through */
+  .hero-scene { position: absolute; right: calc(-3 * var(--u)); top: calc(9 * var(--u)); width: calc(62 * var(--u)); aspect-ratio: 8 / 5; z-index: 2; pointer-events: none; }
+  .hero-scene canvas { opacity: 0; transition: opacity 0.6s ease; }
+  .hero-scene .scene.ready canvas { opacity: 1; }
 
   /* the action row */
   .cta { position: relative; z-index: 6; margin-top: 28px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
@@ -104,17 +93,8 @@
   .pop .dots i:nth-child(2) { animation-delay: 0.15s; } .pop .dots i:nth-child(3) { animation-delay: 0.3s; }
   @keyframes pulse { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
 
-  /* ---- spread 2: the letter. One column of type, nothing floating over it. ---- */
   :root { --gut: clamp(20px, 5vw, 64px); }
-  .letter-sec { position: relative; max-width: 1280px; padding: clamp(56px, calc(8 * var(--u)), 120px) var(--gut) clamp(24px, 3vw, 48px); }
-  .chip-wrap { margin-bottom: 22px; }
-  .chip-wrap .ens-chip, .how-head .ens-chip { background: #fff; font-size: 14px; padding: 8px 14px; box-shadow: 0 6px 16px rgba(80, 60, 160, 0.12); }
-  .lead { margin: 0 0 clamp(24px, 3vw, 40px); max-width: 12em; font: 700 clamp(34px, calc(5.4 * var(--u)), 84px)/1.02 var(--e-display); letter-spacing: -0.045em; text-wrap: balance; }
-  .lead mark { background: none; color: inherit; background-image: linear-gradient(95deg, #8fb8ff, #5294ff 50%, #7a5cff); background-repeat: no-repeat; background-size: 100% 0.34em; background-position: 0 90%; padding: 0 0.04em; }
-  /* the text under the headline is one size and one style; only the last line is set a shade darker */
-  .body { max-width: 34em; }
-  .body p { margin: 0 0 1.1em; color: #404040; font: 400 clamp(18px, calc(1.7 * var(--u)), 21px)/1.6 var(--e-font); letter-spacing: -0.01em; text-wrap: pretty; }
-  .body p.last { margin-bottom: 0; color: #0a0a0a; font-weight: 600; }
+  .how-head .ens-chip { background: #fff; font-size: 14px; padding: 8px 14px; box-shadow: 0 6px 16px rgba(80, 60, 160, 0.12); }
 
   .reveal { opacity: 0; translate: 0 22px; transition: opacity 0.8s var(--e-ease), translate 0.9s var(--e-spring); }
   .reveal.in { opacity: 1; translate: 0 0; }
@@ -188,13 +168,9 @@
     .hero { min-height: 0; padding-bottom: 60px; display: flex; flex-direction: column; }
     .hero-text { order: 1; max-width: none; padding-top: 96px; }
     .hero h1 { font-size: clamp(40px, calc(12.4 * var(--u)), 84px); }
-    .caps { width: calc(74 * var(--u)); right: calc(-16 * var(--u)); top: calc(-6 * var(--u)); opacity: 0.9; }
-    .cap { width: calc(10 * var(--u)); }
-    .island-slot { order: 2; position: relative; left: auto; top: auto; align-self: flex-start; margin: 36px 0 0 calc(2 * var(--u)); }
-    .hero-bead { display: none; }
+    .hero-scene { order: 2; position: relative; right: auto; top: auto; width: 100%; margin-top: 28px; }
     .nav-links a:first-child { display: none; }
     .hero .h1 { width: calc(80 * var(--u)); height: calc(66 * var(--u)); left: calc(-30 * var(--u)); top: calc(-26 * var(--u)); }
-    .bead-obj { display: none; }
     .hero .h3 { width: calc(60 * var(--u)); height: calc(24 * var(--u)); left: auto; right: calc(-10 * var(--u)); bottom: 0; }
     .hero .h1 { opacity: 0.9; }
     .dl .giant { font-size: calc(22 * var(--u)); margin-bottom: 18px; }
@@ -208,37 +184,13 @@
 <body>
 <div class="page">
 <nav class="nav">
-  <a class="brand" href="./" aria-label="Ensemble"><svg class="ens-mark" id="brand-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</a>
+  <a class="brand" href="./" aria-label="Ensemble"><svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>Ensemble</a>
   <div class="nav-links"><a href="#how">How it works</a><a href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download</a><a href="https://github.com/oficiallyAkshay/ensemble">GitHub</a></div>
 </nav>
 
 <header class="hero">
   <i class="blob h1" aria-hidden="true"></i><i class="blob h3" aria-hidden="true"></i>
-  <div class="caps" id="art" aria-hidden="true">
-    <div class="cap" style="height:34vw;--g:linear-gradient(180deg,#ffd84d,#ff9a4c 55%,#ff5fa2)"><svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></div>
-    <div class="cap" style="height:44vw;--g:linear-gradient(180deg,#7a5cff,#b08cff 50%,#ff7ab8)"><svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></div>
-    <div class="cap" style="height:30vw;--g:linear-gradient(180deg,#3fd9c4,#7be8c8 45%,#ffe04d)"><svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></div>
-    <div class="cap" style="height:40vw;--g:linear-gradient(180deg,#ff5fa2,#ff8a4c 50%,#ffd84d)"><svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></div>
-    <div class="cap" style="height:48vw;--g:linear-gradient(180deg,#2fd3c0,#5294ff 55%,#7a5cff)"><svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></div>
-    <div class="cap" style="height:36vw;--g:linear-gradient(180deg,#ffa63d,#ff5f6d 60%,#b04cff)"><svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></div>
-    <div class="cap" style="height:42vw;--g:linear-gradient(180deg,#ffe04d,#9be85a 55%,#2fd3c0)"><svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg></div>
-  </div>
-  <div class="bead-obj hero-bead" id="hero-bead" aria-hidden="true"></div>
-  <div class="island-slot" aria-hidden="true">
-    <div class="ens-island" id="island" data-mode="idle">
-      <svg class="ens-mark" viewBox="0 0 16 18"><circle cx="8" cy="6.2" r="2.3"/><circle cx="4.9" cy="11.8" r="2.3"/><circle cx="11.1" cy="11.8" r="2.3"/></svg>
-      <span class="ens-glyph">
-        <svg class="g-look" viewBox="0 0 26 18"><circle class="ring" cx="13" cy="9" r="6.5"/><circle class="pip" cx="13" cy="9" r="2.2"/></svg>
-        <svg class="g-pinch" viewBox="0 0 26 18"><circle class="tip a" cx="9" cy="9" r="3.2"/><circle class="tip b" cx="17" cy="9" r="3.2"/></svg>
-        <svg class="g-mic" viewBox="0 0 26 18"><rect x="10" y="1.5" width="6" height="10" rx="3"/><path d="M7 8.5a6 6 0 0 0 12 0M13 14.5v2" fill="none"/></svg>
-        <svg class="g-send" viewBox="0 0 26 18"><path d="M5 9 21 3l-4 12-4-5z"/></svg>
-        <svg class="g-check" viewBox="0 0 26 18"><path d="m6 9 4 4 9-9" fill="none"/></svg>
-      </span>
-      <span class="ens-text"><b class="l1"></b><span class="l2"></span></span>
-      <span class="ens-hint"></span>
-      <i class="ens-edge"></i>
-    </div>
-  </div>
+  <div class="hero-scene" role="img" aria-label="A 3D head turns from a Claude window on a side screen to the Claude window on the main screen. A 3D hand pinches twice beside it, the window starts listening and the message types in."><div class="scene" data-scene="hero"></div></div>
   <div class="hero-text">
     <span class="ens-chip">Free &middot; open source &middot; for Mac</span>
     <h1>Run Claude by looking at it.</h1>
@@ -263,6 +215,7 @@
         </div>
       </div>
     </div>
+    <p class="maker">I talk to my agents now, a dozen Claude sessions on three screens, each one waiting to hear what I want. So I got rid of the find and the click: I look at a session, I pinch, I talk, thumbs-up, next.</p>
   </div>
 </header>
 
@@ -412,20 +365,6 @@
   </div>
 </section>
 
-<section class="letter-sec" id="note">
-  <div class="chip-wrap reveal"><span class="ens-chip">A note from the person who made this</span></div>
-  <article class="letter">
-    <h2 class="lead reveal">Talk for thirty minutes. Get <mark>two weeks</mark> of work.</h2>
-    <div class="body">
-      <p class="reveal">Type to your AI for thirty minutes and it can build two days of work. Talk to it and it can build two weeks. I learned that the slow way.</p>
-      <p class="reveal">I talk to my agents now, a lot of them, all at once. A dozen Claude sessions on three screens, each one waiting to hear what I want. And my night became: find the right window, click it, talk. Find, click, talk.</p>
-      <p class="reveal">So I got rid of the find and the click. I look at a session. I pinch. I talk. Thumbs-up. Next.</p>
-      <p class="reveal">If you've already stopped typing to your agents, you're one click from leaning back.</p>
-      <p class="last reveal">Ensemble. Free, open source, for the Mac.</p>
-    </div>
-  </article>
-</section>
-
 <section class="how" id="how">
   <div class="how-head reveal"><span class="ens-chip">How it works</span></div>
 
@@ -493,7 +432,7 @@
     catch { copy.textContent = location.href.split('#')[0]; }
   });
 
-  // ---- the letter reveals itself, line by line ----
+  // ---- the sections reveal themselves as they scroll into view ----
   const rev = [...document.querySelectorAll('.reveal')];
   if (!('IntersectionObserver' in window) || reduce) rev.forEach((n) => n.classList.add('in'));
   else {
@@ -507,38 +446,6 @@
     const vio = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('off', !e.isIntersecting)));
     arts.forEach((n) => vio.observe(n));
   }
-
-  // ---- the island narrates the four gestures in a loop ----
-  const island = $('island'), mark = $('brand-mark'), caps = [...document.querySelectorAll('#art .cap')];
-  let litAt = 3;
-  const l1 = island.querySelector('.l1'), l2 = island.querySelector('.l2'), hint = island.querySelector('.ens-hint');
-  const NAME = '<em>api-refactor</em>';
-  const SCRIPT = [
-    { step: 0, mode: 'look', l1: 'Looking at', l2: NAME, hint: '', ms: 2300 },
-    { step: 1, mode: 'firstPinch', l1: 'Pinch again to dictate', l2: 'in ' + NAME, hint: '', ms: 1900 },
-    { step: 2, mode: 'dictating', l1: 'Claude dictation on', l2: 'in ' + NAME, hint: 'double pinch to stop', ms: 2800 },
-    { step: 3, mode: 'sendHold', l1: 'Sending in ' + NAME, l2: '', hint: 'lower to cancel', ms: 1400, fill: true },
-    { step: 3, mode: 'banner', style: 'sent', l1: 'Sent in ' + NAME, l2: '', hint: '', ms: 1800 },
-    { step: -1, mode: 'idle', ms: 1500 },
-  ];
-  let k = -1, timer = 0, raf = 0;
-  function show(s) {
-    island.dataset.mode = s.mode; island.dataset.style = s.style || '';
-    l1.innerHTML = s.l1 || ''; l2.innerHTML = s.l2 || ''; hint.textContent = s.hint || '';
-    island.classList.remove('swap'); void island.offsetWidth; island.classList.add('swap');
-    if (s.step === 0) { litAt = 1 + ((litAt - 1 + 2 + Math.floor(Math.random() * 3)) % Math.max(caps.length - 2, 1)); }
-    caps.forEach((c, i) => c.classList.toggle('lit', s.step >= 0 && i === litAt));
-    const hb = $('hero-bead'), lc = caps[litAt], hero = hb && hb.parentElement;
-    if (hb && lc && s.step >= 0) { const a = lc.getBoundingClientRect(), b = hero.getBoundingClientRect(); hb.style.left = (a.left - b.left + a.width / 2) + 'px'; hb.style.top = (a.top - b.top + a.height * (0.28 + 0.12 * s.step)) + 'px'; }
-    if (s.step < 0) caps[litAt] && caps[litAt].classList.remove('lit');
-    mark.classList.toggle('live', s.mode === 'dictating');
-    cancelAnimationFrame(raf); island.style.setProperty('--fill', 0);
-    if (s.fill) { const t0 = performance.now(); const f = (t) => { const p = Math.min((t - t0) / (s.ms - 150), 1); island.style.setProperty('--fill', p.toFixed(3)); if (p < 1) raf = requestAnimationFrame(f); }; raf = requestAnimationFrame(f); }
-  }
-  function next() { k = (k + 1) % SCRIPT.length; show(SCRIPT[k]); timer = setTimeout(next, SCRIPT[k].ms); }
-  function startIsland() { if (!timer) next(); }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(timer); timer = 0; } else startIsland(); });
-  setTimeout(startIsland, 500);
 
   // ---- the glass nose dot glides after the pointer, as the app's dot glides after your nose ----
   const dot = $('dot');
@@ -643,7 +550,7 @@
     ]);
   }
 
-  // ---- the tour's own 3D scenes: nothing loads until a step is about to scroll into view ----
+  // ---- the tour's own 3D scenes: the hero scene loads with the page; each step's scene loads when it is about to scroll into view ----
   // The scenes (docs/assets/3d, the same files the Mac app's tour uses) draw the Claude window reacting to the hand themselves.
   // Talk has no tour scene, so its little Claude screen runs on its own clock.
   const scenes = [...document.querySelectorAll('[data-scene]')];

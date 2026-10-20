@@ -6,7 +6,8 @@
  *   handOnly (gesture scenes only): the 3D hand fills el and no Claude window is drawn.
  *   theme: 'light' (default) or 'dark'. The page decides (the tour reads the colour-scheme media query); setTheme switches a mounted scene.
  *   The welcome and calibrate scenes fill el with one 3D canvas (desk, head, monitors). The closed-lid scene fills it with a closed
- *   laptop on the same light rig and materials; no page mounts it yet. The gesture scenes (dictate,
+ *   laptop on the same light rig and materials; no page mounts it yet. The hero scene (the website's top) is the desk
+ *   with the dictate scene's Claude window on the main screen and the dictate hand beside it, on a transparent canvas. The gesture scenes (dictate,
  *   send, scroll) mount the frame layout instead: a flat 2D Claude window with one focused session, and over its
  *   right COLUMN share a top panel holding the 3D hand alone. The bottom half of that column is left empty for the
  *   app to draw the camera's hand skeleton in, except on dictate, where the panel takes the whole column.
@@ -50,8 +51,9 @@
     }
   };
 
-  var DURATIONS = { welcome: 8, look: 8, calibrate: 12, dictate: 6.4, send: 5.2, scroll: 5.6, 'closed-lid': 6 };
-  var STATIC_T = { welcome: 0.8, look: 0.8, calibrate: 3.0, dictate: 0.66, send: 1.5, scroll: 2.3, 'closed-lid': 1.5 };
+  // hero: the website's top scene. The head, the main screen's Claude window and the dictate hand share one clock (durOf and eventsFor read dictate's).
+  var DURATIONS = { welcome: 8, look: 8, calibrate: 12, dictate: 6.4, send: 5.2, scroll: 5.6, 'closed-lid': 6, hero: 6.4 };
+  var STATIC_T = { welcome: 0.8, look: 0.8, calibrate: 3.0, dictate: 0.66, send: 1.5, scroll: 2.3, 'closed-lid': 1.5, hero: 3.0 };
   var HAND_SCENES = { dictate: 1, send: 1, scroll: 1 };
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
@@ -59,6 +61,7 @@
   function lerp(a, b, k) { return a + (b - a) * k; }
   var D2R = Math.PI / 180;
   var HAND_SCALE = 12.5;   // scene units per metre of rig hand
+  var HERO_HAND_SCALE = 0.42;   // the hero shows the hand at about the size of the head
 
   // ------------------------------------------------------------------
   // Stage: sky gradient, fading grid floor
@@ -553,11 +556,31 @@
       return calPos;
     }
 
+    // --- hero: the focused Claude window of the gesture scenes, drawn on the main screen in place of its two line-art panes ---
+    var heroWin = null, heroFocus = null;
+    function heroWindow(tex) {
+      var h = MAIN_H - 0.1, w = h * FW / FH, f = PANES[1];
+      heroWin = new THREE.Mesh(track(new THREE.PlaneGeometry(w, h)), track(new THREE.MeshBasicMaterial({ map: tex })));
+      heroWin.position.z = 0.05;
+      heroWin.visible = false;
+      main.group.add(heroWin);
+      heroFocus = main.group.localToWorld(new THREE.Vector3(((f.x + f.w / 2) / FW - 0.5) * w, (0.5 - (PANE_Y + PANE_H / 2) / FH) * h, 0.05));
+    }
+    // The head starts on the Claude session on the side screen, turns to the one in the window, stays while the hand dictates and turns
+    // back by the loop end, so the loop closes on its first frame.
+    function heroLook(t) {
+      var D = durOf('hero'), from = paneAims()[2], to = aimHead(heroFocus);
+      var k = smooth((t - D * 0.04) / (D * 0.12)) * (1 - smooth((t - D * 0.88) / (D * 0.12)));
+      var wob = Math.sin(t * 2.3) * 0.012 * k;
+      return { yaw: lerp(from.yaw, to.yaw, k) + wob, pitch: lerp(from.pitch, to.pitch, k), hl: 1 - smooth(clamp((k - 0.25) / 0.5, 0, 1)) };
+    }
+
     function update(name, t) {
       var st = { dot: -1, progress: 0 };
-      var isCal = name === 'calibrate';
+      var isCal = name === 'calibrate', isHero = name === 'hero';
       calDots.forEach(function (d) { d.group.visible = isCal; });
-      panes.forEach(function (p) { p.group.visible = !isCal; });   // calibration shows the points only, no sessions
+      panes.forEach(function (p, i) { p.group.visible = !isCal && !(isHero && i < 2); });   // calibration shows the points only, no sessions
+      if (heroWin) heroWin.visible = isHero;
       if (isCal) {
         var pts = calPoints();
         var slot = DURATIONS.calibrate / pts.length;   // 1.2 s
@@ -576,6 +599,10 @@
         rig.rotation.y = aim.yaw; rig.rotation.x = aim.pitch;
         setPaneHighlights([0, 0, 0, 0], true);
         st.dot = idx; st.progress = prog;
+      } else if (isHero) {
+        var hr = heroLook(t);
+        rig.rotation.y = hr.yaw; rig.rotation.x = hr.pitch;
+        setPaneHighlights([0, 0, hr.hl, 0], false);
       } else {
         var r = lookAt(t % 8);
         rig.rotation.y = r.yaw; rig.rotation.x = r.pitch;
@@ -588,7 +615,7 @@
       return st;
     }
 
-    return { root: root, update: update, apply: function (T2) { T = T2; painters.forEach(function (fn) { fn(T); }); } };
+    return { root: root, update: update, heroWindow: heroWindow, apply: function (T2) { T = T2; painters.forEach(function (fn) { fn(T); }); } };
   }
 
   // ------------------------------------------------------------------
@@ -1831,12 +1858,13 @@
     scroll: {}
   };
   function eventsFor(name) {
+    if (name === 'hero') name = 'dictate';
     var tk = capTake(name);
     return tk ? tk.events : (KEYED_EVENTS[name] || {});
   }
   function durOf(name) {
-    var tk = capTake(name);
-    return tk ? tk.D : DURATIONS[name];
+    var tk = capTake(name === 'hero' ? 'dictate' : name);
+    return tk ? tk.D : DURATIONS[name === 'hero' ? 'dictate' : name];
   }
   function staticTOf(name) {
     var tk = capTake(name);
@@ -1844,7 +1872,9 @@
   }
   function stateFor(name, t) {
     var s = { listening: false, draft: 0, hold: 0, sent: false, scroll: 0 };
-    var tk = capTake(name), e = eventsFor(name);
+    var which = name, gesture = name === 'hero' ? 'dictate' : name;
+    var tk = capTake(gesture), e = eventsFor(gesture);
+    name = gesture;
     if (name === 'dictate') {
       s.listening = e.listen.some(function (iv) { return t >= iv[0] && t < iv[1]; });
       s.draft = t < e.draft0 ? 0 : t > e.draft1 ? 1 : sstep((t - e.draft0) / (e.draft1 - e.draft0));
@@ -1854,7 +1884,7 @@
     } else if (name === 'scroll') {
       s.scroll = tk ? clamp(capScalar(tk, tk.scroll, t), 0, 1) : clamp(sampleTable(tableFor('scroll'), t).mv, 0, 1);
     }
-    s.scene = name; s.gesture = name; s.t = t;
+    s.scene = which; s.gesture = gesture; s.t = t;
     return s;
   }
 
@@ -1877,9 +1907,12 @@
     if (capSrc) { try { loadCapture(capSrc, opts.captureOptions); } catch (e) { if (window.console) console.warn('[EnsembleScene] capture ignored', e); } }
 
     var frameMode = !!HAND_SCENES[current];
+    // The hero is a desk scene with the hand in it, drawn straight on the page: transparent, with no sky or floor grid.
+    var heroMode = current === 'hero';
+    var clearAlpha = frameMode || heroMode ? 0 : 1;
     var renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: frameMode, powerPreference: 'low-power' });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: clearAlpha === 0, powerPreference: 'low-power' });
       if (!renderer.getContext()) throw new Error('no context');
     } catch (e) {
       var msg = document.createElement('p');
@@ -1889,7 +1922,7 @@
       return noop();
     }
     var theme = THEMES[opts.theme] || THEMES.light;
-    renderer.setClearColor(theme.clear, frameMode ? 0 : 1);
+    renderer.setClearColor(theme.clear, clearAlpha);
     renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
     if (!container.style.position) container.style.position = 'relative';
     var sizeBox = container, frameView = null, frameCanvas = null, column = null, panel0 = null, spacer = null;
@@ -1934,13 +1967,31 @@
     var scene = new THREE.Scene();
     var disposables = [];
     var look = buildLook(renderer, scene, disposables, theme);
-    var stage = frameMode ? null : buildStage(scene, disposables, theme);
+    var stage = frameMode || heroMode ? null : buildStage(scene, disposables, theme);
     var desk = frameMode ? null : buildDesk(scene, disposables, theme, look);
     var lid = frameMode ? null : buildLid(scene, disposables, look);
     var camera = new THREE.PerspectiveCamera(40, 1.6, 0.1, 500);
     var hand = null, handLoading = false, handFailed = false;
 
+    // hero: the main screen shows the dictate scene's Claude window (a canvas texture), and the hand sits right of the screen at a
+    // head-sized scale. handRig maps the hand's own scene coordinates (HAND_HOME, in the hand camera's world) to that spot.
+    var winView = null, handRig = null;
+    if (heroMode) {
+      var winCanvas = document.createElement('canvas');
+      winView = makeFrameView(winCanvas, theme);
+      winView.resize(FW, FH, 1.5);
+      var winTex = new THREE.CanvasTexture(winCanvas);
+      winTex.minFilter = THREE.LinearFilter; winTex.generateMipmaps = false;
+      disposables.push(winTex);
+      desk.heroWindow(winTex);
+      handRig = new THREE.Group();
+      handRig.scale.setScalar(HERO_HAND_SCALE);
+      handRig.position.set(2.15, 1.15, 0.2).addScaledVector(HAND_HOME_V('dictate'), -HERO_HAND_SCALE);
+      scene.add(handRig);
+    }
+
     var CAMS = {
+      hero: { pos: new THREE.Vector3(0.4, 4.5, 5.4), look: new THREE.Vector3(0.4, 1.3, -1.0), fov: 30 },
       desk: { pos: new THREE.Vector3(1.2, 3.6, 4.3), look: new THREE.Vector3(-0.25, 1.45, -1.2), fov: 48 },
       hand: { pos: new THREE.Vector3(3.35, 3.3, 5.0), look: new THREE.Vector3(3.35, 2.85, -3.2), fov: 43 },
       lid: { pos: new THREE.Vector3(0, 1.7, 5.2), look: new THREE.Vector3(0, 0.15, 0), fov: 36 }
@@ -1953,7 +2004,8 @@
         handLoading = false;
         if (destroyed) return;
         try { hand = buildHand(scene, gltf, disposables, look); } catch (e) { handFailed = true; if (window.console) console.warn('[EnsembleScene] hand build failed', e); return; }
-        hand.pivot.visible = !!HAND_SCENES[current];
+        if (handRig) handRig.add(hand.pivot);
+        hand.pivot.visible = !!HAND_SCENES[current] || heroMode;
         if (reduced) renderNow(); else if (frozen) frozenDirty = true;
       };
       var onFail = function (e) { handLoading = false; handFailed = true; if (window.console) console.warn('[EnsembleScene] hand load failed', e); };
@@ -1984,7 +2036,7 @@
 
     function renderFrame(name, t, drift) {
       var isHand = !!HAND_SCENES[name];
-      var c = isHand ? (window.__camHand || CAMS.hand) : name === 'closed-lid' ? CAMS.lid : (window.__camDesk || CAMS.desk);
+      var c = isHand ? (window.__camHand || CAMS.hand) : name === 'closed-lid' ? CAMS.lid : name === 'hero' ? CAMS.hero : (window.__camDesk || CAMS.desk);
       var d = drift ? t : 0;
       // A hand panel narrower than the half-column one (dictate's full-height panel) widens the view so the hand keeps its size and is not cut off.
       var narrow = frameMode && !opts.handOnly ? Math.max(1, HAND_PANEL_ASPECT / camera.aspect) : 1;
@@ -2006,6 +2058,16 @@
       } else if (name === 'closed-lid') {
         desk.root.visible = false; lid.root.visible = true;
         lid.update(t);
+      } else if (name === 'hero') {
+        desk.root.visible = true; lid.root.visible = false;
+        winView.draw(stateFor(name, t), 'dictate', t);
+        winTex.needsUpdate = true;
+        extra = desk.update(name, t);
+        loadHand();
+        if (hand) {
+          var htk = capTake('dictate');
+          if (htk) poseHandCapture(hand, htk, t, 'dictate'); else poseHand(hand, handPose('dictate', t));
+        }
       } else {
         desk.root.visible = true; lid.root.visible = false;
         extra = desk.update(name, t);
@@ -2025,13 +2087,13 @@
       renderFrame(current, el % durOf(current), true);
     }
 
-    if (HAND_SCENES[current]) loadHand();
+    if (HAND_SCENES[current] || heroMode) loadHand();
     if (reduced) { renderNow(); } else { raf = requestAnimationFrame(loop); }
 
     var handle = {
       canvas: renderer.domElement,
       setScene: function (name) {
-        if (!DURATIONS[name] || !!HAND_SCENES[name] !== frameMode) return;   // the layout is fixed per mount
+        if (!DURATIONS[name] || !!HAND_SCENES[name] !== frameMode || (name === 'hero') !== heroMode) return;   // the layout is fixed per mount
         current = name; t0 = performance.now(); frozen = null;
         if (spacer) spacer.style.display = name === 'dictate' ? 'none' : '';
         if (HAND_SCENES[name]) loadHand();
@@ -2040,12 +2102,13 @@
       setTheme: function (name) {
         if (!THEMES[name] || THEMES[name] === theme) return;
         theme = THEMES[name];
-        renderer.setClearColor(theme.clear, frameMode ? 0 : 1);
+        renderer.setClearColor(theme.clear, clearAlpha);
         paintPanel();
         if (stage) stage.apply(theme);
         if (desk) desk.apply(theme);
         look.apply(theme);
         if (frameView) frameView.setTheme(theme);
+        if (winView) winView.setTheme(theme);
         if (reduced) renderNow(); else if (frozen) frozenDirty = true;
       },
       destroy: function () {
@@ -2059,7 +2122,7 @@
         if (lastInstance === handle) lastInstance = null;
       },
       _seek: function (name, t) {
-        if (!DURATIONS[name] || !!HAND_SCENES[name] !== frameMode) name = current;
+        if (!DURATIONS[name] || !!HAND_SCENES[name] !== frameMode || (name === 'hero') !== heroMode) name = current;
         current = name;
         if (spacer) spacer.style.display = name === 'dictate' ? 'none' : '';
         frozen = { name: name, t: t }; frozenDirty = true;
@@ -2148,7 +2211,7 @@
         return { report: rep, errors: res };
       },
       _hand: function () { return hand; },
-      _ready: function () { return !HAND_SCENES[current] || !!hand || handFailed; },
+      _ready: function () { return (!HAND_SCENES[current] && !heroMode) || !!hand || handFailed; },
       _pinchGap: function () {
         if (!hand) return null;
         var a = hand.bones['thumb-tip'].getWorldPosition(new THREE.Vector3());
