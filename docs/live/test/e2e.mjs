@@ -1,4 +1,4 @@
-// End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|prefetch|camera|denied|nodevice|mouse|phone|tablet|cpu|nowebgl|modelfail|analytics|analyticsPrivacy|analyticsDemo|all]
+// End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|gallerygap|prefetch|camera|denied|nodevice|mouse|phone|tablet|cpu|nowebgl|modelfail|analytics|analyticsPrivacy|analyticsDemo|all]
 // It starts its own static server (serve.mjs, which sends the headers GitHub Pages sends and counts requests) and needs Chrome at the usual macOS path.
 // Fake camera: a test pattern with no face or hand.
 import { launch, Page, say, sleep } from './cdp.mjs';
@@ -812,6 +812,30 @@ async function letterPhone() {
 }
 
 
+// The download circle drifts and is rotated, so it is measured at the start and the end of its drift; it must stay below the closed-lid vignette with a gap.
+async function gallerygap() {
+  say('scenario gallerygap: the download circle stays below the last vignette at 320, 390, 768, 1280 and 1920 px');
+  const c = await launch({ port: 9384, flags: [], size: '1280,900' });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    for (const width of [320, 390, 768, 1280, 1920]) {
+      await p.send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
+      await p.send('Page.navigate', { url: LETTER });
+      await p.waitFor("document.readyState === 'complete'", 15000);
+      const gaps = await p.eval(`(() => {
+        const last = [...document.querySelectorAll('.vig-grid .vig')].pop(), blob = document.querySelector('.dl .d1');
+        return [0, 1].map((end) => {
+          blob.getAnimations().forEach((a) => { a.pause(); a.currentTime = end ? a.effect.getComputedTiming().duration : 0; });
+          return Math.round(blob.getBoundingClientRect().top - last.getBoundingClientRect().bottom);
+        });
+      })()`);
+      check(`${width}px: the download circle stays 24px or more below the closed-lid vignette (${gaps.join(', ')})`, gaps.every((g) => g >= 24));
+    }
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
 async function centre() {
   say('scenario centre: the centring step, with synthetic head readings (the fake camera shows no face)');
   const c = await launch({ port: 9361, flags: FAKE });
@@ -1001,7 +1025,7 @@ async function scrollable() {
 }
 
 const which = process.argv[2] || 'all';
-const all = { analytics, analyticsPrivacy, analyticsDemo, scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, camera, denied, nodevice, mouse, phone, tablet, cpu, nowebgl, modelfail };
+const all = { analytics, analyticsPrivacy, analyticsDemo, scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, gallerygap, camera, denied, nodevice, mouse, phone, tablet, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }
