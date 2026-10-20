@@ -20,7 +20,7 @@ const ISLAND = `<svg class="ens-mark" viewBox="0 0 16 18" aria-hidden="true"><ci
 export function createMini(host, kind, { wave = null } = {}) {
   host.textContent = '';
   const lw = () => Math.round((host.clientWidth || 600) / ZOOM);
-  const box = document.createElement('div'); box.className = 'mini'; box.style.width = `${lw()}px`;
+  const box = document.createElement('div'); box.className = 'mini skeleton'; box.style.width = `${lw()}px`;
   const island = document.createElement('div'); island.className = 'ens-island mini-island'; island.dataset.mode = 'dictating'; island.innerHTML = ISLAND;
   const top = document.createElement('div'); top.className = 'mini-top'; top.append(island);
   const win = document.createElement('div'); win.className = 'mini-win';
@@ -28,7 +28,7 @@ export function createMini(host, kind, { wave = null } = {}) {
   stage.style.cssText = 'grid-template-rows:400px';
   const hl = document.createElement('i'); hl.className = 'ens-highlight mini-hl on listening';
   win.append(stage, hl); box.append(top, win); host.append(box);
-  const panes = ['api', 'landing'].map((id, k) => { const p = buildPane(byId[id], k); stage.append(p.el); return p; });
+  const panes = ['api', 'landing'].map((id, k) => { const p = buildPane(byId[id], k); p.el.querySelector('.ls-foot').remove(); stage.append(p.el); return p; });
   const a = panes[0];
   island.querySelector('.l2').innerHTML = `in <em>${a.name}</em>`;
   const place = () => { hl.style.width = `${a.el.offsetWidth - 4}px`; hl.style.height = `${a.el.offsetHeight - 4}px`; hl.style.transform = `translate(${a.el.offsetLeft + 2}px, ${a.el.offsetTop + 2}px)`; };
