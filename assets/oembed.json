@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "type": "photo",
+  "title": "Ensemble: run Claude by looking at it",
+  "author_name": "Ensemble",
+  "author_url": "https://oficiallyakshay.github.io/ensemble/",
+  "provider_name": "Ensemble",
+  "provider_url": "https://oficiallyakshay.github.io/ensemble/",
+  "url": "https://oficiallyakshay.github.io/ensemble/assets/social-preview-2.png",
+  "width": 1280,
+  "height": 640,
+  "thumbnail_url": "https://oficiallyakshay.github.io/ensemble/assets/social-preview-2.png",
+  "thumbnail_width": 1280,
+  "thumbnail_height": 640,
+  "cache_age": 3600
+}
