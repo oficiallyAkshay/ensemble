@@ -1,40 +1,83 @@
-/* The "incredibly intuitive" gallery: eight abstract loops drawn in inline SVG, moved by CSS alone.
+/* The "incredibly intuitive" gallery: seven loops drawn in inline SVG and moved by CSS alone, a static list, and the closed-lid loop.
    The base style of every shape is the still frame (the telling moment of the story), so a
-   visitor who asks for reduced motion sees stills; the animations are only added when motion is welcome. */
+   visitor who asks for reduced motion sees stills; the animations are only added when motion is welcome.
+   Every window is the shared Claude session look (#v-claude, defined once above the grid) or the plain other-app window (#v-other). */
 
 .vigs { position: relative; max-width: 1280px; margin-inline: auto; padding: clamp(56px, 8vw, 110px) var(--gut) 0; }
 .vigs-head .ens-chip { background: #fff; font-size: 14px; padding: 8px 14px; box-shadow: 0 6px 16px rgba(80, 60, 160, 0.12); }
 .vigs h2 { margin: 18px 0 0; font: 700 clamp(40px, 6.2vw, 96px)/0.92 var(--e-display); letter-spacing: -0.05em; text-wrap: balance; }
 .vigs-lede { margin: 14px 0 0; max-width: 30em; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.45; color: #404040; letter-spacing: -0.01em; text-wrap: pretty; }
 .vig-grid { margin-top: clamp(24px, 3vw, 40px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(32px, 4vw, 56px) clamp(20px, 3vw, 40px); }
+.vig { display: flex; flex-direction: column; }
 .vig h3 { margin: 16px 0 0; font: 700 clamp(22px, 2.2vw, 28px)/1.1 var(--e-display); letter-spacing: -0.03em; }
 .vig p { margin: 8px 0 0; max-width: 30em; font-size: 16px; line-height: 1.5; color: #404040; letter-spacing: -0.01em; text-wrap: pretty; }
-.vig-art { aspect-ratio: 16 / 10; border-radius: 20px; overflow: hidden; background: #faf9f5; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08), 0 30px 60px -20px rgba(40, 30, 90, 0.3); }
-.vig-art svg { display: block; width: 100%; height: 100%; }
+.vig-art { flex: 1 0 auto; aspect-ratio: 16 / 10; border-radius: 20px; overflow: hidden; background: #faf9f5; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08), 0 30px 60px -20px rgba(40, 30, 90, 0.3); }
+.vig-art > svg { display: block; width: 100%; height: 100%; }
+.vig-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 :where(.vig-art svg *) { transform-box: fill-box; transform-origin: center; }
 
-.v-win { fill: #fff; stroke: rgba(10, 10, 10, 0.16); stroke-width: 2; }
-.v-off { fill: none; stroke: #a3a3a3; stroke-width: 2; stroke-dasharray: 6 6; }
 .v-edge { fill: none; stroke: var(--e-blue); stroke-width: 5; stroke-linecap: round; }
 .v-edge-base { stroke: #d4d4d4; stroke-width: 5; stroke-linecap: round; }
 .v-ink { fill: #262626; }
-.v-grey { fill: #c4c4c4; }
 .v-blue { fill: var(--e-blue); }
 .v-ring { fill: none; stroke: #262626; stroke-width: 3; }
 .v-line { fill: none; stroke: #262626; stroke-width: 4; stroke-linecap: round; }
-.v-thin { fill: none; stroke: #a3a3a3; stroke-width: 2; }
-.v-bar { transform-origin: 50% 100%; }
+.v-halo { stroke: #fff; stroke-width: 7; }
+.v-halo-dot { stroke: #fff; stroke-width: 2; }
+.v-win { fill: #fff; stroke: rgba(10, 10, 10, 0.16); stroke-width: 2; }
+
+/* the Claude session window, as the tour and the demo draw it (docs/live/pane.css) */
+.cw-body { fill: #fff; stroke: rgba(10, 10, 10, 0.16); stroke-width: 1.5; }
+.cw-head { fill: #f0eee6; }
+.cw-red { fill: #ff5f57; } .cw-yel { fill: #febc2e; } .cw-grn { fill: #28c840; }
+.cw-title { fill: #dedad0; }
+.cw-you { fill: #f0eee6; }
+.cw-line { fill: #d9d6cb; }
+.cw-comp { fill: #faf9f5; stroke: #dedad0; stroke-width: 1.2; }
+.cw-plus { fill: none; stroke: #9a9892; stroke-width: 1.4; stroke-linecap: round; }
+/* any other app: a dark editor, plainly not Claude */
+.ow-body { fill: #2b2b29; stroke: rgba(10, 10, 10, 0.5); stroke-width: 1.5; }
+.ow-head { fill: #1c1c1b; }
+.ow-side { fill: #222220; }
+.ow-dim { fill: #5a5a56; }
+.ow-code { fill: #a8a8a0; }
+
+/* dictated words in a composer, the empty composer's hint, the live microphone */
+.v-words rect { fill: #141413; }
+.v-cover { fill: #faf9f5; transform-origin: 100% 50%; }
+.v-hint { fill: #d9d6cb; }
+.v-mic { fill: none; stroke: #9a9892; stroke-width: 1.4; stroke-linecap: round; }
+.v-mic-on { stroke: var(--e-blue); }
+.v-arrow { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.v-bubble rect { fill: #f0eee6; }
+.v-bubble .v-words-bar { fill: #3d3d3a; }
+.v-pill rect { fill: #262626; }
+.v-pill circle { fill: #fff; }
+.v-pill text, .v-label, .q-key text { font-family: var(--e-display); }
+.v-pill text { fill: #fff; font-size: 12px; font-weight: 600; }
+.v-label { fill: #262626; font-size: 12px; font-weight: 600; text-anchor: middle; }
+
+/* 1: keyboard and mouse */
+.k-body { fill: #e7e5dd; stroke: #cfccc2; stroke-width: 1; }
+.k-split { fill: none; stroke: #cfccc2; stroke-width: 1.2; }
+.k-wheel { fill: #cfccc2; }
+.q-key rect { fill: #fff; stroke: #cfccc2; stroke-width: 1; }
+.q-key text { fill: #3d3d3a; font-size: 9px; font-weight: 600; text-anchor: middle; }
+
+/* 7: the tiles */
+.a-tile { fill: #e7e5dd; }
+.a-mark { fill: #fff; }
 
 /* still frames: the moment each story turns on */
 .q-keys { opacity: 0.35; }
-.g-gaze, .d-gaze, .s-gaze { translate: 142px 0; }
+.g-gaze, .d-gaze, .s-gaze { translate: 152px 0; }
 .g-edge, .s-no { opacity: 1; }
-.s-edge, .d-mic { opacity: 0; }
-.p-chip-in { translate: 150px 0; }
-.p-chip-out { translate: 62px 0; opacity: 0.7; }
-.p-dot { offset-distance: 60%; }
-.a-wave { opacity: 0; }
-.a-pause, .a-listen { opacity: 1; }
+.s-edge, .s-on, .d-live { opacity: 0; }
+.g-cover, .d-cover { scale: 0 1; }
+.p-live { opacity: 0; }
+.p-words { opacity: 0; }
+.a-tile { scale: 0.45; opacity: 0.5; }
+.a-lead { scale: 1.15; }
 .l-lid { scale: 1 0.08; }
 .l-dot { translate: 150px 0; }
 
@@ -46,63 +89,53 @@
   .q-hl, .q-dot { animation-name: v-rest; }
   .q-keys { animation-name: v-keys; }
   .q-key { animation-name: v-press; animation-timing-function: ease-in-out; }
-  .q-key:nth-child(2) { animation-delay: -0.1s; } .q-key:nth-child(3) { animation-delay: -0.2s; } .q-key:nth-child(4) { animation-delay: -0.3s; }
-  .q-key:nth-child(5) { animation-delay: -0.15s; } .q-key:nth-child(6) { animation-delay: -0.25s; }
+  .q-key.q-a { animation-delay: -0.1s; } .q-key.q-b { animation-delay: -0.25s; } .q-key.q-c { animation-delay: -0.4s; }
+  .q-mouse { animation-name: v-slide; animation-timing-function: ease-in-out; }
   @keyframes v-rest { 0%, 8% { opacity: 1; } 14%, 58% { opacity: 0; } 68%, 100% { opacity: 1; } }
   @keyframes v-keys { 0%, 8% { opacity: 0.35; } 14%, 58% { opacity: 1; } 68%, 100% { opacity: 0.35; } }
-  @keyframes v-press { 0%, 13%, 18%, 22%, 27%, 31%, 36%, 40%, 45%, 49%, 54%, 100% { translate: 0 0; } 15%, 24%, 33%, 42%, 51% { translate: 0 4px; } }
+  @keyframes v-press { 0%, 13%, 18%, 22%, 27%, 31%, 36%, 40%, 45%, 49%, 54%, 100% { translate: 0 0; } 15%, 24%, 33%, 42%, 51% { translate: 0 1.5px; } }
+  @keyframes v-slide { 0%, 13%, 54%, 100% { translate: 0 0; } 20% { translate: -5px 3px; } 30% { translate: 3px -2px; } 42% { translate: -4px 2px; } }
 
   /* 2, 3, 4: the gaze leaves for the other window and comes back */
   .g-gaze, .d-gaze, .s-gaze { animation-name: v-gaze; }
   .g-edge, .s-no { animation-name: v-on-away; }
-  .s-edge { animation-name: v-off-away; }
-  .g-bar { animation: v-talk 0.9s ease-in-out infinite alternate; }
-  .g-bar:nth-child(2) { animation-delay: -0.2s; } .g-bar:nth-child(3) { animation-delay: -0.45s; } .g-bar:nth-child(4) { animation-delay: -0.1s; } .g-bar:nth-child(5) { animation-delay: -0.6s; }
-  @keyframes v-gaze { 0%, 22% { translate: 0 0; } 36%, 80% { translate: 142px 0; } 94%, 100% { translate: 0 0; } }
+  .s-edge, .s-on { animation-name: v-off-away; }
+  @keyframes v-gaze { 0%, 22% { translate: 0 0; } 36%, 80% { translate: 152px 0; } 94%, 100% { translate: 0 0; } }
   @keyframes v-on-away { 0%, 24% { opacity: 0; } 36%, 80% { opacity: 1; } 94%, 100% { opacity: 0; } }
   @keyframes v-off-away { 0%, 24% { opacity: 1; } 36%, 80% { opacity: 0; } 94%, 100% { opacity: 1; } }
-  @keyframes v-talk { from { scale: 1 0.3; } to { scale: 1 1; } }
 
-  /* 3: the words are typed, the microphone stops on the drift, the words stay */
-  .d-line { scale: 1 1; animation-name: v-type; transform-origin: 0 50%; }
-  .d-line:nth-child(2) { animation-delay: -0.3s; } .d-line:nth-child(3) { animation-delay: -0.6s; }
-  .d-mic { animation-name: v-live; }
-  .d-pulse { animation: v-ping 1.4s ease-out infinite; }
-  @keyframes v-type { 0%, 3% { scale: 0 1; } 22%, 96% { scale: 1 1; } 100% { scale: 0 1; } }
+  /* 2: the dictated words keep arriving in the focused window while the edge warns */
+  .g-cover { animation-name: v-words-a; }
+  @keyframes v-words-a { 0%, 3% { scale: 1 1; animation-timing-function: steps(4, end); } 60%, 96% { scale: 0 1; } 100% { scale: 1 1; } }
+
+  /* 3: the words are dictated, the microphone stops on the drift, the words stay */
+  .d-cover { animation-name: v-words-b; }
+  .d-live { animation-name: v-live; }
+  @keyframes v-words-b { 0%, 3% { scale: 1 1; animation-timing-function: steps(4, end); } 22%, 96% { scale: 0 1; } 100% { scale: 1 1; } }
   @keyframes v-live { 0%, 30% { opacity: 1; } 36%, 96% { opacity: 0; } 100% { opacity: 1; } }
-  @keyframes v-ping { from { scale: 1; opacity: 0.9; } to { scale: 2.6; opacity: 0; } }
 
-  /* 4: the pinch keeps happening and nothing answers */
-  .s-pinch-a { animation: v-pinch-a 1.2s ease-in-out infinite alternate; }
-  .s-pinch-b { animation: v-pinch-b 1.2s ease-in-out infinite alternate; }
-  @keyframes v-pinch-a { to { translate: 10px 0; } }
-  @keyframes v-pinch-b { to { translate: -10px 0; } }
+  /* 5: the dictated message is sent and lands in the transcript; the send with nothing dictated is refused */
+  .p-cover { animation-name: v-words-c; }
+  .p-words { animation-name: v-clear; }
+  .p-live { animation-name: v-live-c; }
+  .p-msg { animation-name: v-arrive; }
+  .p-no, .p-yes { animation-name: v-late; }
+  .p-send { animation-name: v-refuse; animation-timing-function: ease-in-out; }
+  .p-sent { animation-name: v-tap; }
+  @keyframes v-words-c { 0%, 6% { scale: 1 1; animation-timing-function: steps(4, end); } 24%, 98% { scale: 0 1; } 100% { scale: 1 1; } }
+  @keyframes v-clear { 0%, 33% { opacity: 1; } 36%, 99.9% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes v-live-c { 0%, 3% { opacity: 0; } 6%, 31% { opacity: 1; } 35%, 100% { opacity: 0; } }
+  @keyframes v-arrive { 0%, 34% { opacity: 0; translate: 0 6px; } 40%, 94% { opacity: 1; translate: 0 0; } 100% { opacity: 0; translate: 0 6px; } }
+  @keyframes v-late { 0%, 33% { opacity: 0; } 38%, 92% { opacity: 1; } 98%, 100% { opacity: 0; } }
+  @keyframes v-refuse { 0%, 29% { scale: 1; translate: 0 0; } 31% { scale: 0.85; } 33% { scale: 1; translate: -3px 0; } 35% { translate: 3px 0; } 37% { translate: -2px 0; } 39%, 100% { scale: 1; translate: 0 0; } }
+  @keyframes v-tap { 0%, 29% { scale: 1; } 32% { scale: 0.82; } 36%, 100% { scale: 1; } }
 
-  /* 5: the narrated message passes the gate; the typed one stops at it */
-  .p-chip-in { animation-name: v-pass; }
-  .p-chip-out { animation-name: v-stop; }
-  .p-bar { animation: v-talk 0.9s ease-in-out infinite alternate; }
-  .p-bar:nth-child(2) { animation-delay: -0.3s; } .p-bar:nth-child(3) { animation-delay: -0.55s; }
-  @keyframes v-pass { 0%, 8% { translate: 0 0; opacity: 0; } 12% { translate: 0 0; opacity: 1; } 40%, 80% { translate: 150px 0; opacity: 1; } 90%, 100% { translate: 150px 0; opacity: 0; } }
-  @keyframes v-stop { 0%, 8% { translate: 0 0; opacity: 0; } 12% { translate: 0 0; opacity: 0.7; } 36%, 44% { translate: 62px 0; opacity: 0.7; } 40% { translate: 54px 0; opacity: 0.7; } 80% { translate: 62px 0; opacity: 0.7; } 90%, 100% { translate: 62px 0; opacity: 0; } }
-
-  /* 6: Ensemble's two required links carry a pulse; the optional one only moves the bars */
-  .p-dot { animation: v-flow 2.4s ease-in-out infinite; }
-  .p-dot.b { animation-delay: -1.2s; }
-  .m-bar { animation: v-talk 0.8s ease-in-out infinite alternate; }
-  .m-bar:nth-child(2) { animation-delay: -0.25s; } .m-bar:nth-child(3) { animation-delay: -0.5s; }
-  .c-ping { animation: v-ping 1.6s ease-out infinite; }
-  @keyframes v-flow { from { offset-distance: 0%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } to { offset-distance: 100%; opacity: 0; } }
-
-  /* 7: the speaker's music pauses while the microphone listens, then resumes */
-  .a-wave { animation-name: v-sound; }
-  .a-ripple { animation: v-ripple 1.4s ease-in-out infinite alternate; }
-  .a-pause { animation-name: v-quiet; }
-  .a-listen { animation-name: v-quiet; }
-  .a-ring { animation: v-ping 1.6s ease-out infinite; }
-  @keyframes v-sound { 0%, 24% { opacity: 1; } 30%, 72% { opacity: 0; } 78%, 100% { opacity: 1; } }
-  @keyframes v-quiet { 0%, 24% { opacity: 0; } 30%, 72% { opacity: 1; } 78%, 100% { opacity: 0; } }
-  @keyframes v-ripple { from { opacity: 0.45; } to { opacity: 1; } }
+  /* 7: dictation turns on, and every other tile grows, turns down in turn, then returns */
+  .a-tile { animation-name: v-step; animation-fill-mode: backwards; }
+  .a-t1 { animation-delay: 0.25s; } .a-t2 { animation-delay: 0.55s; } .a-t3 { animation-delay: 0.85s; } .a-t4 { animation-delay: 1.15s; }
+  .a-lead { animation-name: v-lead; }
+  @keyframes v-step { 0%, 6% { scale: 1; opacity: 1; } 11% { scale: 1.12; opacity: 1; } 20%, 56% { scale: 0.45; opacity: 0.5; } 70%, 100% { scale: 1; opacity: 1; } }
+  @keyframes v-lead { 0%, 6% { scale: 1; } 12%, 62% { scale: 1.15; } 72%, 100% { scale: 1; } }
 
   /* 8: the lid shuts, the input hops to the other microphone, and back when the lid opens */
   .l-lid { animation-name: v-lid; transform-origin: 50% 100%; }
@@ -111,6 +144,20 @@
   @keyframes v-hop { 0%, 26% { translate: 0 0; } 40%, 72% { translate: 150px 0; } 88%, 100% { translate: 0 0; } }
 }
 
+/* 6: the permissions, as the first-run tour lists them; static, so it never moves */
+.perms { display: grid; align-content: center; padding: clamp(14px, 3vw, 28px); }
+.perm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.perm-list li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #fff; border-radius: 14px; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08); }
+.perm-list svg { flex: none; width: 28px; height: 28px; fill: none; stroke: #262626; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.perm-list span { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.perm-list b { font: 600 17px/1.2 var(--e-display); letter-spacing: -0.02em; }
+.perm-list small { font-size: 14px; line-height: 1.4; color: #404040; }
+.perm-list em { flex: none; font: 600 14px var(--e-display); font-style: normal; color: #262626; }
+.perm-list .no svg { stroke: #8a8a84; }
+.perm-list .no b, .perm-list .no small { color: #5c5c58; }
+.perm-list .no s { text-decoration-thickness: 2px; }
+
 @media (max-width: 700px) {
   .vig-grid { grid-template-columns: minmax(0, 1fr); }
+  .perms { aspect-ratio: auto; }
 }
