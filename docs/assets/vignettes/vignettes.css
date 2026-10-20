@@ -1,4 +1,4 @@
-/* The "incredibly intuitive" gallery: seven loops drawn in inline SVG and moved by CSS alone, a static list, and the closed-lid loop.
+/* The "incredibly intuitive" gallery: six loops drawn in inline SVG and moved by CSS alone, a static list, and the 3D closed-lid scene.
    The base style of every shape is the still frame (the telling moment of the story), so a
    visitor who asks for reduced motion sees stills; the animations are only added when motion is welcome.
    Every window is the shared Claude session look (#v-claude, defined once above the grid) or the plain other-app window (#v-other). */
@@ -78,8 +78,6 @@
 .p-words { opacity: 0; }
 .a-tile { scale: 0.45; opacity: 0.5; }
 .a-lead { scale: 1.15; }
-.l-lid { scale: 1 0.08; }
-.l-dot { translate: 150px 0; }
 
 @media (prefers-reduced-motion: no-preference) {
   :where(.vig-art svg *) { animation-duration: 8s; animation-timing-function: var(--e-ease); animation-iteration-count: infinite; }
@@ -136,12 +134,6 @@
   .a-lead { animation-name: v-lead; }
   @keyframes v-step { 0%, 6% { scale: 1; opacity: 1; } 11% { scale: 1.12; opacity: 1; } 20%, 56% { scale: 0.45; opacity: 0.5; } 70%, 100% { scale: 1; opacity: 1; } }
   @keyframes v-lead { 0%, 6% { scale: 1; } 12%, 62% { scale: 1.15; } 72%, 100% { scale: 1; } }
-
-  /* 8: the lid shuts, the input hops to the other microphone, and back when the lid opens */
-  .l-lid { animation-name: v-lid; transform-origin: 50% 100%; }
-  .l-dot { animation-name: v-hop; }
-  @keyframes v-lid { 0%, 14% { scale: 1 1; } 24%, 70% { scale: 1 0.08; } 80%, 100% { scale: 1 1; } }
-  @keyframes v-hop { 0%, 26% { translate: 0 0; } 40%, 72% { translate: 150px 0; } 88%, 100% { translate: 0 0; } }
 }
 
 /* 6: the permissions, as the first-run tour lists them; static, so it never moves */
