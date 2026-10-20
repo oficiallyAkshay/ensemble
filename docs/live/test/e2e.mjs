@@ -514,16 +514,16 @@ async function letter() {
     await stub(p, 12);
     await p.send('Page.navigate', { url: LETTER });
     await p.waitFor("document.readyState === 'complete'", 15000, 'letter load');
-    check('letter words are all there', await p.eval("['Type to your AI for thirty minutes', 'two weeks', 'I learned that the slow way', 'find the right window, click it, talk', 'Thumbs-up. Next.', 'one click from leaning back', 'Free, open source, for the Mac'].every(t => document.body.textContent.replace(/\\s+/g, ' ').includes(t))"));
+    check('the maker\'s summary sits in the hero: two sentences that keep his line about the find and the click', await p.eval("(() => { const m = document.querySelector('.hero .hero-text .maker'); const t = m && m.textContent.replace(/\\s+/g, ' ').trim(); return !!t && t.includes('a dozen Claude sessions on three screens') && t.includes('I got rid of the find and the click') && t.includes('thumbs-up, next') && (t.match(/[.!?](\\s|$)/g) || []).length === 2; })()"));
     check('hero reads top to bottom: meta chip, short headline, gesture line, two-sentence copy, then the action row', await p.eval(`(() => { const h = document.querySelector('.hero'); const t = (q) => h.querySelector(q).textContent.replace(/\\s+/g, ' ').trim(); const y = (q) => h.querySelector(q).getBoundingClientRect().top; return t('.ens-chip') === 'Free \u00b7 open source \u00b7 for Mac' && t('h1') === 'Run Claude by looking at it.' && t('.sub') === 'Look at a session to pick it. Pinch twice to talk. Thumbs-up to send.' && t('.copy').endsWith('Nothing leaves your Mac.') && y('.ens-chip') < y('h1') && y('h1') < y('.sub') && y('.sub') < y('.copy') && y('.copy') < y('#try'); })()`));
     check('hero copy and action row are above the fold at 1280x800', await p.eval("['.copy', '#try', '#dl-btn', '#src'].every((q) => document.querySelector(q).getBoundingClientRect().bottom <= innerHeight)"));
-    check('the letter follows as its own section: its chip, then the opening line as a paragraph, not a headline', await p.eval("(() => { const s = document.getElementById('note'); return s.querySelector('.ens-chip').textContent.trim() === 'A note from the person who made this' && s.querySelector('p.lead').textContent.startsWith('Type to your AI for thirty minutes') && document.querySelectorAll('h1').length === 1 && !s.querySelector('h1'); })()"));
+    check('no separate note section or chip is left, and the page has exactly one h1', await p.eval("(() => { const text = document.body.textContent.replace(/\\s+/g, ' '); return !document.getElementById('note') && !/A note from the person who made this/.test(text) && !text.includes('Type to your AI for thirty minutes') && document.querySelectorAll('h1').length === 1; })()"));
     check('CTA row in the hero: See the demo, Download with a logo that starts the .dmg, GitHub logo and source link', await p.eval(`(() => { const d = document.getElementById('dl-btn'), a = document.getElementById('src'); return document.getElementById('try').textContent.trim() === 'See the demo' && d.textContent.trim() === 'Download' && !!d.querySelector('svg') && d.href === '${DMG}' && a.textContent.trim() === 'Open source on GitHub' && !!a.querySelector('svg') && a.href === 'https://github.com/oficiallyAkshay/ensemble'; })()`));
     check('no line about the demo running in the browser', await p.eval("!/demo runs in this browser|video never leaves/i.test(document.body.textContent)"));
     check('the whole action row sits above the fold at 1280x800', await p.eval("(() => { const f = (id) => document.getElementById(id).getBoundingClientRect(); return ['try', 'dl-btn', 'src'].every((id) => f(id).top >= 0 && f(id).bottom <= innerHeight); })()"));
     check('every Download link on the letter page starts the .dmg', await p.eval(`[...document.querySelectorAll('a')].filter((a) => /download/i.test(a.textContent)).every((a) => a.href === '${DMG}')`));
     check('no horizontal overflow at 1280', await p.eval('document.documentElement.scrollWidth <= innerWidth + 1'));
-    check('island narrates on the page', await p.waitFor("document.getElementById('island').dataset.mode !== 'idle'", 6000, 'island').then(() => true));
+    check('the hero has no island, bead or row of coloured bars, and holds one 3D scene slot', await p.eval("(() => { const h = document.querySelector('.hero'); return !h.querySelector('.ens-island, .island-slot, #island, .bead-obj, #hero-bead, .caps, .cap') && h.querySelectorAll('[data-scene]').length === 1 && h.querySelector('[data-scene]').dataset.scene === 'hero'; })()"));
     check('popover closed at first', await p.eval("!document.getElementById('cam-pop').classList.contains('open')"));
     await p.send('Page.bringToFront');
     await p.eval("document.getElementById('try').scrollIntoView({block:'center'}); 0");
@@ -724,9 +724,16 @@ async function letter3d() {
     await p.waitFor("document.readyState === 'complete'", 15000);
     await sleep(1500);
     const files = () => w.requests.filter((r) => /\/(assets\/(3d|mini)|live\/(pane|sessions|content|history|logic))/.test(r.url)).map((r) => r.url.replace(ORIGIN, ''));
-    check('no 3D, scene or pane file requested at first paint', files().length === 0, files().join(' '));
+    check('at first paint only the hero scene is mounted, and no pane or demo file is requested', JSON.stringify(await p.eval("window.__scenes.map((s) => s.name)")) === '["hero"]' && !files().some((u) => /live\/(pane|sessions|content|history|logic)|assets\/mini/.test(u)), files().join(' '));
+    // Hero: the head, the Claude window and the hand are one scene on one clock
+    await p.waitFor("(() => { const r = window.__scenes.find((s) => s.name === 'hero'); return !!(r && r.inst && r.state && r.inst._ready()); })()", 30000, 'the hero scene');
+    const hh = await p.eval("(() => { const r = window.__scenes.find((s) => s.name === 'hero'); return { own: r.el.querySelectorAll(':scope > canvas').length, ready: r.el.classList.contains('ready'), scene: r.state.scene }; })()");
+    check('hero: one 3D canvas fills the hero scene slot', hh.own === 1 && hh.scene === 'hero', JSON.stringify(hh));
+    const heroAt = async (t) => { await p.eval(`window.__scenes.find((s) => s.name === 'hero').inst._seek('hero', ${t}); 0`); await sleep(500); return p.eval("window.__scenes.find((s) => s.name === 'hero').state"); };
+    const h0 = await heroAt(0.1), h1 = await heroAt(3.0), h2 = await heroAt(5.6);
+    check('hero: the window is not listening at first, listens and types after the pinches, and holds the whole message at the end', !h0.listening && h0.draft === 0 && h1.listening && h1.draft > 0 && !h2.listening && h2.draft === 1, JSON.stringify([h0, h1, h2]));
     await p.eval("document.getElementById('how').scrollIntoView(); 0");
-    await p.waitFor("window.__scenes && window.__scenes.length >= 1", 30000, 'a scene to mount');
+    await p.waitFor("window.__scenes.length >= 2", 30000, 'a step scene to mount');
     await p.waitFor("!!window.EnsembleScene", 30000, 'the scene code');
     check('three.js, the recorded motion and the scene code arrive once a step is near, in that order', (() => { const f = files(); const at = (n) => f.findIndex((u) => u.endsWith(n)); return at('three.min.js') >= 0 && at('capture-default.js') >= 0 && at('scene3d.js') > at('capture-default.js'); })(), files().join(' '));
     check('the long demo history is never fetched for the letter page', !files().some((u) => /history|logic/.test(u)), files().join(' '));
