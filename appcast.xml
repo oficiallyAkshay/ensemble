@@ -3,6 +3,20 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.30</title>
+            <pubDate>Tue, 20 Oct 2026 02:29:17 +0000</pubDate>
+            <sparkle:version>506</sparkle:version>
+            <sparkle:shortVersionString>0.2.30</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.29:
+
+- The hand and head are lit skin under one shared light rig, and a closed laptop scene joins them (#168)
+- The home page safeguard gallery shows real keys, Claude windows, a permissions list and a cascade of tiles (#167)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.30/Ensemble-0.2.30.dmg" length="6450966" type="application/octet-stream" sparkle:edSignature="GOmysWePYKOASvYkYulERd20lHNzJt477K1JfO7Z5APvYNF7VTfG77oTPffC50J70/PGzcHWGMTd+EIpgalcAw=="/>
+        </item>
+        <item>
             <title>0.2.29</title>
             <pubDate>Tue, 20 Oct 2026 00:58:49 +0000</pubDate>
             <sparkle:version>504</sparkle:version>
@@ -33,25 +47,6 @@
 - The home page shows the real star count from 1, and invites the first star only at zero (#158)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.28/Ensemble-0.2.28.dmg" length="6450470" type="application/octet-stream" sparkle:edSignature="VD/eLl6WgkOCmm5IWQ8qjuC0KD9Jym6CXe5IH5fuesfWi7olaCCQTtaeLKV4Hv7TiPvx9V5oNqS6+r5sYokmCg=="/>
-        </item>
-        <item>
-            <title>0.2.27</title>
-            <pubDate>Mon, 19 Oct 2026 12:45:40 -0400</pubDate>
-            <sparkle:version>496</sparkle:version>
-            <sparkle:shortVersionString>0.2.27</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.26:
-
-- Known test traps are refused before push, and the initialiser-order trap is in the gotchas (#152)
-- The friends' texts on the website are light, like iOS Messages, instead of dark notifications (#156)
-- A GitHub workflow releases every merge that changes app logic, signed with the same certificate as before, so the launchd job can go once it has succeeded (#155)
-- A send never presses Send after typing or a click since dictation, even when the press waited in line (#153)
-- The home page counts real downloads, says Open source on GitHub, and drops the demo-runs-in-browser line (#150)
-- A plain launchd job on the owner's Mac releases after every merge that changes app logic, once the checks pass (#154)
-- An agent session may open and look at the installed app to check a change on the owner's Mac (#151)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.27/Ensemble-0.2.27.dmg" length="6444974" type="application/octet-stream" sparkle:edSignature="GuSKe4SJYVadGIL+e34VKxfeYvZ6tesRiHT//acPDb63h+cAhKapVSkwh9A2JVR517zUMl+HOcihaEAn9/OKAw=="/>
         </item>
     </channel>
 </rss>
