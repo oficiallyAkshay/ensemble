@@ -117,6 +117,12 @@
   .mini-stage .ls-pane { border-right: 1px solid var(--c-line); }
   .mini-stage .ls-pane:nth-child(2n) { border-right: 0; }
   .mini .ens-highlight { position: absolute; z-index: 5; }
+  /* like the 3D windows' neighbouring sessions: the text is hidden and each line is a grey bar; only the sentence being dictated stays real */
+  .mini.skeleton .ls-title span, .mini.skeleton .ls-line { color: transparent; background: repeating-linear-gradient(to bottom, transparent 0 6px, #edebe4 6px 14px, transparent 14px 20px); background-clip: content-box; border-radius: 4px; }
+  .mini.skeleton .ls-title span { background: #e6e4dc; border-radius: 5px; }
+  .mini.skeleton .ls-line.you, .mini.skeleton .ls-line.code, .mini.skeleton .ls-line.tablewrap { background: var(--c-bubble); }
+  .mini.skeleton .ls-line.code { background: var(--c-code); }
+  .mini.skeleton .ls-line :is(strong, code, th, td) { color: transparent; background: none; }
   .mini-host:not(.live) { background: #faf9f5; border-radius: 12px; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08); }
 
   /* ---- spread 3: how it works. Each step is a heading row, then its animation at full width. ---- */

@@ -608,7 +608,6 @@
       ctx.fillStyle = C.text; ctx.font = '600 21px ' + SANS; ctx.fillText('ensemble-tour', PX + 30, PY + 46);
       ctx.fillStyle = '#34332f'; rr(PX + 190, PY + 26, 192, 32, 16); ctx.fill();
       ctx.fillStyle = C.dim; ctx.font = '15px ' + MONO; ctx.fillText('feature/onboarding', PX + 206, PY + 48);
-      ctx.fillStyle = C.faint; ctx.font = '16px ' + SANS; ctx.textAlign = 'right'; ctx.fillText('Local  ·  Opus', PX + PW - 28, PY + 46); ctx.textAlign = 'left';
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PX, PY + 74); ctx.lineTo(PX + PW, PY + 74); ctx.stroke();
 
       // conversation (clipped)
@@ -667,7 +666,6 @@
         if (caret) { ctx.fillStyle = C.orange; ctx.fillRect(CX0 + 28, CY0 + 24, 2.5, 26); }
         ctx.fillStyle = C.faint; ctx.fillText(caret || st.listening ? '' : 'Reply to Claude…', CX0 + 26, CY0 + 44);
       }
-      ctx.fillStyle = C.faint; ctx.font = '16px ' + SANS; ctx.fillText('Plan mode   ·   Opus   ·   Auto-accept off', CX0 + 26, CY0 + 82);
       var sendOn = !!text;
       ctx.fillStyle = sendOn ? C.orange : '#4a4944'; ctx.beginPath(); ctx.arc(CX0 + CW - 38, CY0 + CH / 2, 21, 0, 6.2832); ctx.fill();
       ctx.strokeStyle = '#1f1e1d'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath();
