@@ -3,6 +3,25 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.32</title>
+            <pubDate>Fri, 23 Oct 2026 16:35:33 +0000</pubDate>
+            <sparkle:version>520</sparkle:version>
+            <sparkle:shortVersionString>0.2.32</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.31:
+
+- The 1.5-second quiet time after typing or a click is defined in the core library and pinned by a test (#186)
+- Gotchas: link previews are cached by address, and Slack picks the layout (#181)
+- The README hero hands use the deeper skin of the current 3D scene (ENS-117) (#180)
+- CodeQL runs on pull requests only when the Swift sources or package files change (#175)
+- The website's link preview carries the full tag set and an oEmbed photo for Slack (#179)
+- All four Claude windows on the home page show grey placeholder bars, and none shows Plan mode, Opus or Auto-accept off (#178)
+- The link preview image has a new address so validators stop showing the cached old one (#177)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.32/Ensemble-0.2.32.dmg" length="6451194" type="application/octet-stream" sparkle:edSignature="+TY/OZzlTT9DNOJO5R1M3JI3ZzyCnxVxrSNT6zibjSJ1EGj1UIzhnjkJDZvE8xWAsOrtXOdOfIdVcFqGLg0cBA=="/>
+        </item>
+        <item>
             <title>0.2.31</title>
             <pubDate>Tue, 20 Oct 2026 15:00:10 +0000</pubDate>
             <sparkle:version>513</sparkle:version>
@@ -34,20 +53,6 @@
 - The home page safeguard gallery shows real keys, Claude windows, a permissions list and a cascade of tiles (#167)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.30/Ensemble-0.2.30.dmg" length="6450966" type="application/octet-stream" sparkle:edSignature="GOmysWePYKOASvYkYulERd20lHNzJt477K1JfO7Z5APvYNF7VTfG77oTPffC50J70/PGzcHWGMTd+EIpgalcAw=="/>
-        </item>
-        <item>
-            <title>0.2.29</title>
-            <pubDate>Tue, 20 Oct 2026 00:58:49 +0000</pubDate>
-            <sparkle:version>504</sparkle:version>
-            <sparkle:shortVersionString>0.2.29</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.28:
-
-- Log a line when the safety check begins stopping Claude's microphone (#166)
-- The website counts anonymous visits, download views, scroll depth, contact cards and demo drop-off in PostHog, with no cookie and nothing sent under Do Not Track (#160)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.29/Ensemble-0.2.29.dmg" length="6450842" type="application/octet-stream" sparkle:edSignature="xi7wLGQQOQT4x+CsUz0ojwHpjOSCUoEdko2dl3d/wL4H0uIvzHAeqKvmG4fW9e74OJAFoOS9fBjESo0JaIj3AQ=="/>
         </item>
     </channel>
 </rss>
