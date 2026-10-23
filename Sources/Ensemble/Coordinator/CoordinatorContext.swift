@@ -6,7 +6,7 @@ import EnsembleCore
 @MainActor
 final class CoordinatorContext {
     /// A send is refused, and focus is not moved, within this long after typing or a click.
-    static let inputQuiet = 1.5
+    static let inputQuiet = FocusPolicy.inputQuiet
 
     let state: AppState
     let settings: SettingsStore

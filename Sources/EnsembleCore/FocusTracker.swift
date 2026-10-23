@@ -137,6 +137,10 @@ public enum FocusAction: Equatable {
 }
 
 public enum FocusPolicy {
+    /// A send is refused, and focus is not moved, within this long after typing or a click (docs/safety.md).
+    /// Here rather than in the app target so a test can pin it.
+    public static let inputQuiet: TimeInterval = 1.5
+
     /// What to do now that the nose settled on `session`. Coming back to the session that already has focus
     /// (after the target dropped for a moment) is not a switch.
     public static func action(for session: ClaudeSession, lastFocusedId: String?, claudeInFront: @autoclosure () -> Bool,
