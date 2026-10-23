@@ -190,7 +190,12 @@ import Testing
     private let s = ClaudeSession(id: "A", frame: .zero, windowNumber: 1)
 
     private func action(last: String? = nil, front: Bool = true, busy: Bool = false, input: Double = 5, listening: String? = nil) -> FocusAction {
-        FocusPolicy.action(for: s, lastFocusedId: last, claudeInFront: front, busy: busy, secondsSinceInput: input, inputQuiet: 1.5, listeningId: listening)
+        FocusPolicy.action(for: s, lastFocusedId: last, claudeInFront: front, busy: busy, secondsSinceInput: input, inputQuiet: FocusPolicy.inputQuiet, listeningId: listening)
+    }
+
+    /// docs/safety.md says a send is refused for 1.5 seconds after typing or a click; the app reads this same value.
+    @Test func theQuietTimeAfterTypingIsOneAndAHalfSeconds() {
+        #expect(FocusPolicy.inputQuiet == 1.5)
     }
 
     @Test func aSessionThatAlreadyHasFocusIsLeftAlone() {
@@ -213,7 +218,7 @@ import Testing
     @Test func theFrontCheckRunsOnlyWhenTheIdsMatch() {
         var asked = 0
         _ = FocusPolicy.action(for: s, lastFocusedId: "B", claudeInFront: { asked += 1; return true }(), busy: false,
-                               secondsSinceInput: 5, inputQuiet: 1.5, listeningId: nil)
+                               secondsSinceInput: 5, inputQuiet: FocusPolicy.inputQuiet, listeningId: nil)
         #expect(asked == 0)
     }
 }
