@@ -1,0 +1,18 @@
+{
+  "badge": "25 (7d) \u2022 48 (all-time)",
+  "last7": 25,
+  "last7_short": "25",
+  "metric": "views",
+  "repo": "oficiallyAkshay/ensemble",
+  "schema": 1,
+  "since": "2026-10-01",
+  "total": 48,
+  "total_short": "48",
+  "updated": "2026-10-24",
+  "window": {
+    "count": 48,
+    "days": 14,
+    "uniques": 6
+  },
+  "window_short": "48"
+}
