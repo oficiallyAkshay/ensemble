@@ -71,6 +71,11 @@ def main():
             failure = error
         else:
             dump = app.dump(max_depth=MAX_DEPTH)
+            # The window can appear before the page's controls are in the tree (seen on Linux and macOS); read again for a while.
+            settle_until = time.time() + 45
+            while time.time() < settle_until and sum(n in dump for n in EXPECTED) < 3:
+                time.sleep(3)
+                dump = app.dump(max_depth=MAX_DEPTH)
             print(dump, flush=True)
             found = [n for n in EXPECTED if n in dump]
             print("WINDOW TITLE FOUND: " + repr(TITLE in dump), flush=True)
