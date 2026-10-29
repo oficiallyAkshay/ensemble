@@ -23,7 +23,7 @@ public struct PaneDivider: @unchecked Sendable {
 /// the coordinator decides to press an adapter's controls.
 public protocol AgentAdapter: AnyObject, Sendable {
     // The app
-    var claudePID: pid_t? { get }
+    var claudePID: Int32? { get }
     var claudeVersion: String? { get }
     func claudeIsRunning() -> Bool
     func claudeIsFrontmost() -> Bool
