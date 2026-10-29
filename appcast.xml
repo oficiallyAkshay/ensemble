@@ -3,6 +3,19 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.35</title>
+            <pubDate>Thu, 29 Oct 2026 09:55:10 +0000</pubDate>
+            <sparkle:version>524</sparkle:version>
+            <sparkle:shortVersionString>0.2.35</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.34:
+
+- The hand skeleton's joint list no longer depends on Vision (#191)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.35/Ensemble-0.2.35.dmg" length="6452726" type="application/octet-stream" sparkle:edSignature="VzngocX3MaWTBWA4J2xe7PayW9drrpVIz1x2olovrXmzLq2z+aBiH9X5jir2qLsU7FVRBMUDw87sYhcTT/nLBw=="/>
+        </item>
+        <item>
             <title>0.2.34</title>
             <pubDate>Thu, 29 Oct 2026 09:37:40 +0000</pubDate>
             <sparkle:version>523</sparkle:version>
@@ -28,25 +41,6 @@
 - The workflows guide lists the CodeQL, dependency review and Scorecard workflows (#187)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.33/Ensemble-0.2.33.dmg" length="6452430" type="application/octet-stream" sparkle:edSignature="u1eTomEI8/3GZv0NNiBRrOWEDsqoEn0WiWd0IjBQccySNBlie1uY9J4InCoDA2HKWSbFRRjJ1K44bMfbsABqAg=="/>
-        </item>
-        <item>
-            <title>0.2.32</title>
-            <pubDate>Fri, 23 Oct 2026 16:35:33 +0000</pubDate>
-            <sparkle:version>520</sparkle:version>
-            <sparkle:shortVersionString>0.2.32</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.31:
-
-- The 1.5-second quiet time after typing or a click is defined in the core library and pinned by a test (#186)
-- Gotchas: link previews are cached by address, and Slack picks the layout (#181)
-- The README hero hands use the deeper skin of the current 3D scene (ENS-117) (#180)
-- CodeQL runs on pull requests only when the Swift sources or package files change (#175)
-- The website's link preview carries the full tag set and an oEmbed photo for Slack (#179)
-- All four Claude windows on the home page show grey placeholder bars, and none shows Plan mode, Opus or Auto-accept off (#178)
-- The link preview image has a new address so validators stop showing the cached old one (#177)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.32/Ensemble-0.2.32.dmg" length="6451194" type="application/octet-stream" sparkle:edSignature="+TY/OZzlTT9DNOJO5R1M3JI3ZzyCnxVxrSNT6zibjSJ1EGj1UIzhnjkJDZvE8xWAsOrtXOdOfIdVcFqGLg0cBA=="/>
         </item>
     </channel>
 </rss>
