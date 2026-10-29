@@ -3,6 +3,20 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.41</title>
+            <pubDate>Thu, 29 Oct 2026 21:36:46 +0000</pubDate>
+            <sparkle:version>534</sparkle:version>
+            <sparkle:shortVersionString>0.2.41</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.40:
+
+- Linux and Windows test builds leave out the usage tests that need CryptoKit (#201)
+- Update (#200)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.41/Ensemble-0.2.41.dmg" length="6454306" type="application/octet-stream" sparkle:edSignature="8/VmCYQTP4BjxQdFA0ja0HYdtkDURZ+VIRp7oKlI2FuiPXIRuvU29HgNgkgcC+V9D9iWCZMxMimeDvQ56gFUBw=="/>
+        </item>
+        <item>
             <title>0.2.40</title>
             <pubDate>Thu, 29 Oct 2026 20:59:08 +0000</pubDate>
             <sparkle:version>532</sparkle:version>
@@ -28,19 +42,6 @@
 - On Linux and Windows the core test target leaves out the Vision-only fixture replay (#197)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.39/Ensemble-0.2.39.dmg" length="6452710" type="application/octet-stream" sparkle:edSignature="ItSau3mYfByjE+FPItguYl82KO9a/7RubHb/DuVsIlcwSeuKymdUrCUb3t1/NhK9I1ujBzJGsJtyKAmSO+8nBQ=="/>
-        </item>
-        <item>
-            <title>0.2.38</title>
-            <pubDate>Thu, 29 Oct 2026 19:24:35 +0000</pubDate>
-            <sparkle:version>529</sparkle:version>
-            <sparkle:shortVersionString>0.2.38</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.37:
-
-- On Linux and Windows the package supplies a CoreGraphics stand-in module that re-exports Foundation (#196)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.38/Ensemble-0.2.38.dmg" length="6452702" type="application/octet-stream" sparkle:edSignature="kYY083w1OXM0mxp0oUM078guzNcU8X8S75URa4bxjm856alYhRB+5IWo7rpfU8bp2T2l/D/cwOacmc5/BW+FCQ=="/>
         </item>
     </channel>
 </rss>
