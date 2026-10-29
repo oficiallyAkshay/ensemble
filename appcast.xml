@@ -3,6 +3,19 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.40</title>
+            <pubDate>Thu, 29 Oct 2026 20:59:08 +0000</pubDate>
+            <sparkle:version>532</sparkle:version>
+            <sparkle:shortVersionString>0.2.40</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.39:
+
+- Ensemble reads idle, busy, waiting and ended for terminal Claude Code sessions from hook events (#199)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.40/Ensemble-0.2.40.dmg" length="6454602" type="application/octet-stream" sparkle:edSignature="ptBbiVk+YHF0UmisAiahzRadrH5v4iH+wgGrx+lqq0u/SOqoMpnNAcXI9qFJ0XRiVQ/wMdrnKtIS0LjyFK4JAA=="/>
+        </item>
+        <item>
             <title>0.2.39</title>
             <pubDate>Thu, 29 Oct 2026 20:43:31 +0000</pubDate>
             <sparkle:version>531</sparkle:version>
@@ -28,21 +41,6 @@
 - On Linux and Windows the package supplies a CoreGraphics stand-in module that re-exports Foundation (#196)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.38/Ensemble-0.2.38.dmg" length="6452702" type="application/octet-stream" sparkle:edSignature="kYY083w1OXM0mxp0oUM078guzNcU8X8S75URa4bxjm856alYhRB+5IWo7rpfU8bp2T2l/D/cwOacmc5/BW+FCQ=="/>
-        </item>
-        <item>
-            <title>0.2.37</title>
-            <pubDate>Thu, 29 Oct 2026 18:55:43 +0000</pubDate>
-            <sparkle:version>528</sparkle:version>
-            <sparkle:shortVersionString>0.2.37</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.36:
-
-- The core library's process-id requirement uses a plain 32-bit integer so it compiles on Windows (#195)
-- The portability workflow builds the core test target without the app target (#194)
-- A manual workflow builds and tests EnsembleCore on Linux and Windows (#193)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.37/Ensemble-0.2.37.dmg" length="6453242" type="application/octet-stream" sparkle:edSignature="sEpXVDM+6bjnpNHygGuxYVm8xkNA5QtxP4JWPGtLDEP2+bgle3l4Z85zQE5zVpM16tpL834qfebweD5CQPQ1CQ=="/>
         </item>
     </channel>
 </rss>
