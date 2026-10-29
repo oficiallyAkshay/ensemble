@@ -33,7 +33,9 @@ jobs:
         run: swift build --target EnsembleCore 2>&1 | tee build.log
         continue-on-error: true
       - name: Test EnsembleCore
-        run: swift test --filter EnsembleCoreTests 2>&1 | tee test.log
+        run: |
+          swift build --build-tests --target EnsembleCoreTests 2>&1 | tee test.log
+          swift test --skip-build --filter EnsembleCoreTests 2>&1 | tee -a test.log
         continue-on-error: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -55,7 +57,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: SwiftyLab/setup-swift@b5f55d6a116be2a86ed53638cb6b8d5237a6a898 # v1.14.2
+      - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76 # v1.14.2
         with:
           swift-version: '6.2'
       - name: Toolchain
@@ -64,7 +66,9 @@ jobs:
         run: swift build --target EnsembleCore 2>&1 | tee build.log
         continue-on-error: true
       - name: Test EnsembleCore
-        run: swift test --filter EnsembleCoreTests 2>&1 | tee test.log
+        run: |
+          swift build --build-tests --target EnsembleCoreTests 2>&1 | tee test.log
+          swift test --skip-build --filter EnsembleCoreTests 2>&1 | tee -a test.log
         continue-on-error: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
