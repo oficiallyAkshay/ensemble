@@ -16,9 +16,9 @@ Proves that another app's window tree can be read on Windows (UI Automation), Li
 
 GitHub reads workflows only from `.github/workflows/`. Copy `window-tree.yml.txt` there as `window-tree.yml` by hand, then start it from the Actions tab. Each job uploads `tree.txt` and `screenshot.png` as an artifact. Read `tree.txt` (its `RESULT:` line and `DIAG:` lines), not the job colour: the reader step is `continue-on-error`, so a job is green even when no tree was read.
 
-## No lockfile
+## Lockfile
 
-No `package-lock.json` is committed, so each run installs the pinned Electron version fresh. To pin the transitive packages too, run `npm install --package-lock-only` in this folder and commit the result.
+`package-lock.json` pins Electron and its packages; the workflow installs with `npm ci`.
 
 ## Not run yet
 
