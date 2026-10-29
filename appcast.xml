@@ -3,6 +3,20 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.33</title>
+            <pubDate>Thu, 29 Oct 2026 08:43:45 +0000</pubDate>
+            <sparkle:version>522</sparkle:version>
+            <sparkle:shortVersionString>0.2.33</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.32:
+
+- The coordinator reaches the Claude desktop app through one adapter interface (#189)
+- The workflows guide lists the CodeQL, dependency review and Scorecard workflows (#187)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.33/Ensemble-0.2.33.dmg" length="6452430" type="application/octet-stream" sparkle:edSignature="u1eTomEI8/3GZv0NNiBRrOWEDsqoEn0WiWd0IjBQccySNBlie1uY9J4InCoDA2HKWSbFRRjJ1K44bMfbsABqAg=="/>
+        </item>
+        <item>
             <title>0.2.32</title>
             <pubDate>Fri, 23 Oct 2026 16:35:33 +0000</pubDate>
             <sparkle:version>520</sparkle:version>
@@ -39,20 +53,6 @@
 - The download section's gradient circle no longer overlaps the gallery (#169)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.31/Ensemble-0.2.31.dmg" length="6451054" type="application/octet-stream" sparkle:edSignature="NQWjfj9Ykb0xR8l3b6AeESkqPCs6bboWIZJSF0V6XdSs1v1LbV3wNCkb01rPE92pp4ghBrH+BXU2427hfKb8AQ=="/>
-        </item>
-        <item>
-            <title>0.2.30</title>
-            <pubDate>Tue, 20 Oct 2026 02:29:17 +0000</pubDate>
-            <sparkle:version>506</sparkle:version>
-            <sparkle:shortVersionString>0.2.30</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.29:
-
-- The hand and head are lit skin under one shared light rig, and a closed laptop scene joins them (#168)
-- The home page safeguard gallery shows real keys, Claude windows, a permissions list and a cascade of tiles (#167)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.30/Ensemble-0.2.30.dmg" length="6450966" type="application/octet-stream" sparkle:edSignature="GOmysWePYKOASvYkYulERd20lHNzJt477K1JfO7Z5APvYNF7VTfG77oTPffC50J70/PGzcHWGMTd+EIpgalcAw=="/>
         </item>
     </channel>
 </rss>
