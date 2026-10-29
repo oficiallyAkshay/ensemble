@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// A connected screen as the display arrangement in System Settings has it. `frame` is global, top-left origin.

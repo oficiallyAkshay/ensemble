@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// One screen's share of a calibration: its id, its global top-left frame, and the samples taken on it.

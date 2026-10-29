@@ -1,5 +1,7 @@
 import Foundation
 
+#if canImport(Vision)
+
 public enum HandClassifierAdapter {
     /// Maps one Sleight hand reading to a `HandObservation`.
     public static func observation(from hand: Hand?, at t: TimeInterval, classifier: GestureClassifier) -> HandObservation {
@@ -29,3 +31,4 @@ public enum HandClassifierAdapter {
         }
     }
 }
+#endif
