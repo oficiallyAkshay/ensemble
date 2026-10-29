@@ -4,6 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- On a Mac with no saved calibration, Automatic camera starts the Mac's own camera instead of a nearby iPhone through Continuity Camera, so the first-run tour no longer calibrates the phone by accident. macOS reported the iPhone as an external camera, which Automatic ranked first. A camera that already has a calibration, an iPhone included, is still started first, and a plugged-in USB webcam still wins over the built-in camera.
 - The website counts anonymous visits, download views, scroll depth, the friends' contact cards and where visitors leave the demo, with no cookie and nothing about the visitor, and sends nothing when Do Not Track or Global Privacy Control is on. A footer line on the letter says so; `docs/telemetry.md` ("The website") lists every event and property and how to read them.
 - The website demo loads its trackers (about 12 MB) quietly in the background as soon as it opens, so the camera button no longer shows a loading bar or a size, and the page no longer says that nothing downloads until you press it; and the "What Ensemble sees" panel shows a resting face and hand skeleton instead of an empty grey box when nothing is tracked.
 - The friends' texts on the website now look like iOS lock-screen notifications in light mode: a light translucent card with the sender, the time and the words, instead of speech bubbles. The "Incredibly intuitive" section now follows the reviews directly.
