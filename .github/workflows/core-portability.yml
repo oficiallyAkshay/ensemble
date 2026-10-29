@@ -1,0 +1,79 @@
+# Builds and tests EnsembleCore on Linux and Windows. Informational: it is not part of `gate`, because the core does not
+# compile on either system yet. Each run's logs show which errors remain.
+name: core-portability
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['portability/**']
+
+permissions: {}
+
+concurrency:
+  group: core-portability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: swift --version
+      - name: Build EnsembleCore
+        run: swift build --target EnsembleCore 2>&1 | tee build.log
+        continue-on-error: true
+      - name: Test EnsembleCore
+        run: |
+          swift build --build-tests --target EnsembleCoreTests 2>&1 | tee test.log
+          swift test --skip-build --filter EnsembleCoreTests 2>&1 | tee -a test.log
+        continue-on-error: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: linux-logs
+          path: |
+            build.log
+            test.log
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76 # v1.14.2
+        with:
+          swift-version: '6.2'
+      - name: Toolchain
+        run: swift --version
+      - name: Build EnsembleCore
+        run: swift build --target EnsembleCore 2>&1 | tee build.log
+        continue-on-error: true
+      - name: Test EnsembleCore
+        run: |
+          swift build --build-tests --target EnsembleCoreTests 2>&1 | tee test.log
+          swift test --skip-build --filter EnsembleCoreTests 2>&1 | tee -a test.log
+        continue-on-error: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: windows-logs
+          path: |
+            build.log
+            test.log
