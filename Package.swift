@@ -1,6 +1,14 @@
 // swift-tools-version:5.9
 import PackageDescription
 
+// Linux and Windows have no CoreGraphics module (Foundation carries CGPoint, CGFloat and CGSize), so a stand-in
+// that re-exports Foundation lets `import CoreGraphics` in the core and its tests resolve. macOS uses the real one.
+#if os(Linux) || os(Windows)
+let coreGraphicsStandIn: [Target.Dependency] = ["CoreGraphics"]
+#else
+let coreGraphicsStandIn: [Target.Dependency] = []
+#endif
+
 let package = Package(
     name: "Ensemble",
     platforms: [.macOS(.v14)],
@@ -12,7 +20,7 @@ let package = Package(
     ],
     targets: [
         // Pure logic: gesture rules, gesture state machine, nose pointer. No camera, no UI, unit-tested.
-        .target(name: "EnsembleCore", path: "Sources/EnsembleCore", exclude: ["Vendor/Sleight/LICENSE-sleight", "Vendor/LICENSE-claude-dictation-hotkey"]),
+        .target(name: "EnsembleCore", dependencies: coreGraphicsStandIn, path: "Sources/EnsembleCore", exclude: ["Vendor/Sleight/LICENSE-sleight", "Vendor/LICENSE-claude-dictation-hotkey"]),
         // The menu-bar app.
         .executableTarget(
             name: "Ensemble",
@@ -29,6 +37,10 @@ let package = Package(
                 ])
             ]
         ),
-        .testTarget(name: "EnsembleCoreTests", dependencies: ["EnsembleCore"], path: "Tests/EnsembleCoreTests", resources: [.copy("Fixtures")]),
+        .testTarget(name: "EnsembleCoreTests", dependencies: ["EnsembleCore"] + coreGraphicsStandIn, path: "Tests/EnsembleCoreTests", resources: [.copy("Fixtures")]),
     ]
 )
+
+#if os(Linux) || os(Windows)
+package.targets.append(.target(name: "CoreGraphics", path: "Sources/CoreGraphicsStandIn"))
+#endif
