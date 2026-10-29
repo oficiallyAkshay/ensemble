@@ -96,7 +96,7 @@ final class ScrollController {
         let now = CACurrentMediaTime()
         if now - lastOwnerCheck >= 0.15 {
             lastOwnerCheck = now
-            if ScreenFacts.topWindowOwner(at: at) != ctx.bridge.claudePID {
+            if ScreenFacts.topWindowOwner(at: at) != ctx.agent.claudePID {
                 EnsembleLog.write("scroll stopped: Claude is no longer the window under the scroll point")
                 cancel()
                 return

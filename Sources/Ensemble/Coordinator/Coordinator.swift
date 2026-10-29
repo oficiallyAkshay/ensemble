@@ -96,7 +96,7 @@ final class Coordinator: AppCoordinating {
         send = SendController(ctx: ctx)
         dictation = DictationController(ctx: ctx, focus: focus, send: send)
         headphone = HeadphoneRemote(settingOn: { [weak settings] in (settings?.headphonePresses ?? false) && (settings?.enabled ?? false) },
-                                    claudeRunning: { [weak ctx] in ctx?.bridge.claudeIsRunning() ?? false })
+                                    claudeRunning: { [weak ctx] in ctx?.agent.claudeIsRunning() ?? false })
         microphone = MicrophoneSwitcher(settings: settings, overlay: overlay, isIdle: { [weak ctx] in
             guard let ctx else { return false }
             return ctx.listening == nil && !ctx.busy
@@ -207,8 +207,8 @@ final class Coordinator: AppCoordinating {
         tick()
         refreshTimer?.invalidate()
         refreshTimer = commonModeTimer(1.0) { [weak self] in self?.refreshSessions() }
-        ctx.bridge.watcher.startWorkspaceWatch()
-        ctx.bridge.watcher.onChange = { [weak self] in self?.refreshSessions(notified: true) }
+        ctx.agent.startWorkspaceWatch()
+        ctx.agent.onSessionsChanged = { [weak self] in self?.refreshSessions(notified: true) }
         refreshSessions()
         health.update()
     }
@@ -282,7 +282,7 @@ final class Coordinator: AppCoordinating {
         health.running = false
         ctx.latestHead = nil
         tickTimer?.invalidate(); tickTimer = nil
-        refreshTimer?.invalidate(); refreshTimer = nil; ctx.bridge.watcher.onChange = nil
+        refreshTimer?.invalidate(); refreshTimer = nil; ctx.agent.onSessionsChanged = nil
         headphone.stop()
         if disarm { dictation.clearAndDisarm() } else if ctx.listening != nil { dictation.end(reason: "turned off") }
         engine.stop()
@@ -304,9 +304,9 @@ final class Coordinator: AppCoordinating {
         EnsembleLog.write("shutdown")
         health.running = false
         tickTimer?.invalidate(); tickTimer = nil
-        refreshTimer?.invalidate(); refreshTimer = nil; ctx.bridge.watcher.onChange = nil
+        refreshTimer?.invalidate(); refreshTimer = nil; ctx.agent.onSessionsChanged = nil
         headphone.stop()
-        ctx.bridge.beginShutdown()
+        ctx.agent.beginShutdown()
         engine.stop()
         scroll.cancel()
         dictation.shutdown()
@@ -479,7 +479,7 @@ final class Coordinator: AppCoordinating {
         headStats.n += 1; headStats.faces[min(head.faceCount, 2)] += 1
         guard head.t - headStats.since >= 30 else { return }
         let nose = ctx.pointer.point(for: head).map { "\(Int($0.x)),\(Int($0.y))" } ?? "none"
-        EnsembleLog.write("head: \(headStats.n) readings in 30 s, faces 0/1/2+ = \(headStats.faces), nose at \(nose), accessibility \(AXIsProcessTrusted()), Claude running \(ctx.bridge.claudeIsRunning()), sessions \(ctx.sessions.count), nose on Claude: \(focus.target != nil), \(ctx.bridge.micSnapshot)")
+        EnsembleLog.write("head: \(headStats.n) readings in 30 s, faces 0/1/2+ = \(headStats.faces), nose at \(nose), accessibility \(AXIsProcessTrusted()), Claude running \(ctx.agent.claudeIsRunning()), sessions \(ctx.sessions.count), nose on Claude: \(focus.target != nil), \(ctx.agent.micSnapshot)")
         headStats = (head.t, 0, [0, 0, 0])
     }
 
@@ -627,7 +627,7 @@ final class Coordinator: AppCoordinating {
         frameRefreshInFlight = true
         Task { @MainActor in
             defer { self.frameRefreshInFlight = false }
-            guard let frame = await self.ctx.bridge.paneFrame(session), frame.width > 50, frame.height > 50,
+            guard let frame = await self.ctx.agent.paneFrame(session), frame.width > 50, frame.height > 50,
                   self.ctx.listening?.id == session.id, self.ctx.listening?.frame != frame else { return }
             self.ctx.listening?.frame = frame
             if let i = self.ctx.sessions.firstIndex(where: { $0.id == session.id }) { self.ctx.sessions[i].frame = frame }
@@ -716,7 +716,7 @@ final class Coordinator: AppCoordinating {
         if health.running, !awayState.isAway { ctx.usage.activeTick() }
         health.checkPermissions()
         microphone.restoreIfNeeded()
-        let claudeUp = ctx.bridge.claudeIsRunning()
+        let claudeUp = ctx.agent.claudeIsRunning()
         dictation.dropIfClaudeGone(running: claudeUp)
         guard claudeUp else {
             health.sessionsScanned = false; ctx.sessions = []; ctx.claudeDictations.forgetAll()
@@ -744,7 +744,7 @@ final class Coordinator: AppCoordinating {
                 if self.refreshAgain, self.refreshTimer != nil { self.refreshAgain = false; self.refreshSessions(notified: true) }
             }
             let epoch = self.ctx.dictationEpoch
-            let scan = await self.ctx.bridge.refreshSessions(watched: useNotifications)
+            let scan = await self.ctx.agent.refreshSessions(watched: useNotifications)
             let found = scan.sessions
             // A read taken before Ensemble started, took over or stopped a dictation would report Ensemble's own.
             if epoch == self.ctx.dictationEpoch, self.ctx.listening == nil {
@@ -843,7 +843,7 @@ final class Coordinator: AppCoordinating {
     /// looked-at session, whoever started it, that dictation is stopped through Ensemble's own stop path and sent once
     /// the transcript settles, under every send rule; otherwise the dictated draft is sent under the usual rules.
     private func requestSend() {
-        guard let target = focus.target, settings.mapping.send != nil, ctx.bridge.claudeIsFrontmost(),
+        guard let target = focus.target, settings.mapping.send != nil, ctx.agent.claudeIsFrontmost(),
               ctx.commonRefusal() == nil else { send.request(); return }
         Task { @MainActor in
             let result = await self.dictation.takeOverIfDictating(target, reason: "send") {
@@ -867,7 +867,7 @@ final class Coordinator: AppCoordinating {
     private func handleKey(isReturn: Bool, modified: Bool, isRepeat: Bool) -> Bool {
         let now = CACurrentMediaTime()
         let decision = returnKeys.press(isReturn: isReturn, modified: modified, isRepeat: isRepeat,
-                                        claudeInFront: ctx.bridge.claudeIsFrontmost(),
+                                        claudeInFront: ctx.agent.claudeIsFrontmost(),
                                         dictating: ctx.listening != nil || claudeDictatingHere,
                                         returnSendPending: send.returnSendPending, now: now)
         mirrorOtherKey()

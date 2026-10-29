@@ -13,7 +13,11 @@ final class CoordinatorContext {
     let overlay: OverlayController
     /// Counts for the anonymous daily summary: numbers and fixed words only (docs/telemetry.md).
     let usage: UsageCounting
-    let bridge = ClaudeBridge()
+    private let bridge = ClaudeBridge()
+    /// Everything the controllers ask of the session app goes through this; the Claude desktop bridge is behind it.
+    var agent: any AgentAdapter { bridge }
+    /// The dictation safety check reads the bridge's queues and Accessibility timings directly, so it is built here.
+    lazy var dictationSafety = DictationSafety(bridge: bridge)
     let gestures = GestureMachine()
     let cover = CoverDetector()
     let dim = DimPicture()

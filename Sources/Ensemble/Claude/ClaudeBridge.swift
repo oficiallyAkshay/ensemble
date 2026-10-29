@@ -10,7 +10,7 @@ import Foundation
 /// Everything that talks to Claude desktop. All Accessibility work runs on a private serial queue,
 /// never the main thread. `stopDictation` alone uses a second queue so that a stuck read can never
 /// delay turning the microphone off.
-final class ClaudeBridge: @unchecked Sendable {
+final class ClaudeBridge: AgentAdapter, @unchecked Sendable {
     let queue = DispatchQueue(label: "ensemble.claude.bridge", qos: .userInitiated)
     let urgentQueue = DispatchQueue(label: "ensemble.claude.bridge.urgent", qos: .userInteractive)
     /// Dictation start has its own queue so a slow session refresh on `queue` cannot delay it.
@@ -42,6 +42,12 @@ final class ClaudeBridge: @unchecked Sendable {
     static let ambientInputAllowlist: Set<String> = []
 
     init() {}
+
+    func startWorkspaceWatch() { watcher.startWorkspaceWatch() }
+    var onSessionsChanged: (@MainActor () -> Void)? {
+        get { watcher.onChange }
+        set { watcher.onChange = newValue }
+    }
 
     // MARK: Claude process
 

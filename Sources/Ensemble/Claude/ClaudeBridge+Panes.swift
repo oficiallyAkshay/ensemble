@@ -7,13 +7,6 @@ import Foundation
 /// labelled `ClaudeLabels.paneResize`. Setting its value through Accessibility is accepted and ignored; once the
 /// divider holds keyboard focus, the arrows, Home and End move it (`PaneKeys`, docs/gotchas.md, 2).
 extension ClaudeBridge {
-    struct PaneDivider {
-        let element: AXUIElement
-        let frame: CGRect
-        /// The lower limit of the pair's split, in percent of the pair, as Claude reports it.
-        let minPercent: Double?
-    }
-
     /// The pane-column dividers in the window holding `s`. Empty when none answer. The transcript is not entered:
     /// it holds most of the nodes and never holds a divider.
     func paneDividers(in s: ClaudeSession) async -> [PaneDivider] {
@@ -43,8 +36,9 @@ extension ClaudeBridge {
     /// with Claude in front; never raises Claude or moves it in front. With several Claude windows the session's own
     /// is made main if the focus does not land. False when it has not landed yet: right after a burst of keys on
     /// another divider it took up to 1.6 s (measured 2026-10-15), so the caller keeps checking `dividerHoldsKeyboard`.
-    func focusDivider(_ divider: AXUIElement, in s: ClaudeSession) async -> Bool {
-        await run {
+    func focusDivider(_ handle: AnyObject, in s: ClaudeSession) async -> Bool {
+        let divider = handle as! AXUIElement
+        return await run {
             guard self.claudeIsFrontmost(), let pid = self.claudePID else { return false }
             if self.holdsKeyboard(divider, pid: pid) { return true }
             AX.set(divider, kAXFocusedAttribute, kCFBooleanTrue)
@@ -57,8 +51,9 @@ extension ClaudeBridge {
     }
 
     /// True while Claude is in front and `divider` still holds its keyboard focus: a key posted now moves it.
-    func dividerHoldsKeyboard(_ divider: AXUIElement) async -> Bool {
-        await run {
+    func dividerHoldsKeyboard(_ handle: AnyObject) async -> Bool {
+        let divider = handle as! AXUIElement
+        return await run {
             guard self.claudeIsFrontmost(), let pid = self.claudePID else { return false }
             return self.holdsKeyboard(divider, pid: pid)
         }
@@ -66,8 +61,9 @@ extension ClaudeBridge {
 
     /// Whether Claude's keyboard focus is on one of `dividers`, whether or not Claude is in front; nil when Claude's
     /// focused element cannot be read.
-    func keyboardOnDivider(_ dividers: [AXUIElement]) async -> Bool? {
-        await run {
+    func keyboardOnDivider(_ handles: [AnyObject]) async -> Bool? {
+        let dividers = handles as! [AXUIElement]
+        return await run {
             guard let pid = self.claudePID, let focused = AX.element(AX.application(pid: pid), kAXFocusedUIElementAttribute) else {
                 return nil
             }
