@@ -9,9 +9,12 @@ let coreGraphicsStandIn: [Target.Dependency] = ["CoreGraphics"]
 // CryptoKit is Apple-only as well: the usage checksum, the usage summary and the request body sit behind
 // canImport(CryptoKit), so UsageSummaryTests imports it and UsageTrackerTests calls the request body, and both are
 // left out there (which also drops the usage-counter tests in UsageTrackerTests).
+// PointingClassifierTests builds a Hand and calls the gesture classifier, which sit behind canImport(Vision).
+// WidthGesturesTests builds a Hand and calls the gesture classifier and its adapter, which sit behind canImport(Vision).
 let testsNeedingAppleFrameworks = [
     "FixtureReplay.swift", "FixtureTests.swift", "PeaceRecognitionTests.swift",
     "UsageSummaryTests.swift", "UsageTrackerTests.swift",
+    "PointingClassifierTests.swift", "WidthGesturesTests.swift",
 ]
 #else
 let coreGraphicsStandIn: [Target.Dependency] = []
