@@ -3,6 +3,20 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.39</title>
+            <pubDate>Thu, 29 Oct 2026 20:43:31 +0000</pubDate>
+            <sparkle:version>531</sparkle:version>
+            <sparkle:shortVersionString>0.2.39</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.38:
+
+- A real Claude Code hook-event recording is added as a fixture for the terminal reader (#198)
+- On Linux and Windows the core test target leaves out the Vision-only fixture replay (#197)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.39/Ensemble-0.2.39.dmg" length="6452710" type="application/octet-stream" sparkle:edSignature="ItSau3mYfByjE+FPItguYl82KO9a/7RubHb/DuVsIlcwSeuKymdUrCUb3t1/NhK9I1ujBzJGsJtyKAmSO+8nBQ=="/>
+        </item>
+        <item>
             <title>0.2.38</title>
             <pubDate>Thu, 29 Oct 2026 19:24:35 +0000</pubDate>
             <sparkle:version>529</sparkle:version>
@@ -29,19 +43,6 @@
 - A manual workflow builds and tests EnsembleCore on Linux and Windows (#193)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.37/Ensemble-0.2.37.dmg" length="6453242" type="application/octet-stream" sparkle:edSignature="sEpXVDM+6bjnpNHygGuxYVm8xkNA5QtxP4JWPGtLDEP2+bgle3l4Z85zQE5zVpM16tpL834qfebweD5CQPQ1CQ=="/>
-        </item>
-        <item>
-            <title>0.2.36</title>
-            <pubDate>Thu, 29 Oct 2026 10:07:52 +0000</pubDate>
-            <sparkle:version>525</sparkle:version>
-            <sparkle:shortVersionString>0.2.36</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.35:
-
-- The hand skeleton file no longer mentions Vision (#192)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.36/Ensemble-0.2.36.dmg" length="6452758" type="application/octet-stream" sparkle:edSignature="m9KtCNsohbbRE8xioTtftMFMb1I2EHmUkotAoI+mu4oi1xqtY01DZd6MqI6t44QoCxXVtJUgdMhokVP5TP+xDA=="/>
         </item>
     </channel>
 </rss>
