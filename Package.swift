@@ -6,10 +6,16 @@ import PackageDescription
 #if os(Linux) || os(Windows)
 let coreGraphicsStandIn: [Target.Dependency] = ["CoreGraphics"]
 // Vision is Apple-only too, so the fixture replay helper and the two test files that call it are left out there.
-let testsNeedingVision = ["FixtureReplay.swift", "FixtureTests.swift", "PeaceRecognitionTests.swift"]
+// CryptoKit is Apple-only as well: the usage checksum, the usage summary and the request body sit behind
+// canImport(CryptoKit), so UsageSummaryTests imports it and UsageTrackerTests calls the request body, and both are
+// left out there (which also drops the usage-counter tests in UsageTrackerTests).
+let testsNeedingAppleFrameworks = [
+    "FixtureReplay.swift", "FixtureTests.swift", "PeaceRecognitionTests.swift",
+    "UsageSummaryTests.swift", "UsageTrackerTests.swift",
+]
 #else
 let coreGraphicsStandIn: [Target.Dependency] = []
-let testsNeedingVision: [String] = []
+let testsNeedingAppleFrameworks: [String] = []
 #endif
 
 let package = Package(
@@ -40,7 +46,7 @@ let package = Package(
                 ])
             ]
         ),
-        .testTarget(name: "EnsembleCoreTests", dependencies: ["EnsembleCore"] + coreGraphicsStandIn, path: "Tests/EnsembleCoreTests", exclude: testsNeedingVision, resources: [.copy("Fixtures")]),
+        .testTarget(name: "EnsembleCoreTests", dependencies: ["EnsembleCore"] + coreGraphicsStandIn, path: "Tests/EnsembleCoreTests", exclude: testsNeedingAppleFrameworks, resources: [.copy("Fixtures")]),
     ]
 )
 
