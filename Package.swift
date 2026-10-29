@@ -5,8 +5,11 @@ import PackageDescription
 // that re-exports Foundation lets `import CoreGraphics` in the core and its tests resolve. macOS uses the real one.
 #if os(Linux) || os(Windows)
 let coreGraphicsStandIn: [Target.Dependency] = ["CoreGraphics"]
+// Vision is Apple-only too, so the fixture replay helper and the two test files that call it are left out there.
+let testsNeedingVision = ["FixtureReplay.swift", "FixtureTests.swift", "PeaceRecognitionTests.swift"]
 #else
 let coreGraphicsStandIn: [Target.Dependency] = []
+let testsNeedingVision: [String] = []
 #endif
 
 let package = Package(
@@ -37,7 +40,7 @@ let package = Package(
                 ])
             ]
         ),
-        .testTarget(name: "EnsembleCoreTests", dependencies: ["EnsembleCore"] + coreGraphicsStandIn, path: "Tests/EnsembleCoreTests", resources: [.copy("Fixtures")]),
+        .testTarget(name: "EnsembleCoreTests", dependencies: ["EnsembleCore"] + coreGraphicsStandIn, path: "Tests/EnsembleCoreTests", exclude: testsNeedingVision, resources: [.copy("Fixtures")]),
     ]
 )
 
