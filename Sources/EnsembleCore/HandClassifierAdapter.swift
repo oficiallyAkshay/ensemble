@@ -2,6 +2,40 @@ import Foundation
 
 #if canImport(Vision)
 
+extension HandSkeletonFrame {
+    public init(hand: Hand) {
+        self.init(points: HandSkeleton.joints.map { hand[$0.visionJoint] })
+    }
+}
+
+extension HandJoint {
+    var visionJoint: Joint {
+        switch self {
+        case .wrist: return .wrist
+        case .thumbCMC: return .thumbCMC
+        case .thumbMP: return .thumbMP
+        case .thumbIP: return .thumbIP
+        case .thumbTip: return .thumbTip
+        case .indexMCP: return .indexMCP
+        case .indexPIP: return .indexPIP
+        case .indexDIP: return .indexDIP
+        case .indexTip: return .indexTip
+        case .middleMCP: return .middleMCP
+        case .middlePIP: return .middlePIP
+        case .middleDIP: return .middleDIP
+        case .middleTip: return .middleTip
+        case .ringMCP: return .ringMCP
+        case .ringPIP: return .ringPIP
+        case .ringDIP: return .ringDIP
+        case .ringTip: return .ringTip
+        case .littleMCP: return .littleMCP
+        case .littlePIP: return .littlePIP
+        case .littleDIP: return .littleDIP
+        case .littleTip: return .littleTip
+        }
+    }
+}
+
 public enum HandClassifierAdapter {
     /// Maps one Sleight hand reading to a `HandObservation`.
     public static func observation(from hand: Hand?, at t: TimeInterval, classifier: GestureClassifier) -> HandObservation {
