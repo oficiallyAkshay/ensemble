@@ -19,21 +19,52 @@ public struct HandSkeletonFrame: Sendable, Equatable {
 
 #if canImport(Vision)
     public init(hand: Hand) {
-        self.init(points: HandSkeleton.joints.map { hand[$0] })
+        self.init(points: HandSkeleton.joints.map { hand[$0.visionJoint] })
+    }
+#endif
+}
+
+/// The 21 hand joints, named without Vision so the skeleton compiles where Vision does not exist.
+public enum HandJoint: CaseIterable, Sendable {
+    case wrist
+    case thumbCMC, thumbMP, thumbIP, thumbTip
+    case indexMCP, indexPIP, indexDIP, indexTip
+    case middleMCP, middlePIP, middleDIP, middleTip
+    case ringMCP, ringPIP, ringDIP, ringTip
+    case littleMCP, littlePIP, littleDIP, littleTip
+
+#if canImport(Vision)
+    var visionJoint: Joint {
+        switch self {
+        case .wrist: return .wrist
+        case .thumbCMC: return .thumbCMC
+        case .thumbMP: return .thumbMP
+        case .thumbIP: return .thumbIP
+        case .thumbTip: return .thumbTip
+        case .indexMCP: return .indexMCP
+        case .indexPIP: return .indexPIP
+        case .indexDIP: return .indexDIP
+        case .indexTip: return .indexTip
+        case .middleMCP: return .middleMCP
+        case .middlePIP: return .middlePIP
+        case .middleDIP: return .middleDIP
+        case .middleTip: return .middleTip
+        case .ringMCP: return .ringMCP
+        case .ringPIP: return .ringPIP
+        case .ringDIP: return .ringDIP
+        case .ringTip: return .ringTip
+        case .littleMCP: return .littleMCP
+        case .littlePIP: return .littlePIP
+        case .littleDIP: return .littleDIP
+        case .littleTip: return .littleTip
+        }
     }
 #endif
 }
 
 public enum HandSkeleton {
-    /// Wrist, then each finger from its base to its tip (thumb, index, middle, ring, little).
-    public static let joints: [Joint] = [
-        .wrist,
-        .thumbCMC, .thumbMP, .thumbIP, .thumbTip,
-        .indexMCP, .indexPIP, .indexDIP, .indexTip,
-        .middleMCP, .middlePIP, .middleDIP, .middleTip,
-        .ringMCP, .ringPIP, .ringDIP, .ringTip,
-        .littleMCP, .littlePIP, .littleDIP, .littleTip,
-    ]
+    /// Wrist, then each finger from its base to its tip (thumb, index, middle, ring, little): the case order of `HandJoint`.
+    public static let joints = HandJoint.allCases
 
     /// Indexes into `joints`, 21 bones: each finger's joints chain to its tip, the wrist joins the thumb, index and
     /// little finger, and the index, middle, ring and little bases join across the palm (so the middle and ring

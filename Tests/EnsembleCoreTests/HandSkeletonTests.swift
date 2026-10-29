@@ -91,8 +91,21 @@ import Testing
         #expect(s.sample(at: 0.01).allSatisfy { $0 == nil })
     }
 
+#if canImport(Vision)
+    @Test func theJointListMapsToVisionInTheSameOrder() {
+        let expected: [Joint] = [
+            .wrist,
+            .thumbCMC, .thumbMP, .thumbIP, .thumbTip,
+            .indexMCP, .indexPIP, .indexDIP, .indexTip,
+            .middleMCP, .middlePIP, .middleDIP, .middleTip,
+            .ringMCP, .ringPIP, .ringDIP, .ringTip,
+            .littleMCP, .littlePIP, .littleDIP, .littleTip,
+        ]
+        #expect(HandSkeleton.joints.map(\.visionJoint) == expected)
+    }
+
     @Test func theClassifierAdapterCarriesOnlyJointCoordinates() {
-        let points = Dictionary(uniqueKeysWithValues: HandSkeleton.joints.enumerated().map { ($1, CGPoint(x: Double($0) / 40, y: 0.5)) })
+        let points = Dictionary(uniqueKeysWithValues: HandSkeleton.joints.enumerated().map { ($1.visionJoint, CGPoint(x: Double($0) / 40, y: 0.5)) })
         let hand = Hand(chirality: .right, points: points, confidence: 0.9)
         let obs = HandClassifierAdapter.observation(from: hand, at: 1, classifier: GestureClassifier())
         #expect(obs.skeleton?.points.count == 21)
@@ -100,6 +113,7 @@ import Testing
         let none = HandClassifierAdapter.observation(from: nil, at: 1, classifier: GestureClassifier())
         #expect(none.skeleton == nil)
     }
+#endif
 }
 
 @Suite struct HandReadingTests {
