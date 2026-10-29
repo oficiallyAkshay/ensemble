@@ -70,7 +70,12 @@ public enum SafetyRecordFile {
         let handle = try createExclusive(tmp)
         do {
             try handle.write(contentsOf: data)
+#if canImport(Darwin)
             if fcntl(handle.fileDescriptor, F_FULLFSYNC) != 0 { try handle.synchronize() }
+#else
+            // F_FULLFSYNC is Apple's; elsewhere synchronize() is the flush the system offers.
+            try handle.synchronize()
+#endif
             try handle.close()
             guard rename(tmp.path, url.path) == 0 else { throw posixError() }
         } catch {
@@ -88,8 +93,13 @@ public enum SafetyRecordFile {
     }
 
     static func syncFolder(_ folder: URL) {
+#if os(Windows)
+        // A folder cannot be opened and flushed like a file there.
+        _ = folder
+#else
         let fd = open(folder.path, O_RDONLY)
         if fd >= 0 { _ = fsync(fd); close(fd) }
+#endif
     }
 
     /// Creating a folder applies its mode only when it is new, so an existing one is tightened every time.
@@ -100,7 +110,12 @@ public enum SafetyRecordFile {
 
     /// Refuses any file or link already at `url`, so the write cannot be redirected.
     static func createExclusive(_ url: URL) throws -> FileHandle {
+#if os(Windows)
+        // No O_NOFOLLOW there; O_EXCL alone still refuses an existing file or link.
+        let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+#else
         let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+#endif
         guard fd >= 0 else { throw posixError() }
         return FileHandle(fileDescriptor: fd, closeOnDealloc: true)
     }

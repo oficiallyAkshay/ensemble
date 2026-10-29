@@ -187,9 +187,11 @@ public final class UsageTracker: UsageCounting {
 
     /// The request body for `day`. The sender and the preview both come here. The preview passes `preview: true`: it
     /// shows a stand-in rather than make an id.
+#if canImport(CryptoKit)
     public func requestBody(for day: UsageDay, writeKey: String, preview: Bool = false) throws -> Data {
         let properties = UsageSummary.properties(for: day, appVersion: appVersion, macOSVersion: macOSVersion)
         let id = preview ? (defaults.string(forKey: Key.installID) ?? "assigned-at-first-send") : installID()
         return try UsageSummary.body(properties: properties, day: day.day, distinctID: id, writeKey: writeKey)
     }
+#endif
 }

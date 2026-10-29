@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 /// Where a screen's five calibration dots go: centre, left, right, top, bottom, in global top-left coordinates.
 public enum CalibrationTargets {

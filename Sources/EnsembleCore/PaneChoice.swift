@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// One ancestor of a session's dictation checkbox, as read from Claude's accessibility tree: how big it is

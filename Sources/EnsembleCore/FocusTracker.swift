@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// Which Claude session the nose is on, and for how long. Focus follows the nose almost at once; the margin

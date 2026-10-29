@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// A divider between two side-by-side panes. `element` is the adapter's own reference to it (for the Claude desktop

@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 // Shared types between the vision engine, the Claude bridge, the UI shell and the coordinator.

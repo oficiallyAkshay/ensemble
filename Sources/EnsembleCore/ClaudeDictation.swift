@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// A dictation can run in a Claude session that Ensemble did not start (Claude's own microphone button or shortcut).

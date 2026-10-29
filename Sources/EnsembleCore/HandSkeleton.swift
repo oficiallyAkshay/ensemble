@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// The 21 hand joints Vision reports, as bare coordinates: what the tour's inset draws. No image ever comes
@@ -13,9 +17,11 @@ public struct HandSkeletonFrame: Sendable, Equatable {
         self.points = points
     }
 
+#if canImport(Vision)
     public init(hand: Hand) {
         self.init(points: HandSkeleton.joints.map { hand[$0] })
     }
+#endif
 }
 
 public enum HandSkeleton {

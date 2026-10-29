@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 public enum EdgeSide: Equatable, Sendable { case left, right, top, bottom }

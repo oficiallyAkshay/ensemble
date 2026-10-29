@@ -1,5 +1,17 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
 import Foundation
+#endif
+import Foundation
+
+/// A speed in points per second along each axis. Local so the spring does not need CoreGraphics' vector type.
+public struct DotVelocity: Equatable {
+    public var dx: CGFloat
+    public var dy: CGFloat
+
+    public static let zero = DotVelocity(dx: 0, dy: 0)
+}
 
 /// Moves the drawn nose dot toward the latest pointer reading on every screen refresh, as a critically damped
 /// spring. Head readings arrive 15 to 30 times a second and the screen refreshes 50 to 120 times; a spring carries
@@ -10,7 +22,7 @@ public struct DotSpring {
     /// Stiffness as an angular frequency (1/s). A step is 90% covered after about 3.9 / omega seconds.
     public var omega: Double
     public private(set) var position: CGPoint?
-    public private(set) var velocity = CGVector.zero
+    public private(set) var velocity = DotVelocity.zero
 
     /// The dot counts as arrived inside this distance (pt) and below this speed (pt/s); the caller can stop ticking.
     public static let restDistance: CGFloat = 0.25
@@ -47,7 +59,7 @@ public struct DotSpring {
         let (y, vy) = axis(Double(p.y - goal.y), Double(velocity.dy))
         let next = CGPoint(x: goal.x + CGFloat(x), y: goal.y + CGFloat(y))
         position = next
-        velocity = CGVector(dx: vx, dy: vy)
+        velocity = DotVelocity(dx: vx, dy: vy)
         return next
     }
 
