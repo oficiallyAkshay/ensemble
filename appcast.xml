@@ -3,6 +3,19 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.38</title>
+            <pubDate>Thu, 29 Oct 2026 19:24:35 +0000</pubDate>
+            <sparkle:version>529</sparkle:version>
+            <sparkle:shortVersionString>0.2.38</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.37:
+
+- On Linux and Windows the package supplies a CoreGraphics stand-in module that re-exports Foundation (#196)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.38/Ensemble-0.2.38.dmg" length="6452702" type="application/octet-stream" sparkle:edSignature="kYY083w1OXM0mxp0oUM078guzNcU8X8S75URa4bxjm856alYhRB+5IWo7rpfU8bp2T2l/D/cwOacmc5/BW+FCQ=="/>
+        </item>
+        <item>
             <title>0.2.37</title>
             <pubDate>Thu, 29 Oct 2026 18:55:43 +0000</pubDate>
             <sparkle:version>528</sparkle:version>
@@ -29,19 +42,6 @@
 - The hand skeleton file no longer mentions Vision (#192)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.36/Ensemble-0.2.36.dmg" length="6452758" type="application/octet-stream" sparkle:edSignature="m9KtCNsohbbRE8xioTtftMFMb1I2EHmUkotAoI+mu4oi1xqtY01DZd6MqI6t44QoCxXVtJUgdMhokVP5TP+xDA=="/>
-        </item>
-        <item>
-            <title>0.2.35</title>
-            <pubDate>Thu, 29 Oct 2026 09:55:10 +0000</pubDate>
-            <sparkle:version>524</sparkle:version>
-            <sparkle:shortVersionString>0.2.35</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.34:
-
-- The hand skeleton's joint list no longer depends on Vision (#191)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.35/Ensemble-0.2.35.dmg" length="6452726" type="application/octet-stream" sparkle:edSignature="VzngocX3MaWTBWA4J2xe7PayW9drrpVIz1x2olovrXmzLq2z+aBiH9X5jir2qLsU7FVRBMUDw87sYhcTT/nLBw=="/>
         </item>
     </channel>
 </rss>
