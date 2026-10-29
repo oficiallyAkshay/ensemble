@@ -37,23 +37,25 @@ public protocol AgentAdapter: AnyObject, Sendable {
     func startWorkspaceWatch()
     /// Called on the main actor when the app's windows or panes changed.
     var onSessionsChanged: (@MainActor () -> Void)? { get set }
-    func refreshSessions(watched: Bool) async -> (sessions: [ClaudeSession], recording: Set<String>)
-    func paneFrame(_ s: ClaudeSession) async -> CGRect?
-    func focus(_ s: ClaudeSession, unlessTypedWithin quiet: TimeInterval) async -> BridgeResult
-    func focusComposerIfNeeded(_ s: ClaudeSession) async -> String
+    // Requirement parameters are unnamed: Periphery scans only the core library and reports a named parameter no
+    // scanned code reads. The conformer names them.
+    func refreshSessions(watched _: Bool) async -> (sessions: [ClaudeSession], recording: Set<String>)
+    func paneFrame(_: ClaudeSession) async -> CGRect?
+    func focus(_: ClaudeSession, unlessTypedWithin _: TimeInterval) async -> BridgeResult
+    func focusComposerIfNeeded(_: ClaudeSession) async -> String
 
     // Dictation and send
-    func micState(_ s: ClaudeSession) async -> MicState
-    func startDictation(_ s: ClaudeSession) async -> BridgeResult
-    func stopDictation(_ s: ClaudeSession) async -> BridgeResult
+    func micState(_: ClaudeSession) async -> MicState
+    func startDictation(_: ClaudeSession) async -> BridgeResult
+    func stopDictation(_: ClaudeSession) async -> BridgeResult
     func stopAnyDictation() async -> BridgeResult
-    func draftText(_ s: ClaudeSession) async -> String?
-    func sendDraft(_ s: ClaudeSession, shown: String, stoppedAt: Date, inputAge: @escaping @Sendable () -> Double) async -> BridgeResult
+    func draftText(_: ClaudeSession) async -> String?
+    func sendDraft(_: ClaudeSession, shown _: String, stoppedAt _: Date, inputAge: @escaping @Sendable () -> Double) async -> BridgeResult
 
     // Panes
-    func paneDividers(in s: ClaudeSession) async -> [PaneDivider]
-    func focusDivider(_ divider: AnyObject, in s: ClaudeSession) async -> Bool
-    func dividerHoldsKeyboard(_ divider: AnyObject) async -> Bool
+    func paneDividers(in _: ClaudeSession) async -> [PaneDivider]
+    func focusDivider(_: AnyObject, in _: ClaudeSession) async -> Bool
+    func dividerHoldsKeyboard(_: AnyObject) async -> Bool
     func keyboardOnDivider(_ dividers: [AnyObject]) async -> Bool?
     func chatColumns(in sessions: [ClaudeSession]) async -> [String: (transcript: CGRect?, column: Double?)]
 }
