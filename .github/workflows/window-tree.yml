@@ -1,0 +1,114 @@
+# Reads a stand-in Electron app's window tree on Windows, Linux (virtual display) and macOS with xa11y. Manual start only.
+# Informational: not part of `gate`. Read the uploaded tree.txt of each system, never the job colour: the reader step is
+# continue-on-error, so a job stays green when its tree could not be read.
+name: window-tree
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb dbus-x11 at-spi2-core imagemagick libgbm1 libasound2t64 libnss3 libgtk-3-0t64
+          npm ci --prefix scripts/window-tree --no-audit --no-fund
+          pip install -r scripts/window-tree/requirements.txt
+          mkdir out
+      - name: Read the window tree
+        run: bash scripts/window-tree/linux-run.sh out 2>&1 | tee out/tree.txt
+        continue-on-error: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: linux-window-tree
+          path: out
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install tools
+        run: |
+          npm ci --prefix scripts/window-tree --no-audit --no-fund
+          pip install -r scripts/window-tree/requirements.txt
+          mkdir out
+      - name: Read the window tree
+        env:
+          OUT: out
+          SHOT_CMD: powershell -NoProfile -File scripts/window-tree/screenshot-windows.ps1 out/screenshot.png
+        run: python scripts/window-tree/read_tree.py 2>&1 | tee out/tree.txt
+        continue-on-error: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: windows-window-tree
+          path: out
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install tools
+        run: |
+          npm ci --prefix scripts/window-tree --no-audit --no-fund
+          pip install -r scripts/window-tree/requirements.txt
+          mkdir out
+      - name: Read the window tree
+        env:
+          OUT: out
+          SHOT_CMD: screencapture -x out/screenshot.png
+        run: python scripts/window-tree/read_tree.py 2>&1 | tee out/tree.txt
+        continue-on-error: true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: macos-window-tree
+          path: out

@@ -32,7 +32,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb dbus-x11 at-spi2-core imagemagick libgbm1 libasound2t64 libnss3 libgtk-3-0t64
-          npm install --prefix scripts/window-tree --no-audit --no-fund
+          npm ci --prefix scripts/window-tree --no-audit --no-fund
           pip install -r scripts/window-tree/requirements.txt
           mkdir out
       - name: Read the window tree
@@ -64,7 +64,7 @@ jobs:
           python-version: '3.12'
       - name: Install tools
         run: |
-          npm install --prefix scripts/window-tree --no-audit --no-fund
+          npm ci --prefix scripts/window-tree --no-audit --no-fund
           pip install -r scripts/window-tree/requirements.txt
           mkdir out
       - name: Read the window tree
@@ -99,7 +99,7 @@ jobs:
           python-version: '3.12'
       - name: Install tools
         run: |
-          npm install --prefix scripts/window-tree --no-audit --no-fund
+          npm ci --prefix scripts/window-tree --no-audit --no-fund
           pip install -r scripts/window-tree/requirements.txt
           mkdir out
       - name: Read the window tree
