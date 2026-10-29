@@ -5,26 +5,20 @@ import Foundation
 #endif
 import Foundation
 
-/// The 21 hand joints Vision reports, as bare coordinates: what the tour's inset draws. No image ever comes
+/// The 21 hand joints the hand-pose reader reports, as bare coordinates: what the tour's inset draws. No image ever comes
 /// through here, only normalized points, so the engine hands the tour a skeleton and nothing else of the frame.
 public struct HandSkeletonFrame: Sendable, Equatable {
     /// One slot per joint in `HandSkeleton.joints` order. Normalized image coordinates, origin bottom-left, 0...1.
-    /// nil when Vision did not report that joint with enough confidence.
+    /// nil when the hand-pose reader did not report that joint with enough confidence.
     public var points: [CGPoint?]
 
     public init(points: [CGPoint?]) {
         precondition(points.count == HandSkeleton.joints.count, "a hand skeleton has \(HandSkeleton.joints.count) joints")
         self.points = points
     }
-
-#if canImport(Vision)
-    public init(hand: Hand) {
-        self.init(points: HandSkeleton.joints.map { hand[$0.visionJoint] })
-    }
-#endif
 }
 
-/// The 21 hand joints, named without Vision so the skeleton compiles where Vision does not exist.
+/// The 21 hand joints, named locally so the skeleton compiles where the hand-pose reader does not exist.
 public enum HandJoint: CaseIterable, Sendable {
     case wrist
     case thumbCMC, thumbMP, thumbIP, thumbTip
@@ -32,34 +26,6 @@ public enum HandJoint: CaseIterable, Sendable {
     case middleMCP, middlePIP, middleDIP, middleTip
     case ringMCP, ringPIP, ringDIP, ringTip
     case littleMCP, littlePIP, littleDIP, littleTip
-
-#if canImport(Vision)
-    var visionJoint: Joint {
-        switch self {
-        case .wrist: return .wrist
-        case .thumbCMC: return .thumbCMC
-        case .thumbMP: return .thumbMP
-        case .thumbIP: return .thumbIP
-        case .thumbTip: return .thumbTip
-        case .indexMCP: return .indexMCP
-        case .indexPIP: return .indexPIP
-        case .indexDIP: return .indexDIP
-        case .indexTip: return .indexTip
-        case .middleMCP: return .middleMCP
-        case .middlePIP: return .middlePIP
-        case .middleDIP: return .middleDIP
-        case .middleTip: return .middleTip
-        case .ringMCP: return .ringMCP
-        case .ringPIP: return .ringPIP
-        case .ringDIP: return .ringDIP
-        case .ringTip: return .ringTip
-        case .littleMCP: return .littleMCP
-        case .littlePIP: return .littlePIP
-        case .littleDIP: return .littleDIP
-        case .littleTip: return .littleTip
-        }
-    }
-#endif
 }
 
 public enum HandSkeleton {
@@ -95,7 +61,7 @@ public enum HandSkeleton {
 }
 
 /// Eases drawn joints toward the newest readings so a 30 Hz hand looks continuous at display rate. Positions are
-/// in the selfie unit square (see `HandSkeleton.selfie`). A joint Vision drops for a moment keeps its last place
+/// in the selfie unit square (see `HandSkeleton.selfie`). A joint the reader drops for a moment keeps its last place
 /// for `holdAfterLoss` seconds, so a flickering fingertip does not blink; a hand that leaves fades from the
 /// drawing once all its joints have expired. Not thread-safe.
 public struct HandSkeletonSmoother {
