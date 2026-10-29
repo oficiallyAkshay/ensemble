@@ -3,6 +3,19 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.34</title>
+            <pubDate>Thu, 29 Oct 2026 09:37:40 +0000</pubDate>
+            <sparkle:version>523</sparkle:version>
+            <sparkle:shortVersionString>0.2.34</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.33:
+
+- Apple-only parts of the core library sit behind platform guards (#190)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.34/Ensemble-0.2.34.dmg" length="6452202" type="application/octet-stream" sparkle:edSignature="r0CJaBT8XJt71ZInDLKylcTPZfEuZeDHpEgVP4BqdW8tyeY6+OwP9bBR7YG4OTEyrbXIpJ6b1LY0vA+5lMYjBg=="/>
+        </item>
+        <item>
             <title>0.2.33</title>
             <pubDate>Thu, 29 Oct 2026 08:43:45 +0000</pubDate>
             <sparkle:version>522</sparkle:version>
@@ -34,25 +47,6 @@
 - The link preview image has a new address so validators stop showing the cached old one (#177)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.32/Ensemble-0.2.32.dmg" length="6451194" type="application/octet-stream" sparkle:edSignature="+TY/OZzlTT9DNOJO5R1M3JI3ZzyCnxVxrSNT6zibjSJ1EGj1UIzhnjkJDZvE8xWAsOrtXOdOfIdVcFqGLg0cBA=="/>
-        </item>
-        <item>
-            <title>0.2.31</title>
-            <pubDate>Tue, 20 Oct 2026 15:00:10 +0000</pubDate>
-            <sparkle:version>513</sparkle:version>
-            <sparkle:shortVersionString>0.2.31</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.30:
-
-- The hand is a deeper skin tone in the light theme so it stands out against the white stage (#176)
-- The website's link preview uses the repository's own social image (#174)
-- The home page hero is one 3D scene of the head, the Claude window and the hand, with a short note from the maker (#173)
-- A link to the website shows a preview image in Slack (ENS-116) (#172)
-- The friends' texts on the website are light lock-screen notifications, and Incredibly intuitive follows them directly (#171)
-- The home page closed-lid step shows the 3D closed laptop (#170)
-- The download section's gradient circle no longer overlaps the gallery (#169)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.31/Ensemble-0.2.31.dmg" length="6451054" type="application/octet-stream" sparkle:edSignature="NQWjfj9Ykb0xR8l3b6AeESkqPCs6bboWIZJSF0V6XdSs1v1LbV3wNCkb01rPE92pp4ghBrH+BXU2427hfKb8AQ=="/>
         </item>
     </channel>
 </rss>
