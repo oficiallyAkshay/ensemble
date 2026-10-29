@@ -36,17 +36,6 @@ def launch():
     return subprocess.Popen(args)
 
 
-def walk(element, depth, lines, names):
-    if depth > MAX_DEPTH:
-        return
-    name = element.name
-    lines.append("  " * depth + str(element.role) + ": " + (name if name else ""))
-    if name:
-        names.append(name)
-    for child in element.children():
-        walk(child, depth + 1, lines, names)
-
-
 def find_app():
     """The app whose tree holds the stand-in window title, or None. Matching by title avoids guessing which Electron process owns the window."""
     last_error = None
@@ -81,14 +70,12 @@ def main():
         if app is None:
             failure = error
         else:
-            lines, names = [], []
-            walk(app, 0, lines, names)
-            print("\n".join(lines), flush=True)
-            windows = [w.name for w in app.children() if w.name]
-            print("WINDOW TITLES: " + repr(windows), flush=True)
-            found = [n for n in EXPECTED if n in names]
+            dump = app.dump(max_depth=MAX_DEPTH)
+            print(dump, flush=True)
+            found = [n for n in EXPECTED if n in dump]
+            print("WINDOW TITLE FOUND: " + repr(TITLE in dump), flush=True)
             print("CONTROL NAMES: " + repr(found), flush=True)
-            if TITLE not in windows and TITLE not in names:
+            if TITLE not in dump:
                 failure = "window title not in the tree"
             elif len(found) < 3:
                 failure = "only %d of %d expected control names in the tree" % (len(found), len(EXPECTED))
