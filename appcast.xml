@@ -3,6 +3,19 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.36</title>
+            <pubDate>Thu, 29 Oct 2026 10:07:52 +0000</pubDate>
+            <sparkle:version>525</sparkle:version>
+            <sparkle:shortVersionString>0.2.36</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.35:
+
+- The hand skeleton file no longer mentions Vision (#192)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.36/Ensemble-0.2.36.dmg" length="6452758" type="application/octet-stream" sparkle:edSignature="m9KtCNsohbbRE8xioTtftMFMb1I2EHmUkotAoI+mu4oi1xqtY01DZd6MqI6t44QoCxXVtJUgdMhokVP5TP+xDA=="/>
+        </item>
+        <item>
             <title>0.2.35</title>
             <pubDate>Thu, 29 Oct 2026 09:55:10 +0000</pubDate>
             <sparkle:version>524</sparkle:version>
@@ -27,20 +40,6 @@
 - Apple-only parts of the core library sit behind platform guards (#190)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.34/Ensemble-0.2.34.dmg" length="6452202" type="application/octet-stream" sparkle:edSignature="r0CJaBT8XJt71ZInDLKylcTPZfEuZeDHpEgVP4BqdW8tyeY6+OwP9bBR7YG4OTEyrbXIpJ6b1LY0vA+5lMYjBg=="/>
-        </item>
-        <item>
-            <title>0.2.33</title>
-            <pubDate>Thu, 29 Oct 2026 08:43:45 +0000</pubDate>
-            <sparkle:version>522</sparkle:version>
-            <sparkle:shortVersionString>0.2.33</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.32:
-
-- The coordinator reaches the Claude desktop app through one adapter interface (#189)
-- The workflows guide lists the CodeQL, dependency review and Scorecard workflows (#187)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.33/Ensemble-0.2.33.dmg" length="6452430" type="application/octet-stream" sparkle:edSignature="u1eTomEI8/3GZv0NNiBRrOWEDsqoEn0WiWd0IjBQccySNBlie1uY9J4InCoDA2HKWSbFRRjJ1K44bMfbsABqAg=="/>
         </item>
     </channel>
 </rss>
