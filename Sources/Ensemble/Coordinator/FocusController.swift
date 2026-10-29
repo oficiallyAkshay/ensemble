@@ -179,7 +179,7 @@ final class FocusController {
         EnsembleLog.write("raising Claude: nose rested on a covered session")
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 120_000_000)   // a short pause before the raise
-            let r = await self.ctx.bridge.focus(hidden, unlessTypedWithin: CoordinatorContext.inputQuiet)
+            let r = await self.ctx.agent.focus(hidden, unlessTypedWithin: CoordinatorContext.inputQuiet)
             let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
             EnsembleLog.write("raise result: \(r), frontmost now \(front)")
         }
@@ -213,7 +213,7 @@ final class FocusController {
             EnsembleLog.write("focus moved to a session")
             ctx.usage.count(.focusMoved)
             Task {
-                if case .refused = await self.ctx.bridge.focus(session, unlessTypedWithin: CoordinatorContext.inputQuiet) { self.lastFocusedId = nil }
+                if case .refused = await self.ctx.agent.focus(session, unlessTypedWithin: CoordinatorContext.inputQuiet) { self.lastFocusedId = nil }
             }
         }
     }
@@ -230,7 +230,7 @@ final class FocusController {
     private var claudePIDCache: (pid: pid_t?, t: TimeInterval)?
     private func claudePID(at t: TimeInterval) -> pid_t? {
         if let c = claudePIDCache, t - c.t >= 0, t - c.t < 1 { return c.pid }
-        let pid = ctx.bridge.claudePID
+        let pid = ctx.agent.claudePID
         claudePIDCache = (pid, t)
         return pid
     }

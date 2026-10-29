@@ -48,7 +48,7 @@ final class DictationController {
         self.ctx = ctx
         self.focus = focus
         self.send = send
-        safety = DictationSafety(bridge: ctx.bridge)
+        safety = ctx.dictationSafety
         meter.onLevel = { [weak self] v in
             guard let self else { return }
             self.ctx.overlay.setAudioLevel(v)
@@ -100,7 +100,7 @@ final class DictationController {
         guard let session = focus.target else {
             // No session at all while Claude runs: its windows are on another Space, minimized or behind a
             // full-screen app, and pointing better cannot help.
-            refuseStart(ctx.sessions.isEmpty && ctx.bridge.claudeIsRunning() ? "Claude isn't on screen" : "Your nose is not on a Claude session",
+            refuseStart(ctx.sessions.isEmpty && ctx.agent.claudeIsRunning() ? "Claude isn't on screen" : "Your nose is not on a Claude session",
                         resolves: .whenOnSession)
             return
         }
@@ -109,14 +109,14 @@ final class DictationController {
         // Busy from here: no second start, and switching off waits for this one.
         ctx.busy = true
         startInFlight = true
-        let bridge = ctx.bridge
+        let agent = ctx.agent
         Task { @MainActor in
             // CoreAudio and the safety queue can stall while devices change; neither is waited on from the main thread.
-            let other = await Task.detached { bridge.otherProcessCapturingInput() }.value
+            let other = await Task.detached { agent.otherProcessCapturingInput() }.value
             if other == nil {
                 // Claude may already be dictating here, started with its own button or shortcut: the double pinch then
                 // stops it. Never start while it is on, and never press a checkbox whose state is unclear.
-                switch ClaudeDictation.talkStep(target: await bridge.micState(session)) {
+                switch ClaudeDictation.talkStep(target: await agent.micState(session)) {
                 case .start:
                     // Claude's microphone is off and nothing has been written or pressed yet, so this is the one moment
                     // the default input may change without tripping the input-device check of any dictation.
@@ -160,7 +160,7 @@ final class DictationController {
             }
             self.ctx.listening = session
             self.ctx.ownDictation(in: session)
-            self.processID = bridge.claudePID
+            self.processID = agent.claudePID
             self.ctx.state.listening = true
             self.ctx.changed()
             // Other audio is paused before the microphone opens, so neither it nor the pause is transcribed; the
@@ -168,7 +168,7 @@ final class DictationController {
             if self.ctx.settings.pauseMediaWhileDictating { self.duckWanted = true; await self.ducker.duck() }
             let claudeOutputBefore = await Task.detached { Self.claudeOutputs() }.value
             HeadphoneRemote.noteMicChange()
-            let result = await self.ctx.bridge.startDictation(session)
+            let result = await self.ctx.agent.startDictation(session)
             HeadphoneRemote.noteMicChange()
             self.ctx.busy = false
             self.startInFlight = false
@@ -185,7 +185,7 @@ final class DictationController {
                 if !self.ctx.headphoneActive { self.ctx.usage.count(.gestureSucceeded(.pinch)) }
                 if self.ctx.settings.liveSoundBars, next != .stopSwitchedOff { self.meter.start() }
                 self.startedAt = CACurrentMediaTime()
-                self.inputDevice = await Task.detached { bridge.defaultInputDeviceName() }.value
+                self.inputDevice = await Task.detached { agent.defaultInputDeviceName() }.value
                 self.safety.episodeConfirmed()
                 if DictationAudio.startSoundDue(after: next, soundsOn: self.ctx.settings.playSounds) {
                     self.playDictationSound(.start, check: Self.soundCheck(before: claudeOutputBefore))
@@ -193,14 +193,14 @@ final class DictationController {
                 // Pressing the microphone can leave the keyboard on the button; a key typed while dictating belongs in
                 // this session's message box.
                 if next == .keepListening {
-                    Task { @MainActor in EnsembleLog.write(await self.ctx.bridge.focusComposerIfNeeded(session)) }
+                    Task { @MainActor in EnsembleLog.write(await self.ctx.agent.focusComposerIfNeeded(session)) }
                 }
             case .refused(let why), .unknown(let why):
                 self.ctx.listening = nil
                 self.ctx.state.listening = false
                 self.safety.episodeEnded()
                 self.ctx.gestures.abortTalk()
-                EnsembleLog.write("start dictation \(result): \(self.ctx.bridge.micSnapshot)")
+                EnsembleLog.write("start dictation \(result): \(self.ctx.agent.micSnapshot)")
                 self.ctx.refuse(why == ClaudeDictation.alreadyDictating ? why : "Could not start dictation: \(why)", title: "Dictation not started")
                 self.checkClaudeUpdate()
             }
@@ -223,7 +223,7 @@ final class DictationController {
             // An immediate stop waits on nothing, not even this read (CoreAudio can stall while devices change).
             let claudeOutputBefore: Int? = immediate ? nil : await Task.detached { Self.claudeOutputs() }.value
             HeadphoneRemote.noteMicChange()
-            let result = await self.ctx.bridge.stopDictation(session)
+            let result = await self.ctx.agent.stopDictation(session)
             HeadphoneRemote.noteMicChange()
             // Whether Claude plays its own stop sound, looked at once for this stop: the stop banner's cue and a later
             // "Kept, not sent" cue both follow it, so neither doubles Claude's.
@@ -248,10 +248,10 @@ final class DictationController {
                         try? await Task.sleep(nanoseconds: 400_000_000)
                         // Typing or a new dictation during the pause means the user is working here: do not move focus.
                         guard self.ctx.listening == nil, !self.ctx.busy, !self.focus.userLeftClaude, ClaudeBridge.secondsSinceTypingOrClick() >= CoordinatorContext.inputQuiet else { return }
-                        _ = await self.ctx.bridge.focus(next, unlessTypedWithin: CoordinatorContext.inputQuiet)
+                        _ = await self.ctx.agent.focus(next, unlessTypedWithin: CoordinatorContext.inputQuiet)
                     }
                 }
-                self.ctx.settings.lastClaudeVersion = self.ctx.bridge.claudeVersion
+                self.ctx.settings.lastClaudeVersion = self.ctx.agent.claudeVersion
                 // An interrupted dictation (sleep, lock, safety stop) is never sent by a later thumbs-up.
                 if sendable { self.send.spoke(in: session) } else { self.send.afterStop = false; self.send.dropEarly() }
                 if self.send.afterStop {
@@ -266,7 +266,7 @@ final class DictationController {
                 }
                 self.stopResolved(true)
             case .refused(let why), .unknown(let why):
-                EnsembleLog.write("stop dictation \(result): \(self.ctx.bridge.micSnapshot)")
+                EnsembleLog.write("stop dictation \(result): \(self.ctx.agent.micSnapshot)")
                 self.ctx.refuse("Stop not confirmed (\(why)); the safety check keeps watching")
                 // A Return-asked send says so through stopResolved; a gesture-asked one says so here.
                 if sendWasPending { self.ctx.refuse("Not sent: the stop was not confirmed") }
@@ -336,7 +336,7 @@ final class DictationController {
         ctx.busy = true
         startInFlight = true
         interrupted = false
-        let state = await ctx.bridge.micState(session)
+        let state = await ctx.agent.micState(session)
         guard ClaudeDictation.sendStep(target: state) == .stopThenSend else {
             ctx.busy = false
             startInFlight = false
@@ -359,7 +359,7 @@ final class DictationController {
         if let refusal = await safety.episodeStarting(session: session) { return refusal }
         ctx.listening = session
         ctx.ownDictation(in: session)
-        processID = ctx.bridge.claudePID
+        processID = ctx.agent.claudePID
         ctx.state.listening = true
         startedAt = CACurrentMediaTime()
         inputDevice = nil
@@ -415,11 +415,11 @@ final class DictationController {
         if let session = ctx.listening, !ctx.busy, !audioCheckInFlight, now - lastAudioCheck >= 0.5 {
             lastAudioCheck = now
             audioCheckInFlight = true
-            let bridge = ctx.bridge, device = inputDevice
+            let agent = ctx.agent, device = inputDevice
             // CoreAudio can stall for a while when a device is changing; never wait on it from the main thread.
             Task.detached {
-                let other = bridge.otherProcessCapturingInput()
-                let current = device == nil ? nil : bridge.defaultInputDeviceName()
+                let other = agent.otherProcessCapturingInput()
+                let current = device == nil ? nil : agent.defaultInputDeviceName()
                 await MainActor.run {
                     self.audioCheckInFlight = false
                     guard self.ctx.listening?.id == session.id, !self.ctx.busy else { return }
@@ -440,7 +440,7 @@ final class DictationController {
     /// Claude quit (or restarted) during the dictation: its microphone went with it, so there is nothing left
     /// to stop. Leaving the flag set would keep the red marker up and feed the safety heartbeat forever.
     func dropIfClaudeGone(running claudeUp: Bool) {
-        guard ctx.listening != nil, !ctx.busy, !claudeUp || ctx.bridge.claudePID != processID else { return }
+        guard ctx.listening != nil, !ctx.busy, !claudeUp || ctx.agent.claudePID != processID else { return }
         EnsembleLog.write("Claude quit or restarted during dictation; clearing the listening state")
         drop()
         ctx.usage.count(.safetyStop(.claudeQuit))
@@ -496,14 +496,14 @@ final class DictationController {
                     return
                 }
             }
-            let result = await self.ctx.bridge.stopAnyDictation()
-            let bridge = self.ctx.bridge
+            let result = await self.ctx.agent.stopAnyDictation()
+            let agent = self.ctx.agent
             // Read off the main thread: CoreAudio can stall while devices change.
             let capture = await Task.detached { () -> Bool? in
-                var capture = bridge.claudeCaptureActive()
+                var capture = agent.claudeCaptureActive()
                 for _ in 0..<15 where !DictationRules.confirmedOff(capture: capture) {
                     try? await Task.sleep(nanoseconds: 100_000_000)
-                    capture = bridge.claudeCaptureActive()
+                    capture = agent.claudeCaptureActive()
                 }
                 return capture
             }.value
@@ -533,7 +533,7 @@ final class DictationController {
 
     /// A failure right after Claude updated may mean its controls changed: switch off and say why.
     private func checkClaudeUpdate() {
-        guard let now = ctx.bridge.claudeVersion, let last = ctx.settings.lastClaudeVersion, now != last else { return }
+        guard let now = ctx.agent.claudeVersion, let last = ctx.settings.lastClaudeVersion, now != last else { return }
         EnsembleLog.write("Claude updated \(last) -> \(now) and a dictation step failed; switching off")
         Notifier.shared.notify(title: "Ensemble switched off", body: "Claude updated to \(now) and its microphone controls did not respond as before.")
         ctx.settings.enabled = false
