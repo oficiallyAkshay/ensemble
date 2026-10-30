@@ -1,5 +1,5 @@
 # Builds and tests EnsembleCore on Linux and Windows. Informational: it is not part of `gate`, because the core does not
-# compile on either system yet. Each run's logs show which errors remain.
+# run on either system yet. Each run's logs show which errors remain.
 name: core-portability
 
 on:
@@ -33,9 +33,7 @@ jobs:
         run: swift build --target EnsembleCore 2>&1 | tee build.log
         continue-on-error: true
       - name: Test EnsembleCore
-        run: |
-          swift build --target EnsembleCoreTests 2>&1 | tee test.log
-          swift test --skip-build --filter EnsembleCoreTests 2>&1 | tee -a test.log
+        run: swift test 2>&1 | tee test.log
         continue-on-error: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -66,9 +64,7 @@ jobs:
         run: swift build --target EnsembleCore 2>&1 | tee build.log
         continue-on-error: true
       - name: Test EnsembleCore
-        run: |
-          swift build --target EnsembleCoreTests 2>&1 | tee test.log
-          swift test --skip-build --filter EnsembleCoreTests 2>&1 | tee -a test.log
+        run: swift test 2>&1 | tee test.log
         continue-on-error: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
