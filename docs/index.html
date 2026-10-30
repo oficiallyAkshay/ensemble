@@ -161,11 +161,8 @@
   .app-icon { position: absolute; z-index: 3; right: calc(4 * var(--u)); top: calc(1 * var(--u)); width: calc(17 * var(--u)); min-width: 150px; rotate: 9deg; }
   .app-icon img { width: 100%; height: auto; display: block; }
   .notes { position: relative; z-index: 3; display: flex; flex-wrap: wrap; gap: 26px; padding: 0 clamp(20px, calc(8 * var(--u)), 150px); margin-top: clamp(-20px, calc(-2 * var(--u)), 0px); align-items: flex-start; }
-  .note-card { width: min(300px, 100%); background: #fff; border-radius: 14px; padding: 20px 22px 24px; box-shadow: 0 24px 40px -12px rgba(40, 30, 90, 0.28), 0 2px 6px rgba(10, 10, 10, 0.08); font-size: 16px; line-height: 1.5; color: #262626; position: relative; }
-  .note-card .n { display: block; font: 500 14px var(--e-mono); letter-spacing: 0.1em; color: #404040; margin-bottom: 16px; }
-  .note-card:nth-child(1) { rotate: -3deg; } .note-card:nth-child(2) { rotate: 2deg; margin-top: 34px; width: min(340px, 100%); } .note-card:nth-child(3) { rotate: -1.5deg; margin-top: 8px; }
-  .note-card::before { content: ""; position: absolute; left: 50%; top: -9px; width: 64px; height: 18px; translate: -50% 0; rotate: -2deg; background: rgba(255, 224, 77, 0.8); border-radius: 2px; box-shadow: 0 2px 4px rgba(10, 10, 10, 0.08); }
-  .note-card:nth-child(2)::before { background: rgba(143, 184, 255, 0.85); } .note-card:nth-child(3)::before { background: rgba(255, 150, 190, 0.8); }
+  .note-card { width: min(340px, 100%); rotate: 2deg; margin-top: 34px; background: #fff; border-radius: 14px; padding: 20px 22px 24px; box-shadow: 0 24px 40px -12px rgba(40, 30, 90, 0.28), 0 2px 6px rgba(10, 10, 10, 0.08); font-size: 16px; line-height: 1.5; color: #262626; position: relative; }
+  .note-card::before { content: ""; position: absolute; left: 50%; top: -9px; width: 64px; height: 18px; translate: -50% 0; rotate: -2deg; background: rgba(143, 184, 255, 0.85); border-radius: 2px; box-shadow: 0 2px 4px rgba(10, 10, 10, 0.08); }
   .dl-cta { position: relative; z-index: 3; padding: 44px clamp(20px, calc(8 * var(--u)), 150px) 0; display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: center; }
   .needs { font-size: 14.5px; color: #404040; line-height: 1.55; max-width: 520px; margin: 0; }
 
@@ -194,7 +191,7 @@
     .notes { margin-top: 8px; }
     .dl .d1 { width: calc(60 * var(--u)); height: calc(60 * var(--u)); right: calc(-26 * var(--u)); top: 18px; }
     .app-icon { width: calc(30 * var(--u)); right: calc(8 * var(--u)); top: calc(12 * var(--u)); }
-    .note-card:nth-child(n) { width: min(320px, 90%); }
+    .note-card { width: min(320px, 90%); }
   }
 </style>
 </head>
@@ -417,9 +414,8 @@
   <div class="app-icon shadowed" aria-hidden="true"><img src="live/icon.png" alt="" width="320" height="320" loading="lazy" decoding="async"></div>
   <h2 class="giant" id="dl">Download</h2>
   <div class="notes">
-    <div class="note-card reveal"><span class="n">01</span>Open the download and drag Ensemble to Applications.</div>
-    <div class="note-card reveal"><span class="n">02</span>Open it. macOS will say Apple could not verify that Ensemble is free of malware, with only Move to Trash and Done: press Done, go to System Settings, Privacy &amp; Security, click Open Anyway, and enter your Mac password when asked.</div>
-    <div class="note-card reveal"><span class="n">03</span>Allow Camera and Accessibility, then follow the short tour.</div>
+    <!-- Temporary: goes away when the app is signed with an Apple Developer ID and notarized. -->
+    <div class="note-card reveal">If macOS says Apple could not verify Ensemble, press Done, then click Open Anyway in System Settings, Privacy &amp; Security, and enter your Mac password when asked.</div>
   </div>
   <div class="dl-cta reveal"><a class="ens-btn primary" id="dl-btn-2" href="https://github.com/oficiallyAkshay/ensemble/releases/latest/download/Ensemble.dmg">Download for Mac</a><p class="needs">Needs an Apple Silicon Mac with macOS 14.2 or later, a webcam, and the Claude desktop app. Camera frames are read in memory and never stored or sent.</p></div>
 </section>
