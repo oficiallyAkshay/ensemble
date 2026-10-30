@@ -102,7 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="core-v${VERSION}"
-          git archive --format=zip --prefix="ensemble-core-${VERSION}/" -o "ensemble-core-${VERSION}.zip" HEAD Package.swift Sources/EnsembleCore Sources/CoreGraphicsStandIn Tests/EnsembleCoreTests LICENSE
+          git archive --format=zip --prefix="ensemble-core-${VERSION}/" -o "ensemble-core-${VERSION}.zip" HEAD
           cat > notes.md <<NOTES
           EnsembleCore ${VERSION}: the logic library only. There is no Ensemble app for Linux or Windows; the macOS app is released separately on every merge.
           Tested with swift test on macOS, Linux and Windows (logs attached). Tests that need Apple-only frameworks (Vision, CryptoKit) do not run on Linux or Windows.
