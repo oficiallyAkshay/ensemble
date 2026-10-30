@@ -3,6 +3,22 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.46</title>
+            <pubDate>Fri, 30 Oct 2026 16:21:30 +0000</pubDate>
+            <sparkle:version>549</sparkle:version>
+            <sparkle:shortVersionString>0.2.46</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since core-v0.1.0:
+
+- The face tracker bundle no longer ends with a pointer to a source map that does not ship (#216)
+- The download section shows one temporary note for the macOS warning instead of three steps (#215)
+- A portability page says what runs on which system and how it is checked (#214)
+- RELEASING.md names the release track of each operating system (#213)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.46/Ensemble-0.2.46.dmg" length="6457470" type="application/octet-stream" sparkle:edSignature="/HpaZZLlWOvpwkKmXD54c64uNMKCQGZ5LuI0iqoswL/araSSMquPi4mXASHtIlRjjJBFeExpqSBeO975ShxnBQ=="/>
+        </item>
+        <item>
             <title>0.2.45</title>
             <pubDate>Fri, 30 Oct 2026 01:41:04 +0000</pubDate>
             <sparkle:version>543</sparkle:version>
@@ -29,20 +45,6 @@
 - The portability workflow runs a plain swift test now the app target is macOS-only (#207)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.44/Ensemble-0.2.44.dmg" length="6454770" type="application/octet-stream" sparkle:edSignature="Tq52Q9yHCJMjxnxGDKrGBSUsk3N2MTEhg2cnZ06LjCDaQfy6K18sEDjW1mI3bgfvPExlCDoV7HRJmc5cHQtOAQ=="/>
-        </item>
-        <item>
-            <title>0.2.43</title>
-            <pubDate>Thu, 29 Oct 2026 23:58:36 +0000</pubDate>
-            <sparkle:version>539</sparkle:version>
-            <sparkle:shortVersionString>0.2.43</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.42:
-
-- The app target and the Sparkle dependency are declared only on macOS so the core tests can run off Apple (#206)
-- The window-tree reader waits for the page's controls to appear in the tree (#205)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.43/Ensemble-0.2.43.dmg" length="6454374" type="application/octet-stream" sparkle:edSignature="2VJRr5uMXqvz0vy2luJ1ehlfqwo4eJ0m13Fp6XclXLiVsetjM0pKEt4watWX44lDlACU67JEisRYkZ/W9+9YCQ=="/>
         </item>
     </channel>
 </rss>
