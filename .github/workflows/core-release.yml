@@ -1,0 +1,110 @@
+# Releases the logic library (EnsembleCore) for Linux and Windows. It is a library release, not an app: there is no Ensemble app
+# for those systems. The library is tested on macOS, Linux and Windows first; only if all three pass, and `dry_run` is off,
+# a GitHub release `core-v<version>` is made with a source archive and the three test logs. Manual start only.
+name: core-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Library version, for example 0.1.0 (the release is named core-v<version>)'
+        required: true
+      dry_run:
+        description: 'Test only and publish nothing'
+        type: boolean
+        default: true
+
+permissions: {}
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test
+        run: swift test 2>&1 | tee test-linux.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-linux
+          path: test-linux.log
+
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: SwiftyLab/setup-swift@d60245579ea3836a3f2fa65ebbe1e8891d577c76 # v1.14.2
+        with:
+          swift-version: '6.2'
+      - name: Test
+        run: swift test 2>&1 | tee test-windows.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-windows
+          path: test-windows.log
+
+  test-macos:
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test
+        run: swift test 2>&1 | tee test-macos.log
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-macos
+          path: test-macos.log
+
+  release:
+    needs: [test-linux, test-windows, test-macos]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: logs
+      - name: Make the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tag="core-v${VERSION}"
+          git archive --format=zip --prefix="ensemble-core-${VERSION}/" -o "ensemble-core-${VERSION}.zip" HEAD Package.swift Sources/EnsembleCore Sources/CoreGraphicsStandIn Tests/EnsembleCoreTests LICENSE
+          cat > notes.md <<NOTES
+          EnsembleCore ${VERSION}: the logic library only. There is no Ensemble app for Linux or Windows; the macOS app is released separately on every merge.
+          Tested with swift test on macOS, Linux and Windows (logs attached). Tests that need Apple-only frameworks (Vision, CryptoKit) do not run on Linux or Windows.
+          NOTES
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "EnsembleCore ${VERSION} (library)" --notes-file notes.md "ensemble-core-${VERSION}.zip" logs/*/*.log
