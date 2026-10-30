@@ -3,6 +3,21 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.44</title>
+            <pubDate>Fri, 30 Oct 2026 00:40:24 +0000</pubDate>
+            <sparkle:version>542</sparkle:version>
+            <sparkle:shortVersionString>0.2.44</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.43:
+
+- Safety records overwrite an existing file on Windows, so a folder merge completes there (#209)
+- Recorded hook fixtures check out with plain line feeds on Windows (#208)
+- The portability workflow runs a plain swift test now the app target is macOS-only (#207)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.44/Ensemble-0.2.44.dmg" length="6454770" type="application/octet-stream" sparkle:edSignature="Tq52Q9yHCJMjxnxGDKrGBSUsk3N2MTEhg2cnZ06LjCDaQfy6K18sEDjW1mI3bgfvPExlCDoV7HRJmc5cHQtOAQ=="/>
+        </item>
+        <item>
             <title>0.2.43</title>
             <pubDate>Thu, 29 Oct 2026 23:58:36 +0000</pubDate>
             <sparkle:version>539</sparkle:version>
@@ -30,20 +45,6 @@
 - The window-tree workflow is installed so the stand-in app's window tree can be read on three systems (#202)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.42/Ensemble-0.2.42.dmg" length="6454274" type="application/octet-stream" sparkle:edSignature="yj3nvqFbaKbG/yHD9jb7bf5EdXLY/abSQQIVPNoerG2aAtOh6grRNybR2yqFqf3KTIbgCY2OHRGOwV78Xop2Cg=="/>
-        </item>
-        <item>
-            <title>0.2.41</title>
-            <pubDate>Thu, 29 Oct 2026 21:36:46 +0000</pubDate>
-            <sparkle:version>534</sparkle:version>
-            <sparkle:shortVersionString>0.2.41</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.40:
-
-- Linux and Windows test builds leave out the usage tests that need CryptoKit (#201)
-- Update (#200)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.41/Ensemble-0.2.41.dmg" length="6454306" type="application/octet-stream" sparkle:edSignature="8/VmCYQTP4BjxQdFA0ja0HYdtkDURZ+VIRp7oKlI2FuiPXIRuvU29HgNgkgcC+V9D9iWCZMxMimeDvQ56gFUBw=="/>
         </item>
     </channel>
 </rss>
