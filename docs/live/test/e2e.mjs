@@ -843,6 +843,20 @@ async function gallerygap() {
   } finally { p.close(); await c.close(); }
 }
 
+async function downloadNote() {
+  say('scenario downloadnote: the download section holds one note, the macOS Open Anyway help');
+  const c = await launch({ port: 9385, flags: [], size: '1280,900' });
+  const p = await Page.open(c.port); const w = await p.watch();
+  try {
+    await stub(p, 12);
+    await p.send('Page.navigate', { url: LETTER });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    const notes = await p.eval("[...document.querySelectorAll('#download .note-card')].map((n) => n.textContent)");
+    check('the download section holds exactly one note and it mentions Open Anyway', notes.length === 1 && notes[0].includes('Open Anyway'), JSON.stringify(notes));
+    check('no console errors', real(w).length === 0, real(w).join(' | '));
+  } finally { p.close(); await c.close(); }
+}
+
 async function centre() {
   say('scenario centre: the centring step, with synthetic head readings (the fake camera shows no face)');
   const c = await launch({ port: 9361, flags: FAKE });
@@ -1032,7 +1046,7 @@ async function scrollable() {
 }
 
 const which = process.argv[2] || 'all';
-const all = { analytics, analyticsPrivacy, analyticsDemo, scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, gallerygap, camera, denied, nodevice, mouse, phone, tablet, cpu, nowebgl, modelfail };
+const all = { analytics, analyticsPrivacy, analyticsDemo, scrollable, smooth, centre, pinchDebug, letter, letter3d, letterReduced, stars: lettersStars, letterDenied, letterNoDevice, prefetch, saveData, letterPhone, gallerygap, downloadnote: downloadNote, camera, denied, nodevice, mouse, phone, tablet, cpu, nowebgl, modelfail };
 for (const [name, fn] of Object.entries(all)) {
   if (which !== 'all' && which !== name) continue;
   try { await fn(); } catch (e) { check(`${name} scenario ran`, false, e.stack || e.message); }
