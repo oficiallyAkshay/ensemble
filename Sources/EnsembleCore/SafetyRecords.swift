@@ -1,4 +1,7 @@
 import Foundation
+#if os(Windows)
+import WinSDK
+#endif
 
 /// A dictation press that has been started and not yet proven finished. Written (and fsynced) before the
 /// press so that a crash mid-recording is discoverable on the next launch.
@@ -77,12 +80,27 @@ public enum SafetyRecordFile {
             try handle.synchronize()
 #endif
             try handle.close()
-            guard rename(tmp.path, url.path) == 0 else { throw posixError() }
+            try replace(tmp, with: url)
         } catch {
             remove(tmp)
             throw error
         }
         syncFolder(folder)
+    }
+
+    /// Moves `tmp` over `url`, replacing a file already there.
+    static func replace(_ tmp: URL, with url: URL) throws {
+#if os(Windows)
+        // The C rename fails there when the destination exists; this call replaces it and waits for the disk.
+        let moved = tmp.path.withCString(encodedAs: UTF16.self) { from in
+            url.path.withCString(encodedAs: UTF16.self) { to in
+                MoveFileExW(from, to, DWORD(MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            }
+        }
+        guard moved else { throw POSIXError(.EIO) }
+#else
+        guard rename(tmp.path, url.path) == 0 else { throw posixError() }
+#endif
     }
 
     /// Delete, then force the folder entry so a crash cannot bring the old record back. A failed delete is not an
