@@ -107,6 +107,17 @@ After a release, on a Mac that has run Ensemble before, check for updates and co
 
 If a release fails after the GitHub Release is created (for example the appcast push), fix the cause and run the release again for the same version only if the tag was not created; do not move a tag.
 
+## Release tracks per operating system
+
+Each system has its own release, so one does not wait for another.
+
+| System | What is released | How it is cut | Tag |
+|---|---|---|---|
+| macOS | The app (signed, notarized DMG, update feed) | Automatically after a merge that changes app logic, see "Release on every merge" | The app's own version tags |
+| Linux and Windows | The logic library (`EnsembleCore`) only, because there is no app for these systems | Manual workflow `core-release`: enter a version and turn `dry_run` off. It runs `swift test` on macOS, Linux and Windows and publishes only if all three pass | `core-v<version>` |
+
+Run `core-release` with `dry_run` on first: it tests and publishes nothing. The release notes say what is and is not included, and that tests needing Apple-only frameworks (Vision, CryptoKit) do not run on Linux or Windows. The first library release is `core-v0.1.0`. A bad library release is fixed by the next one; a tag is never moved.
+
 ## What CI builds
 
 `ci.yml` builds the app bundle with `ENSEMBLE_SIGN_IDENTITY=-`, an ad-hoc signature used only so the network, privacy and size checks read the real app. That bundle is never uploaded or installed: every ad-hoc build is a new identity, which would drop a Mac's Camera and Accessibility grants. Releases are cut on a Mac with the stable signing identity.
