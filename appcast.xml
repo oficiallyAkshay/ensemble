@@ -3,6 +3,19 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.45</title>
+            <pubDate>Fri, 30 Oct 2026 01:41:04 +0000</pubDate>
+            <sparkle:version>543</sparkle:version>
+            <sparkle:shortVersionString>0.2.45</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.44:
+
+- A terminal Claude Code session's state can be read through the adapter interface, read-only (#210)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.45/Ensemble-0.2.45.dmg" length="6457638" type="application/octet-stream" sparkle:edSignature="dfR3tlFSaf3yWN+6520PjWsndADsHZ3i8hNyBRak8OJor2Gq1nLXoerb7SNpSVnd4JLcV4ZtBpuligQZ/xY4Bg=="/>
+        </item>
+        <item>
             <title>0.2.44</title>
             <pubDate>Fri, 30 Oct 2026 00:40:24 +0000</pubDate>
             <sparkle:version>542</sparkle:version>
@@ -30,21 +43,6 @@
 - The window-tree reader waits for the page's controls to appear in the tree (#205)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.43/Ensemble-0.2.43.dmg" length="6454374" type="application/octet-stream" sparkle:edSignature="2VJRr5uMXqvz0vy2luJ1ehlfqwo4eJ0m13Fp6XclXLiVsetjM0pKEt4watWX44lDlACU67JEisRYkZ/W9+9YCQ=="/>
-        </item>
-        <item>
-            <title>0.2.42</title>
-            <pubDate>Thu, 29 Oct 2026 23:02:10 +0000</pubDate>
-            <sparkle:version>537</sparkle:version>
-            <sparkle:shortVersionString>0.2.42</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.41:
-
-- Linux and Windows test builds leave out the hand-gesture tests and give Windows a process-id type (#204)
-- The window-tree reader prints the application's own tree dump (#203)
-- The window-tree workflow is installed so the stand-in app's window tree can be read on three systems (#202)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.42/Ensemble-0.2.42.dmg" length="6454274" type="application/octet-stream" sparkle:edSignature="yj3nvqFbaKbG/yHD9jb7bf5EdXLY/abSQQIVPNoerG2aAtOh6grRNybR2yqFqf3KTIbgCY2OHRGOwV78Xop2Cg=="/>
         </item>
     </channel>
 </rss>
