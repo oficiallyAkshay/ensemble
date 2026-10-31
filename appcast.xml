@@ -3,6 +3,20 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.47</title>
+            <pubDate>Sat, 31 Oct 2026 00:31:57 +0000</pubDate>
+            <sparkle:version>551</sparkle:version>
+            <sparkle:shortVersionString>0.2.47</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.46:
+
+- The nose dot aims up to 40 ms ahead while it moves, and asks for 120 Hz only while moving fast (#218)
+- The built app drops Sparkle's 35 unused update-window translations and keeps the English one (#217)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.47/Ensemble-0.2.47.dmg" length="6438874" type="application/octet-stream" sparkle:edSignature="lz1/rKFed7Wlzp9T8P9QVVRwTT9+zPdq9gjIusk+Au3wMsssQ6cH2xxfWAa4+cK+ZHZbEnXTJB+xZQ7TJ9qtDQ=="/>
+        </item>
+        <item>
             <title>0.2.46</title>
             <pubDate>Fri, 30 Oct 2026 16:21:30 +0000</pubDate>
             <sparkle:version>549</sparkle:version>
@@ -30,21 +44,6 @@
 - A terminal Claude Code session's state can be read through the adapter interface, read-only (#210)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.45/Ensemble-0.2.45.dmg" length="6457638" type="application/octet-stream" sparkle:edSignature="dfR3tlFSaf3yWN+6520PjWsndADsHZ3i8hNyBRak8OJor2Gq1nLXoerb7SNpSVnd4JLcV4ZtBpuligQZ/xY4Bg=="/>
-        </item>
-        <item>
-            <title>0.2.44</title>
-            <pubDate>Fri, 30 Oct 2026 00:40:24 +0000</pubDate>
-            <sparkle:version>542</sparkle:version>
-            <sparkle:shortVersionString>0.2.44</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.43:
-
-- Safety records overwrite an existing file on Windows, so a folder merge completes there (#209)
-- Recorded hook fixtures check out with plain line feeds on Windows (#208)
-- The portability workflow runs a plain swift test now the app target is macOS-only (#207)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.44/Ensemble-0.2.44.dmg" length="6454770" type="application/octet-stream" sparkle:edSignature="Tq52Q9yHCJMjxnxGDKrGBSUsk3N2MTEhg2cnZ06LjCDaQfy6K18sEDjW1mI3bgfvPExlCDoV7HRJmc5cHQtOAQ=="/>
         </item>
     </channel>
 </rss>
