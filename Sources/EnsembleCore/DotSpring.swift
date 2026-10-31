@@ -27,6 +27,11 @@ public struct DotSpring {
     /// The dot counts as arrived inside this distance (pt) and below this speed (pt/s); the caller can stop ticking.
     public static let restDistance: CGFloat = 0.25
     public static let restSpeed: CGFloat = 2
+    /// Above this speed (pt/s) the dot moves more than 8 pt a frame at 60 Hz, almost half its width, so its window asks
+    /// the screen for 120 Hz; slower, 60 Hz looks the same at half the refreshes.
+    public static let fastSpeed: CGFloat = 480
+
+    public var isFast: Bool { hypot(velocity.dx, velocity.dy) > Self.fastSpeed }
 
     public init(omega: Double = 32) { self.omega = omega }
 

@@ -105,6 +105,10 @@ public final class NosePointer {
     private var filterX = PointerSmoothing.level(PointerSmoothing.defaultLevel).filter
     private var filterY = PointerSmoothing.level(PointerSmoothing.defaultLevel).filter
     private var positionTracker = HeadPositionTracker()
+    /// What the drawn dot's lead (`DotLead`) reads after each `point(for:)`: the filter's speed estimate (pt/s) and the
+    /// unfiltered point, which the filtered point is closing on.
+    public private(set) var velocity = DotVelocity.zero
+    public private(set) var aim: CGPoint?
 
     /// When true (the default) a screen with a fitted geometry is aimed by where the head is as well as where
     /// it points. False is exactly the angle-only pointer.
@@ -326,6 +330,7 @@ public final class NosePointer {
             guard let r = Self.apply(m, yaw: h.yaw, pitch: h.pitch) else { return nil }
             let u = filterX.filter((r.x - m.minX) / m.width, at: h.t)
             let v = filterY.filter((r.y - m.minY) / m.height, at: h.t)
+            noteMotion(aim: r, model: m)
             return CGPoint(x: u * m.width + m.minX, y: v * m.height + m.minY)
         }
         guard !screenModels.isEmpty else { return nil }
@@ -343,7 +348,13 @@ public final class NosePointer {
         let lx = r.x - s.frame.minX, ly = r.y - s.frame.minY
         let u = filterX.filter((lx - m.minX) / m.width, at: h.t)
         let v = filterY.filter((ly - m.minY) / m.height, at: h.t)
+        noteMotion(aim: r, model: m)
         return CGPoint(x: u * m.width + m.minX + s.frame.minX, y: v * m.height + m.minY + s.frame.minY)
+    }
+
+    private func noteMotion(aim r: CGPoint, model m: Model) {
+        velocity = DotVelocity(dx: filterX.speed * m.width, dy: filterY.speed * m.height)
+        aim = r
     }
 
     /// Smoothing from 0 (light, quickest) to 1 (heaviest, steadiest); see `PointerSmoothing.level`.

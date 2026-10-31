@@ -17,6 +17,9 @@ final class DotPlacement {
     private(set) var edgeWarning: EdgeWarning?
     /// Where the gesture bubble sits while a gesture is held or dictation runs; it does not move meanwhile.
     private var frozen: CGPoint?
+    /// Where the drawn dot aims between readings while it moves; focus and gestures never read it.
+    private var lead: DotLead?
+    private var lastReadingT: TimeInterval?
 
     init(ctx: CoordinatorContext) { self.ctx = ctx }
 
@@ -25,13 +28,20 @@ final class DotPlacement {
     func follow(nose p: CGPoint, at t: TimeInterval, onSession: Bool, fresh: Bool) {
         lastNose = p
         if onSession { rest.follow(nose: p, at: t, fresh: fresh) } else { rest.reset() }
+        // A repeated reading moves neither the filter nor the gap between readings, so the lead stays as it was.
+        guard fresh else { return }
+        lead = rest.moving
+            ? DotLead(point: p, t: t, velocity: ctx.pointer.velocity, aim: ctx.pointer.aim ?? p, interval: t - (lastReadingT ?? t))
+            : nil
+        lastReadingT = t
     }
 
     var hasEdgeWarning: Bool { edgeWarning != nil }
 
-    func clear() { rest.reset(); lastNose = nil }
+    func clear() { rest.reset(); lastNose = nil; lead = nil; lastReadingT = nil }
 
     func place(target: ClaudeSession?) {
+        ctx.noseLead = nil
         if let session = ctx.listening {
             frozen = nil
             ctx.nosePoint = nil
@@ -46,6 +56,7 @@ final class DotPlacement {
             edgeWarning = nil
             frozen = nil
             ctx.nosePoint = ctx.settings.showNoseDot ? dot : nil
+            ctx.noseLead = ctx.nosePoint == nil ? nil : lead
         }
         let resized = ctx.resizeFrame.flatMap { $0.id == target?.id ? $0.frame : nil }
         ctx.targetFrame = ctx.listening?.frame ?? resized ?? target?.highlightFrame

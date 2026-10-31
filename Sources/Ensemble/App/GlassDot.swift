@@ -60,9 +60,13 @@ final class GlassDot {
     /// window instead moves on every screen refresh, as a spring toward the latest reading (DotSpring), so its
     /// speed carries through from one reading to the next.
     private var goal: CGPoint?
+    /// While the nose moves, the spring aims ahead of `goal` between readings (`DotLead`); the dot still rests on `goal`.
+    private var lead: DotLead?
     private var spring = DotSpring()
     private var lastTick: CFTimeInterval?
     private var link: CADisplayLink?
+    /// Whether the link asks for 120 Hz: only while the dot moves fast (`DotSpring.isFast`), else 60, half the wakeups.
+    private var linkFast = false
     /// The screen the display link was made for. A link stops firing when its screen goes away (unplugged,
     /// mirrored, asleep), so it is remade when the dot's window moves to another screen.
     private weak var linkScreen: NSScreen?
@@ -71,7 +75,8 @@ final class GlassDot {
 
     /// Shows the dot centred on a global top-left point, or hides it when `point` is nil. `dimmed` (hands on the
     /// keyboard or trackpad) fades it away and back over 0.7 s.
-    func show(at point: CGPoint?, dimmed: Bool) {
+    func show(at point: CGPoint?, lead: DotLead?, dimmed: Bool) {
+        self.lead = lead
         guard let point else {
             target = 0
             goal = nil
@@ -120,14 +125,22 @@ final class GlassDot {
         // A refresh that comes late (a busy main thread) is stepped by its real gap; the spring is exact for any gap.
         let dt = min(max(now - (lastTick ?? now - 1.0 / 60), 0), 0.1)
         lastTick = now
-        let next = spring.step(toward: goal, dt: dt)
+        let next = spring.step(toward: lead?.goal(at: now) ?? goal, dt: dt)
         if spring.isResting(at: goal) {
             spring.reset(to: goal)
             place(goal)
             stopLink()
         } else {
             place(next)
+            setFast(spring.isFast)
         }
+    }
+
+    private func setFast(_ fast: Bool) {
+        guard fast != linkFast, let link else { return }
+        linkFast = fast
+        link.preferredFrameRateRange = fast ? CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+                                            : CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
     }
 
     private func startLink() {
@@ -136,9 +149,11 @@ final class GlassDot {
         stopLink()
         observeScreenChanges()
         let l = screen?.displayLink(target: ticker, selector: #selector(DisplayTicker.fire(_:)))
+        l?.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
         l?.add(to: .main, forMode: .common)
         link = l
         linkScreen = screen
+        linkFast = false
     }
 
     private func stopLink() {
