@@ -18,13 +18,12 @@ Ensemble's session code sits behind one adapter interface. The Claude desktop ap
 
 ## How it is checked
 
-- `core-portability` (manual): builds the library and runs its tests on Linux and Windows and keeps the logs. Read the logs, not the job colour.
+- `core-release` (manual): started by hand with `dry_run` left on (its default), it runs the library's tests on macOS, Linux and Windows, keeps the three logs and publishes nothing. A red job means a failing test. See "Release tracks per operating system" in [RELEASING.md](RELEASING.md). `core-v0.1.0` is the first library release.
 - `window-tree` (manual): launches a small Electron stand-in app and reads its window tree and four named controls on Windows, Linux and macOS with the xa11y library.
-- `core-release` (manual): see "Release tracks per operating system" in [RELEASING.md](RELEASING.md). `core-v0.1.0` is the first library release.
 
 Neither check is part of `gate`.
 
-The current test count is in the logs of the `ci` test job on macOS and of the manual `core-portability` workflow on Linux and Windows. It is deliberately not copied onto this page, because it changes with every pull request that adds a test.
+The current test count is in the logs of the `ci` test job on macOS and of the `core-release` dry run on Linux and Windows. It is deliberately not copied onto this page, because it changes with every pull request that adds a test.
 
 ## Rules learned while porting
 
