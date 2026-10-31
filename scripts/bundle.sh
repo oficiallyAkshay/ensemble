@@ -71,6 +71,10 @@ for macho in "$SPARKLE_B/Sparkle" "$SPARKLE_B/Autoupdate" "$SPARKLE_B/Updater.ap
 done
 rm -rf "$SPARKLE_B/Headers" "$SPARKLE_B/PrivateHeaders" "$SPARKLE_B/Modules" \
   "$APP/Contents/Frameworks/Sparkle.framework/Headers" "$APP/Contents/Frameworks/Sparkle.framework/PrivateHeaders" "$APP/Contents/Frameworks/Sparkle.framework/Modules"
+# The app declares no language but English, so Sparkle's other translations are never shown beside it; Base holds its English.
+for lproj in "$SPARKLE_B"/Resources/*.lproj; do
+  case "$(basename "$lproj")" in Base.lproj | en.lproj) ;; *) rm -rf "$lproj" ;; esac
+done
 
 # Optional version stamping for releases (scripts/release.sh). Sparkle compares CFBundleVersion, so it must grow every release.
 if [ -n "${ENSEMBLE_VERSION:-}" ]; then
