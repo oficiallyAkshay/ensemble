@@ -7,7 +7,7 @@ What runs on which system, how it is checked, and what is left. Back to the [con
 | | macOS | Linux | Windows |
 |---|---|---|---|
 | The app | Yes, released on every merge that changes app logic | No | No |
-| The logic library (`EnsembleCore`) | Builds, 760 tests pass | Builds, 670 tests pass | Builds, 670 tests pass |
+| The logic library (`EnsembleCore`) | Builds, tests pass | Builds, tests pass | Builds, tests pass |
 | Reading another app's window tree | Proven on a stand-in app | Proven on a stand-in app | Proven on a stand-in app |
 
 The tests that need Vision or CryptoKit (the fixture replay, the usage checksum and summary tests, and the hand-gesture classifier tests) do not run on Linux or Windows. The package manifest lists them with the reason.
@@ -23,6 +23,8 @@ Ensemble's session code sits behind one adapter interface. The Claude desktop ap
 - `core-release` (manual): see "Release tracks per operating system" in [RELEASING.md](RELEASING.md). `core-v0.1.0` is the first library release.
 
 Neither check is part of `gate`.
+
+The current test count is in the logs of the `ci` test job on macOS and of the manual `core-portability` workflow on Linux and Windows. It is deliberately not copied onto this page, because it changes with every pull request that adds a test.
 
 ## Rules learned while porting
 
