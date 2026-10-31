@@ -732,6 +732,11 @@ async function letter3d() {
     const heroAt = async (t) => { await p.eval(`window.__scenes.find((s) => s.name === 'hero').inst._seek('hero', ${t}); 0`); await sleep(500); return p.eval("window.__scenes.find((s) => s.name === 'hero').state"); };
     const h0 = await heroAt(0.1), h1 = await heroAt(3.0), h2 = await heroAt(5.6);
     check('hero: the window is not listening at first, listens and types after the pinches, and holds the whole message at the end', !h0.listening && h0.draft === 0 && h1.listening && h1.draft > 0 && !h2.listening && h2.draft === 1, JSON.stringify([h0, h1, h2]));
+    // The tour: main window while the hand dictates, then the side screen's top session, then its bottom window, then back to the first aim
+    const hs = await heroAt(8.0), hb = await heroAt(11.5), hz = await heroAt(0), hq = await heroAt(13.49);
+    const aimGap = (a, b) => Math.abs(a.aim.yaw - b.aim.yaw) + Math.abs(a.aim.pitch - b.aim.pitch);
+    check('hero: the head visits the side screen top, then its bottom window, and ends where it began', aimGap(h2, hs) > 0.1 && aimGap(hs, hb) > 0.05 && aimGap(hz, hq) < 0.02, JSON.stringify([hz.aim, h2.aim, hs.aim, hb.aim, hq.aim]));
+    check('hero: after the take the window and hand rest, and the bottom window is never highlighted', !hs.listening && hs.draft === 1 && hs.hl[2] > 0.9 && hb.hl[2] < 0.05 && [h0, h1, h2, hs, hb, hq].every((s) => s.hl[3] === 0), JSON.stringify([hs.hl, hb.hl, hs.t]));
     await p.eval("document.getElementById('how').scrollIntoView(); 0");
     await p.waitFor("window.__scenes.length >= 2", 30000, 'a step scene to mount');
     await p.waitFor("!!window.EnsembleScene", 30000, 'the scene code');
