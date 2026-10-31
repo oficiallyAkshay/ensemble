@@ -32,6 +32,8 @@ final class CoordinatorContext {
     /// they live here, not in the published `AppState`: there they re-rendered Settings and the menu 30 times a second.
     /// The overlay gets them through `OverlayController.update`.
     var nosePoint: CGPoint?
+    /// While the dot follows a moving nose: where it aims between readings (`DotLead`); nil holds it on `nosePoint`.
+    var noseLead: DotLead?
     var targetFrame: CGRect?
     /// While a pane resize runs: where the resized session will end up, from the plan. The highlight goes there at
     /// once instead of trailing Claude's frames, and the read-back corrects it when the resize ends.
