@@ -13,7 +13,8 @@
 set -u
 cd "$(dirname "$0")/.."
 
-BUDGET_BYTES=9000000
+# 2026-10-23: raised to 9,500,000 with the app at 8,880,391 bytes (about 66,000 bytes a day over the last 5 days), so a feature pull request does not stall or collide on this line.
+BUDGET_BYTES=9500000
 APP="${1:-build/Ensemble.app}"
 
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
