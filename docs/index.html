@@ -61,7 +61,8 @@
   .hero .h1 { width: calc(36 * var(--u)); height: calc(24 * var(--u)); left: calc(-14 * var(--u)); top: calc(-13 * var(--u)); --r: 58% 42% 61% 39% / 46% 57% 43% 54%; --rot: -16deg;
     --g: linear-gradient(200deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 55%), linear-gradient(140deg, #ffe9a6 0%, #ffcb9a 45%, #ffaaa0 100%); }
   .hero .h3 { width: calc(24 * var(--u)); height: calc(11 * var(--u)); left: calc(33 * var(--u)); bottom: calc(-5 * var(--u)); --r: 999px; --rot: -7deg; --g: linear-gradient(95deg, #ffe7a8, #ffc79b 55%, #ffb0a6); }
-  .hero-text { position: relative; z-index: 5; padding-top: clamp(104px, calc(8.4 * var(--u)), 130px); max-width: calc(52 * var(--u)); }
+  /* the text column ends left of the scene's leftmost screen (about 40 units in from the hero's left edge), so no line runs over the 3D scene */
+  .hero-text { position: relative; z-index: 5; padding-top: clamp(104px, calc(8.4 * var(--u)), 130px); max-width: calc(38 * var(--u)); }
   .hero .ens-chip { background: #fff; font-size: 14px; padding: 8px 14px; box-shadow: 0 8px 18px rgba(80, 60, 160, 0.15); margin: 0 0 18px; }
   .hero h1 { margin: 0; font: 700 clamp(40px, calc(7.2 * var(--u)), 128px)/0.96 var(--e-display); letter-spacing: -0.05em; text-wrap: balance; max-width: 9.5em; }
   .hero .sub { margin: 20px 0 0; font: 600 clamp(18px, calc(1.7 * var(--u)), 25px)/1.3 var(--e-display); letter-spacing: -0.025em; color: #0a0a0a; max-width: 30em; }
