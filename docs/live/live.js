@@ -10,11 +10,12 @@ import { esc, fmt, buildPane, addLine } from './pane.js';
 import { SeesPanel } from './sees.js';
 import { Trackers, unsupportedReason } from './tracker.js';
 import { track } from '../analytics.js';
+import { cameraHelp } from './camera-help.js';
 const stage = (s) => track('demo_stage', { stage: s });   // the last stage a visit sent is where the visitor dropped off
 
 const $ = (id) => document.getElementById(id);
 const el = {
-  app: $('app'), stage: $('stage'), island: $('island'), gate: $('gate'), gateMsg: $('gate-message'), goCamera: $('go-camera'),
+  app: $('app'), stage: $('stage'), island: $('island'), gate: $('gate'), gateMsg: $('gate-message'), gateHelp: $('gate-help'), goCamera: $('go-camera'),
   goMouse: $('go-mouse'), progress: $('progress'), bar: $('bar'), progressLabel: $('progress-label'),
   mac: $('mac'), claudeIcon: $('claude-icon'), mbApp: $('mb-app'), mbEns: $('mb-ens'), menu: $('ens-menu'), mpStatus: $('mp-status'), mpPower: $('mp-power'), mpCamera: $('mp-camera'),
   mpScreen: $('mp-screen'), mpDot: $('mp-dot'), mpHl: $('mp-hl'), mpReplay: $('mp-replay'), mpCalibrate: $('mp-calibrate'), mpQuit: $('mp-quit'), tip: $('tip'), tipText: $('tip-text'),
@@ -100,14 +101,15 @@ const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
 
 function setState(state) { el.app.dataset.state = state; }
 
-function showGate(message) {
+function showGate(message, refused = false) {
+  el.gateHelp.hidden = !refused; el.gateHelp.replaceChildren(...(refused ? [cameraHelp(document, navigator.userAgent)] : []));
   delete document.documentElement.dataset.go;   // a failed hand-over from the letter falls back to the full gate
   if (S.mode === 'camera') { S.tracking = false; }
   endCentring(null);
   S.mode = 'none'; el.app.dataset.mode = 'none';
   el.gate.hidden = false; el.progress.hidden = true; el.finish.hidden = true;
   el.gateMsg.hidden = !message; el.gateMsg.textContent = message || '';
-  el.goCamera.hidden = false; el.goCamera.disabled = false; el.goCamera.textContent = trackers.face ? 'Turn camera back on' : 'Turn on camera';
+  el.goCamera.hidden = false; el.goCamera.disabled = false; el.goCamera.textContent = refused ? 'Try again' : trackers.face ? 'Turn camera back on' : 'Turn on camera';
   el.goMouse.hidden = false; el.goMouse.disabled = false; el.goMouse.textContent = 'Use mouse instead';
   setState('gate');
 }
@@ -126,9 +128,11 @@ function enterMouse(note) {
   S.seesNote = note || 'Camera off. The mouse stands in for your hand.';
 }
 
+const isRefusal = (e) => e?.name === 'NotAllowedError' || e?.name === 'SecurityError';
+
 function cameraErrorMessage(e) {
   const n = e?.name || '';
-  if (n === 'NotAllowedError' || n === 'SecurityError') return 'Camera access was refused. Allow the camera for this site in your browser, or use the mouse instead.';
+  if (isRefusal(e)) return 'The camera is needed. Camera access was refused. Allow it with the steps below and press Try again, or use the mouse instead.';
   if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'No camera was found on this computer. You can use the mouse instead.';
   if (n === 'NotReadableError' || n === 'TrackStartError' || n === 'AbortError') return 'The camera is in use by another app, or could not start. Close the other app and try again, or use the mouse instead.';
   return `The camera could not start (${e?.message || n || 'unknown error'}). You can use the mouse instead.`;
@@ -170,7 +174,7 @@ async function startCamera() {
   const abort = new AbortController(); S.abort = abort;
   const camP = openCamera();
   const [cam, load] = await Promise.allSettled([camP, loadTrackers()]);
-  if (cam.status === 'rejected') { showGate(cameraErrorMessage(cam.reason)); return; }
+  if (cam.status === 'rejected') { showGate(cameraErrorMessage(cam.reason), isRefusal(cam.reason)); return; }
   if (load.status === 'rejected') {
     cam.value.getTracks().forEach((t) => t.stop());
     if (abort.signal.aborted) return;
@@ -184,7 +188,7 @@ async function startCamera() {
   } catch (e) {
     cam.value.getTracks().forEach((t) => t.stop());
     if (S.video) S.video.srcObject = null;
-    showGate(e?.message === 'no picture' ? 'The camera started but sent no picture. Another app may be using it. Close it and try again, or use the mouse instead.' : cameraErrorMessage(e));
+    showGate(e?.message === 'no picture' ? 'The camera started but sent no picture. Another app may be using it. Close it and try again, or use the mouse instead.' : cameraErrorMessage(e), isRefusal(e));
     return;
   }
   S.mode = 'camera'; S.machine.reset(); S.focus.forgetAll(); S.head.recentre(); S.scheduler = new FrameScheduler();
