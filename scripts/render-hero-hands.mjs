@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Renders the two hand stills the README hero uses (the double pinch and the thumbs-up) from the same 3D hand and recorded motion
-// the tour and the website use (docs/assets/3d), with headless Chrome driven over the DevTools Protocol, no packages.
+// the tour and the website use (the app's tour folder, published as assets/3d), with headless Chrome driven over the DevTools Protocol, no packages.
 // Writes Assets/hero-hands/pinch.png and Assets/hero-hands/thumbs-up.png. Run it only when the hand model or the recorded
 // motion changes; `scripts/make-hero.mjs` then folds the stills into Assets/hero.svg.
 //
@@ -10,6 +10,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launch, Page, sleep } from '../docs/live/test/cdp.mjs';
+import { appCopy } from '../docs/live/test/app-copies.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DOCS = join(ROOT, 'docs');
@@ -39,13 +40,15 @@ window.pose = (scene, t) => {
 const server = createServer((req, res) => {
   const path = new URL(req.url, 'http://x').pathname;
   if (path === '/harness.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(HARNESS); return; }
-  try {
+  (async () => {
     const file = join(DOCS, path);
     if (!file.startsWith(DOCS)) throw new Error('outside docs');
-    const body = readFileSync(file);
+    // The 3D files live in the app; serve them at their published path when docs/ has no copy.
+    let body;
+    try { body = readFileSync(file); } catch (e) { body = await appCopy(ROOT, path); if (!body) throw e; }
     res.writeHead(200, { 'Content-Type': path.endsWith('.js') ? 'text/javascript' : 'application/octet-stream' });
     res.end(body);
-  } catch { res.writeHead(404).end(); }
+  })().catch(() => { res.writeHead(404).end(); });
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const webPort = server.address().port;

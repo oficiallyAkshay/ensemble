@@ -156,6 +156,4 @@ enum AX {
         guard let sym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_AXUIElementGetWindow") else { return nil }
         return unsafeBitCast(sym, to: GetWindowFn.self)
     }()
-
-    static func hash(_ el: AXUIElement) -> UInt { CFHash(el) }
 }

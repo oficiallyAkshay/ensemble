@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { appCopy } from './app-copies.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.gz': 'application/gzip', '.svg': 'image/svg+xml' };
@@ -17,9 +18,14 @@ export async function serve(port = 0) {
     const file = join(ROOT, path);
     if (!file.startsWith(ROOT)) { res.writeHead(403).end(); return; }
     try {
-      const st = await stat(file);
+      // A file the app owns is served from the app when docs/ has no copy of it, at the same published path.
+      let st, body;
+      try { st = await stat(file); body = await readFile(file); } catch (e) {
+        body = await appCopy(ROOT, path);
+        if (!body) throw e;
+        st = { size: body.length, mtime: new Date(0) };
+      }
       hits.set(path, (hits.get(path) || 0) + 1);
-      const body = await readFile(file);
       res.writeHead(200, { 'Content-Type': TYPES[extname(file)] || 'application/octet-stream', 'Content-Length': st.size, 'Cache-Control': 'max-age=600', 'Last-Modified': st.mtime.toUTCString() });
       res.end(body);
     } catch { hits.set(path, (hits.get(path) || 0) + 1); res.writeHead(404).end('not found'); }

@@ -765,7 +765,7 @@ function showGuide(cur, m) {
   ensureHandLibs().then(() => {
     if (currentStep() !== cur && activeTab !== 'headphones') return;
     if (!handInst) {
-      handInst = window.EnsembleScene.mount(el.hand, { scene, handOnly: true, reducedMotion: reduce, handUrl: '../assets/3d/hand.glb' });
+      handInst = window.EnsembleScene.mount(el.hand, { scene, handOnly: true, theme: 'light', plainText: true, reducedMotion: reduce, handUrl: '../assets/3d/hand.glb' });
       handScene = scene;
       if (!handInst.canvas) { handInst = null; throw new Error('no 3D'); }
     } else if (handScene !== scene) { handInst.setScene(scene); handScene = scene; }
