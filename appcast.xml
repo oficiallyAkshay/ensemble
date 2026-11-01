@@ -3,6 +3,29 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.48</title>
+            <pubDate>Sun, 01 Nov 2026 20:13:08 +0000</pubDate>
+            <sparkle:version>562</sparkle:version>
+            <sparkle:shortVersionString>0.2.48</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.47:
+
+- Update (#231)
+- A written first-run walkthrough and a live-website script follow a new person from the link to the first gesture (#230)
+- A refused camera now says the camera is needed and shows how to allow it in Safari, Firefox and Chrome (#229)
+- The home page headline and text now stop before the 3D scene at 1100, 1500 and 1920 px wide (#228)
+- The docs say the required checks run the usage triage tests on every pull request (#226)
+- The changelog says the auto-release workflow is the only automatic release path (#225)
+- The docs name the library release dry run as the Linux and Windows test check (#224)
+- The gotchas list states the signing certificate expiry date and the Developer ID grant reset (#223)
+- The portability page no longer states test counts and says where to read them (#222)
+- The home page hero tours the main screen, the side screen's top session and its non-Claude bottom window before it loops (#221)
+- The release guide states the signing certificate expires on 2036-10-11 (#220)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.48/Ensemble-0.2.48.dmg" length="6440030" type="application/octet-stream" sparkle:edSignature="bHh2z0/2XI3AvOwVtHeqToRu1fXD3WzS3+8VZJDn+ez1GayZMAbkYOAsY7bvZEdSsmthqsDAoIZsP7ZEuI96CA=="/>
+        </item>
+        <item>
             <title>0.2.47</title>
             <pubDate>Sat, 31 Oct 2026 00:31:57 +0000</pubDate>
             <sparkle:version>551</sparkle:version>
@@ -31,19 +54,6 @@
 - RELEASING.md names the release track of each operating system (#213)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.46/Ensemble-0.2.46.dmg" length="6457470" type="application/octet-stream" sparkle:edSignature="/HpaZZLlWOvpwkKmXD54c64uNMKCQGZ5LuI0iqoswL/araSSMquPi4mXASHtIlRjjJBFeExpqSBeO975ShxnBQ=="/>
-        </item>
-        <item>
-            <title>0.2.45</title>
-            <pubDate>Fri, 30 Oct 2026 01:41:04 +0000</pubDate>
-            <sparkle:version>543</sparkle:version>
-            <sparkle:shortVersionString>0.2.45</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.44:
-
-- A terminal Claude Code session's state can be read through the adapter interface, read-only (#210)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.45/Ensemble-0.2.45.dmg" length="6457638" type="application/octet-stream" sparkle:edSignature="dfR3tlFSaf3yWN+6520PjWsndADsHZ3i8hNyBRak8OJor2Gq1nLXoerb7SNpSVnd4JLcV4ZtBpuligQZ/xY4Bg=="/>
         </item>
     </channel>
 </rss>
