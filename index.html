@@ -97,6 +97,9 @@
   .pop h2 svg { width: 20px; height: 20px; flex: none; stroke: var(--e-blue-ink); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .pop p { margin: 0; font-size: 14.5px; line-height: 1.5; color: #525252; }
   .pop p strong { color: var(--e-ink); font-weight: 600; }
+  .pop .cam-help { margin-top: 12px; font-size: 13.5px; line-height: 1.45; color: #525252; }
+  .pop .cam-help summary { cursor: pointer; font-weight: 600; color: var(--e-ink); padding: 3px 0; }
+  .pop .cam-help ol { margin: 2px 0 6px; padding-left: 20px; }
   .pop .acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
   .pop[data-state="problem"] h2 svg { stroke: var(--e-amber); }
   .pop .dots { display: none; margin-top: 14px; gap: 6px; }
@@ -223,6 +226,7 @@
       <div class="pop ens-pop" id="cam-pop" role="dialog" aria-labelledby="pop-title" aria-live="polite" data-state="asking">
         <h2 id="pop-title"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6.5" width="13" height="11" rx="3"/><path d="m16 11 5-3v8l-5-3"/></svg><span id="pop-head">Ensemble needs your camera</span></h2>
         <p id="pop-body"></p>
+        <div id="pop-help" hidden></div>
         <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="acts" id="pop-acts" hidden>
           <button type="button" class="ens-btn small" id="pop-mouse">Use your mouse instead</button>
@@ -481,13 +485,13 @@
   }
 
   // ---- the camera popover: ask for the camera right here, then go straight to the demo ----
-  const btn = $('try'), pop = $('cam-pop'), head = $('pop-head'), body = $('pop-body'), acts = $('pop-acts');
+  const btn = $('try'), pop = $('cam-pop'), head = $('pop-head'), body = $('pop-body'), help = $('pop-help'), acts = $('pop-acts');
   if (btn) {
     let ticket = 0, stream = null;
     const COPY = {
       asking: ['Ensemble needs your camera', 'Choose <strong>Allow</strong> when your browser asks. Your video stays in this tab and is shown only as dots.'],
       granted: ['Camera on', 'Opening the demo.'],
-      blocked: ['The camera is blocked', 'Ensemble cannot see you without it. Allow the camera for this site from the address bar, then try again, or use your mouse instead.'],
+      blocked: ['The camera is needed', 'Ensemble cannot see you without it, and your browser has the camera blocked for this site. Allow it with the steps below, then press Try again, or use your mouse instead.'],
       none: ['No camera found', 'This computer has no camera Ensemble can use. You can still try the demo with your mouse.'],
       busy: ['The camera would not start', 'Another app may be using it. Close that app and try again, or use your mouse instead.'],
       nosupport: ['This browser cannot reach a camera here', 'The demo needs a camera and a secure page. You can still try it with your mouse.'],
@@ -496,6 +500,11 @@
       const [h, b] = COPY[state];
       pop.dataset.state = state === 'asking' || state === 'granted' ? state : 'problem';
       head.textContent = h; body.innerHTML = b; acts.hidden = !(pop.dataset.state === 'problem');
+      help.hidden = true; help.textContent = '';
+      if (state === 'blocked') {
+        // loaded only when the camera is refused, so the first paint does not fetch it
+        import('./live/camera-help.js').then((m) => { if (pop.dataset.state === 'problem' && head.textContent === h) { help.replaceChildren(m.cameraHelp(document, navigator.userAgent)); help.hidden = false; } });
+      }
       $('pop-retry').hidden = state === 'none' || state === 'nosupport';
     }
     function open() { pop.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
