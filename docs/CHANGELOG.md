@@ -4,6 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- A written walkthrough from the website link to the first working gesture (`docs/first-run.md`) lists every step and where a stranger stops, and `docs/live/test/first-run.mjs` follows the first half of it on the live website.
 - The auto-release workflow is now the only automatic release path; the launchd agent dev.ensemble.releaser is retired.
 - The website counts anonymous visits, download views, scroll depth, the friends' contact cards and where visitors leave the demo, with no cookie and nothing about the visitor, and sends nothing when Do Not Track or Global Privacy Control is on. A footer line on the letter says so; `docs/telemetry.md` ("The website") lists every event and property and how to read them.
 - The website demo loads its trackers (about 12 MB) quietly in the background as soon as it opens, so the camera button no longer shows a loading bar or a size, and the page no longer says that nothing downloads until you press it; and the "What Ensemble sees" panel shows a resting face and hand skeleton instead of an empty grey box when nothing is tracked.
