@@ -40,6 +40,9 @@ jobs:
       - name: Test trap check
         run: scripts/check-test-traps.sh 2>&1 | tee /tmp/ensemble-ci-test-traps.log
 
+      - name: Update signature check test
+        run: bash scripts/test-check-update-signature.sh 2>&1 | tee /tmp/ensemble-ci-update-signature.log
+
       - name: Test
         run: swift test 2>&1 | tee /tmp/ensemble-ci-test.log
 
