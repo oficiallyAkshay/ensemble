@@ -28,7 +28,4 @@ It needs the network and Chrome at the usual macOS path (`CHROME_PATH` overrides
 
 ## Where a stranger stops
 
-1. The hero Download button and the nav Download link start the file at once; the requirements (Apple Silicon, macOS 14.2 or later, Claude desktop) and the Open Anyway note appear only in the Download section at the bottom of the page. A person who downloads from the top meets the macOS warning with no explanation.
-2. The page names the Claude desktop app as a requirement but does not link to where to get it, so a person without it has no next step on the page.
-
-Both are copy changes to `docs/index.html` that touch the owner's own wording, so they are listed here and not changed in the same pull request.
+None known. The requirements and the Open Anyway note sit under the hero Download button and in the nav Download link's tooltip, and the Claude desktop name in both requirements lines links to where to get it.
