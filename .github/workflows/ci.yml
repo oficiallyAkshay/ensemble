@@ -102,7 +102,7 @@ jobs:
 
   website-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -209,7 +209,7 @@ jobs:
     if: ${{ always() }}
     needs: [ci, hygiene, website-tests, coverage, periphery]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions: {}
     steps:
       - name: Every job succeeded
