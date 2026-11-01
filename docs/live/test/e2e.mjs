@@ -106,6 +106,14 @@ async function camera() {
   } finally { p.close(); await c.close(); }
 }
 
+// The allow-again steps: one separate set each for Safari, Firefox and Chrome, with the set for the browser in use first and open.
+async function checkHelp(p, id) {
+  const sets = await p.eval(`[...document.querySelectorAll('#${id} details')].map((d) => ({ b: d.dataset.browser, open: d.open, t: d.textContent }))`);
+  check('three sets of steps: Safari, Firefox and Chrome', JSON.stringify(sets.map((s) => s.b).sort()) === '["chrome","firefox","safari"]', JSON.stringify(sets.map((s) => s.b)));
+  check('each set names its browser and the Camera choice', sets.every((s) => /Camera/.test(s.t) && s.t.includes({ safari: 'Safari', firefox: 'Firefox', chrome: 'Chrome' }[s.b])));
+  check('the set for the browser in use (Chrome here) comes first and is open', sets[0].b === 'chrome' && sets[0].open && sets.slice(1).every((s) => !s.open));
+}
+
 async function denied() {
   say('scenario denied: camera permission refused');
   const c = await launch({ port: 9334, flags: ['--use-fake-device-for-media-stream'] });
@@ -119,9 +127,21 @@ async function denied() {
     const msg = await p.eval("document.getElementById('gate-message').textContent");
     say('message: ' + msg);
     check('refusal explained in plain words', /refused|blocked/i.test(msg), msg);
+    check('refusal says the camera is needed', /camera is needed/i.test(msg), msg);
     check('mouse option offered', await p.eval("!document.getElementById('go-mouse').hidden"));
+    await checkHelp(p, 'gate-help');
+    check('the demo did not start on its own while the camera is refused', (await p.eval('window.__live.mode')) === 'none');
+    check('Try again is offered', (await p.eval("document.getElementById('go-camera').textContent")) === 'Try again');
     const big = w.requests.filter((r) => /\.gz$/.test(r.url));
     say(`downloads started before refusal: ${big.length} (aborted on refusal)`);
+    say('allowing the camera, then pressing Try again (no reload)');
+    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'granted', origin: ORIGIN });
+    await p.eval("document.getElementById('go-camera').click()");
+    await p.waitFor("document.getElementById('app').dataset.state === 'running'", 120000, 'demo running after allowing');
+    check('the demo starts on the camera after the camera is allowed', (await p.eval('window.__live.mode')) === 'camera');
+    check('the help steps are gone once it runs', await p.eval("document.getElementById('gate-help').hidden || document.getElementById('gate').hidden"));
+    await p.eval("document.getElementById('stop').click()");
+    await sleep(300);
     await p.eval("document.getElementById('go-mouse').click()");
     await sleep(300);
     check('mouse mode starts after refusal', (await p.eval('window.__live.mode')) === 'mouse');
@@ -604,7 +624,23 @@ async function letterDenied() {
     await p.waitFor("document.getElementById('cam-pop').dataset.state === 'problem'", 15000, 'refusal in the popover');
     const txt = await p.eval("document.getElementById('cam-pop').textContent.replace(/\\s+/g, ' ')");
     say('popover: ' + txt);
-    check('popover says the camera is blocked, in plain words', /blocked/i.test(txt) && /mouse/i.test(txt), txt);
+    check('popover says the camera is needed and blocked, in plain words', /camera is needed/i.test(txt) && /blocked/i.test(txt) && /mouse/i.test(txt), txt);
+    await p.waitFor("document.querySelectorAll('#pop-help details').length === 3", 5000, 'allow-again steps');
+    await checkHelp(p, 'pop-help');
+    check('Try again is offered', await p.eval("(() => { const b = document.getElementById('pop-retry'); return b.offsetParent !== null && b.textContent.trim() === 'Try again'; })()"));
+    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'granted', origin: ORIGIN });
+    await p.eval("document.getElementById('pop-retry').click()");
+    await p.waitFor("location.pathname.includes('/live/')", 15000, 'demo after allowing');
+    check('Try again hands over to the demo, with no page reload in between', (await p.eval('location.search')) === '?go=1');
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await turnOn(p);
+    await p.waitFor("document.getElementById('app').dataset.state === 'running'", 120000, 'demo running after allowing');
+    check('the demo runs on the camera after the camera is allowed', (await p.eval('window.__live.mode')) === 'camera');
+    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'denied', origin: ORIGIN });
+    await p.send('Page.navigate', { url: LETTER });
+    await p.waitFor("document.readyState === 'complete'", 15000);
+    await p.eval("document.getElementById('try').click()");
+    await p.waitFor("document.getElementById('cam-pop').dataset.state === 'problem'", 15000, 'refusal again');
     check('"Use your mouse instead" is offered', await p.eval("(() => { const b = document.getElementById('pop-mouse'); return !!b && b.offsetParent !== null && b.textContent.trim() === 'Use your mouse instead'; })()"));
     check('still on the letter page', (await p.eval('location.pathname')).endsWith('/index.html') || (await p.eval('location.pathname')) === '/');
     await p.eval("document.getElementById('pop-mouse').click()");
