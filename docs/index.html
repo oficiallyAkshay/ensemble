@@ -593,7 +593,7 @@
   // The scene module has no pause, so a scene that scrolls away is torn down (its GL context released) and rebuilt when it returns.
   const build = (rec) => {
     const el = rec.el;
-    rec.inst = window.EnsembleScene.mount(el, { scene: el.dataset.scene, reducedMotion: still, handUrl: 'assets/3d/hand.glb', onFrame: (st) => { rec.state = st; } });
+    rec.inst = window.EnsembleScene.mount(el, { scene: el.dataset.scene, reducedMotion: still, theme: 'light', plainText: true, handUrl: 'assets/3d/hand.glb', onFrame: (st) => { rec.state = st; } });
     const holder = el.closest('.card3d') || el;
     let tries = 0;
     clearInterval(rec.wait);
