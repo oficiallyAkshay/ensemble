@@ -1,7 +1,3 @@
-/**
- * three.js r128 examples/js/GLTFLoader (MIT, Copyright 2010-2021 three.js authors).
- * https://github.com/mrdoob/three.js/blob/r128/LICENSE
- */
 ( function () {
 
 	class GLTFLoader extends THREE.Loader {

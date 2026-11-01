@@ -2,8 +2,9 @@
  * Needs three.js r128 globals (THREE, THREE.GLTFLoader, THREE.CCDIKSolver).
  * Hand model: WebXR generic hand (MIT), loaded from opts.handUrl (default 'assets/hand.glb').
  *
- *   window.EnsembleScene.mount(el, { scene, reducedMotion, onFrame, handUrl, handOnly, theme }) -> { setScene, setTheme, destroy, canvas }
+ *   window.EnsembleScene.mount(el, { scene, reducedMotion, onFrame, handUrl, handOnly, theme, plainText }) -> { setScene, setTheme, destroy, canvas }
  *   handOnly (gesture scenes only): the 3D hand fills el and no Claude window is drawn.
+ *   plainText (gesture scenes only): every line of text in the focused window is a grey bar, as the website shows it; the tour leaves it off.
  *   theme: 'light' (default) or 'dark'. The page decides (the tour reads the colour-scheme media query); setTheme switches a mounted scene.
  *   The welcome and calibrate scenes fill el with one 3D canvas (desk, head, monitors). The closed-lid scene fills it with a closed
  *   laptop on the same light rig and materials; no page mounts it yet. The hero scene (the website's top) is the desk
@@ -32,7 +33,7 @@
         bg: '#faf9f5', side: '#faf9f5', pane: '#ffffff', line: '#e8e6dc', text: '#3d3d3a', dim: '#83827d', faint: '#9a9892',
         bubble: '#f0eee6', code: '#f4f2eb', orange: '#d97757', blue: '#5294ff', bone: '#e6e4dc', bone2: '#edebe4', skel: '#d9d6cc',
         skelPane: '#f3f2ee', head: '#f0eee6', strong: '#141413', composer: '#ffffff', composerLine: '#dedad0', send: '#d9d6cc',
-        capsuleLine: 'rgba(10,10,10,0.2)'
+        kw: '#b8502a', fn: '#2d6ae0', plain: '#3d3d3a', capsuleLine: 'rgba(10,10,10,0.2)'
       }
     },
     dark: {
@@ -46,7 +47,7 @@
         bg: '#262624', side: '#1f1e1d', pane: '#30302e', line: '#3d3d3a', text: '#d6d4cc', dim: '#9a9892', faint: '#7d7c76',
         bubble: '#3a3936', code: '#2b2a28', orange: '#d97757', blue: '#5294ff', bone: '#4a4944', bone2: '#3d3c38', skel: '#55534e',
         skelPane: '#2a2927', head: '#1f1e1d', strong: '#f0eee6', composer: '#30302e', composerLine: '#4a4944', send: '#4a4944',
-        capsuleLine: 'rgba(255,255,255,0.22)'
+        kw: '#e0825c', fn: '#7aa8ff', plain: '#d6d4cc', capsuleLine: 'rgba(255,255,255,0.22)'
       }
     }
   };
@@ -675,11 +676,13 @@
   var HERO_PANE = { x: 8, y: PANE_Y, w: HERO_FW - 16, h: HERO_FH - PANE_Y - 8 };
   var HAND_PANEL_ASPECT = 0.52;   // width over height of the half-column hand panel on a 16:10 canvas
 
-  function makeFrameView(canvas, T0, hero) {
+  // hero: the one session fills the frame. plainText: every scene draws its text as grey bars (the website), not only dictate.
+  function makeFrameView(canvas, T0, hero, plainText) {
     var ctx = canvas.getContext('2d');
-    var VW = hero ? HERO_FW : FW, VH = hero ? HERO_FH : FH;   // hero: the one session fills the frame
+    var VW = hero ? HERO_FW : FW, VH = hero ? HERO_FH : FH;
     var cssW = VW, dpr = 1;
     var C = T0.frame;
+    var skel = false;   // dictate draws every line of text as a grey bar, like the neighbouring sessions
 
     function rr(x, y, w, h, r) {
       ctx.beginPath();
@@ -698,9 +701,10 @@
       if (cur) lines.push(cur);
       return lines;
     }
-    // Every line of text in the focused window is a grey bar as long as the text would be and as tall as a lowercase line, like the neighbouring sessions.
-    function txt(str, x, y, font) {
+    // Text, or in skeleton mode a bar as long as the text would be and as tall as a lowercase line.
+    function txt(str, x, y, font, color) {
       ctx.font = font;
+      if (!skel) { ctx.fillStyle = color; ctx.fillText(str, x, y); return; }
       var px = parseFloat(/(\d+(?:\.\d+)?)px/.exec(font)[1]), h = Math.max(6, px * 0.5), w = ctx.measureText(str).width;
       ctx.fillStyle = C.skel; rr(x, y - px * 0.62, w, h, h / 2); ctx.fill();
     }
@@ -753,7 +757,13 @@
         ctx.fillStyle = C.code; rr(X0, y, w, h, 10); ctx.fill();
         ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.stroke();
         txt('sync.ts', X0 + 14, y + 22, '600 12px ' + SANS, C.faint);
-        CODE.forEach(function (ln, i) { txt(ln.join(''), X0 + 14, y + 46 + i * 21, '13.5px ' + MONO); });
+        CODE.forEach(function (ln, i) {
+          var x = X0 + 14, yy = y + 46 + i * 21, f = '13.5px ' + MONO;
+          if (skel) { txt(ln.join(''), x, yy, f, C.plain); return; }
+          txt(ln[0], x, yy, f, C.kw); x += ctx.measureText(ln[0]).width;
+          txt(ln[1], x, yy, f, ln[1].indexOf(' drain') === 0 ? C.fn : C.plain); x += ctx.measureText(ln[1]).width;
+          txt(ln[2], x, yy, f, C.plain);
+        });
       } };
     }
     var shortList = [
@@ -848,6 +858,7 @@
       txt('ensemble-tour', PX + 20, PY + 34, '600 17px ' + SANS, C.strong);
       ctx.fillStyle = C.bubble; rr(PX + 148, PY + 16, 156, 26, 13); ctx.fill();
       txt('feature/onboarding', PX + 162, PY + 34, '12px ' + MONO, C.dim);
+      if (!skel) { ctx.fillStyle = C.faint; ctx.font = '13px ' + SANS; ctx.textAlign = 'right'; ctx.fillText('Opus', PX + PW - 20, PY + 34); ctx.textAlign = 'left'; }
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PX, PY + 50); ctx.lineTo(PX + PW, PY + 50); ctx.stroke();
 
       // conversation (clipped)
@@ -908,6 +919,7 @@
         micButton(bx - 42, by, 22);
         micRings(bx - 42, by, 22, ev, t);
       } else {
+        ctx.fillStyle = C.faint; ctx.font = '12.5px ' + SANS; ctx.fillText('Plan mode  ·  Opus  ·  Auto-accept off', CX0 + 20, CY0 + 68);
         sendButton(bx, by, 17, text ? C.orange : C.send);
       }
     }
@@ -951,6 +963,7 @@
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 38.5); ctx.lineTo(VW, 38.5); ctx.stroke();
       [['#ff5f57', 0], ['#febc2e', 1], ['#28c840', 2]].forEach(function (d) { ctx.fillStyle = d[0]; ctx.beginPath(); ctx.arc(20 + d[1] * 18, 19, 5, 0, 6.2832); ctx.fill(); });
       ctx.fillStyle = C.dim; ctx.font = '600 13px ' + SANS; ctx.textBaseline = 'alphabetic'; ctx.fillText('Claude', 82, 23);
+      skel = plainText || name === 'dictate';
       if (!hero) PANES.forEach(function (p, i) { if (!p.focus) skeleton(p, i); });
       focused(st, name, t);
       // Ensemble focus: blue outline only, never filled
@@ -1941,7 +1954,7 @@
     } else if (frameMode) {
       frameCanvas = document.createElement('canvas');
       frameCanvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block';
-      frameView = makeFrameView(frameCanvas, theme);
+      frameView = makeFrameView(frameCanvas, theme, false, !!opts.plainText);
       // The column: the 3D hand panel on top, an empty half below it for the app's camera panel. Margins, radius and
       // the 50 / 50 split are mirrored by the app's TourGestureColumn. On dictate the app draws no camera panel, so the
       // spacer goes and the hand panel takes the whole column.
@@ -1982,7 +1995,7 @@
     var winView = null, handRig = null;
     if (heroMode) {
       var winCanvas = document.createElement('canvas');
-      winView = makeFrameView(winCanvas, theme, true);
+      winView = makeFrameView(winCanvas, theme, true, !!opts.plainText);
       winView.resize(HERO_FW, HERO_FH, 1.5);
       var winTex = new THREE.CanvasTexture(winCanvas);
       winTex.minFilter = THREE.LinearFilter; winTex.generateMipmaps = false;
