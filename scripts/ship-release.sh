@@ -14,6 +14,8 @@
 #   ENSEMBLE_EXPECTED_REQUIREMENT  the designated requirement the app inside the DMG must have; anything else refuses
 #                            before the tag and the release exist (a different certificate would reset every user's grants).
 #   ENSEMBLE_SHIP_DRY_RUN=1  build, sign and check everything, then stop before the tag, the release and the appcast push.
+#   ENSEMBLE_BUILD, ENSEMBLE_SKIP_VERSION  the build number (default: commit count) and a version skipped on purpose,
+#                            both read by scripts/check-release-version.sh, which refuses before anything is built.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -64,7 +66,10 @@ REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 PREV="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 log "shipping $TAG from $(git rev-parse --short HEAD) of $REPO (previous: ${PREV:-none})"
 
-ENSEMBLE_VERSION="$VERSION" scripts/release.sh 2>&1 | tee -a "$LOG"
+# Checked against the published appcast before anything is built, with the build number release.sh will stamp.
+BUILD="${ENSEMBLE_BUILD:-$(git rev-list --count HEAD)}"
+bash scripts/check-release-version.sh <(git show origin/gh-pages:appcast.xml 2>/dev/null || true) "$VERSION" "$BUILD" 2>&1 | tee -a "$LOG"
+ENSEMBLE_VERSION="$VERSION" ENSEMBLE_BUILD="$BUILD" scripts/release.sh 2>&1 | tee -a "$LOG"
 DMG="build/Ensemble-$VERSION.dmg"
 [ -f "$DMG" ] || { log "error: $DMG was not built"; exit 1; }
 
