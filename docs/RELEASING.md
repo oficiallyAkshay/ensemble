@@ -9,6 +9,7 @@ How a release is built, signed, notarized, published, and delivered to installed
 | `scripts/bundle.sh` | Builds the release binary, assembles `build/Ensemble.app` with Sparkle inside, signs it. Local identity by default; `ENSEMBLE_SIGN_IDENTITY="Developer ID Application: ..."` switches to hardened runtime + secure timestamp + `Sources/Ensemble/Ensemble.entitlements`. |
 | `scripts/release.sh` | Runs `bundle.sh`, optionally notarizes and staples the app, builds `build/Ensemble-<version>.dmg` with `hdiutil` (app plus an Applications shortcut), signs/notarizes/staples the DMG, writes the `.sha256`, prints a summary. `--dry-run` prints the Apple-service commands instead of running them. |
 | `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast`; refuses to write an appcast whose items lack an EdDSA signature. |
+| `scripts/check-release-version.sh` | Refuses a version that is not the next patch, minor or major of the newest one in the published appcast, or a build number not above the newest published build. `ship-release.sh` runs it before building. |
 | `.github/workflows/auto-release.yml` | After `ci` passes on a push to `main`, or by hand: decides whether app logic changed since the newest tag, imports the signing identity from the `release` environment, runs `scripts/ship-release.sh` and checks the release and the feed. See "Release on every merge". |
 | `.github/workflows/ci.yml` | On every pull request and push to `main`: `ci` builds in release mode, runs the tests and the repository's network and size checks; `hygiene` runs zizmor, pinact and a secrets scan over the whole history; `coverage`, `periphery` and `website-tests` check EnsembleCore coverage, unused code and the website logic and replay-timeline tests; `script-tests` runs the usage triage script's tests with no network and no secrets; `gate` passes only when all of them did. It never signs or publishes. |
 | `Sources/Ensemble/App/UpdateController.swift` | The Sparkle wrapper and Ensemble's own update interface: feed URL constant, the one alert, the idle gate, the relaunch record. |
@@ -98,6 +99,19 @@ Releases are cut by `auto-release.yml` after a merge, or by hand with `scripts/s
 After a release, on a Mac that has run Ensemble before, check for updates and confirm the new version installs; the GitHub Release holds `Ensemble-<version>.dmg`, its `.sha256` and `Ensemble.dmg`, and `appcast.xml` on `gh-pages` lists the version. A DMG signed with the local identity is not notarized, so Gatekeeper warns on a Mac that has never run Ensemble.
 
 If a release fails after the GitHub Release is created (for example the appcast push), fix the cause and run the release again for the same version only if the tag was not created; do not move a tag.
+
+### Version and build checks
+
+Before building, `ship-release.sh` refuses a version that skips one (after 1.2.3 only 1.2.4, 1.3.0 or 2.0.0 ship; the numbers are an example) and a build number at or below the newest published build, since installed copies would never take it. Both are judged against the highest item in the published `appcast.xml`, wherever it sits in the file, so an old gap in the feed does not matter. The build number is `ENSEMBLE_BUILD`, else the commit count, the same one `release.sh` stamps; it legitimately jumps, so only "above" is checked. To skip a version on purpose, name it: `ENSEMBLE_SKIP_VERSION=1.2.4 scripts/ship-release.sh 1.2.5`; the skip is written to `build/ship.log`. If a release failed after its tag was created but before the appcast was pushed, the next automatic release is refused for the same reason: name the unpublished version in `ENSEMBLE_SKIP_VERSION`. Try the check on any feed file: `bash scripts/check-release-version.sh <appcast.xml> <version> <build>`.
+
+## Critical updates and very old installs
+
+Both are marks on one `<item>` of `appcast.xml` on the `gh-pages` branch. `ship-release.sh` does not add them: after it publishes the release, edit that item on GitHub (branch `gh-pages`, `appcast.xml`) and commit. The next release starts from the published appcast, and `generate_appcast` leaves existing items as they are, so the mark stays until the item drops out of the feed. Every value is a build number (`sparkle:version`, such as 303), never a version like 1.2.3. Installed copies use Sparkle 2, which both marks need. The numbers below are examples.
+
+- **Critical**: add `<sparkle:criticalUpdate></sparkle:criticalUpdate>` inside the item. Sparkle shows a critical update sooner and offers no way to skip it. To make it critical only for copies older than a given build, name that build: `<sparkle:criticalUpdate sparkle:version="303"></sparkle:criticalUpdate>` is critical for copies below build 303.
+- **Minimum version for very old installs**: add `<sparkle:minimumAutoupdateVersion>303</sparkle:minimumAutoupdateVersion>` inside the item. A copy below build 303 never installs it silently, even with "Update automatically" on: Sparkle hands it to the user instead.
+
+Source: https://sparkle-project.org/documentation/publishing/ (Critical updates, Major upgrades). That page does not list `generate_appcast` options, and the bundled `generate_appcast --help` was not run when this was written, so `scripts/appcast.sh` passes none and the marks are edited by hand.
 
 ## Release tracks per operating system
 
