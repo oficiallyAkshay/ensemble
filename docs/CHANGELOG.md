@@ -4,6 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- The usage report is now read and turned into Linear tickets by a plain launchd job on the owner's Mac every 2 hours (`scripts/install-usage-monitor.sh`, `scripts/usage-monitor.sh`, `scripts/usage-file-tickets.py`); no Claude app or routine is involved, and a run with thin data files nothing.
 - A written walkthrough from the website link to the first working gesture (`docs/first-run.md`) lists every step and where a stranger stops, and `docs/live/test/first-run.mjs` follows the first half of it on the live website.
 - The auto-release workflow is now the only automatic release path; the launchd agent dev.ensemble.releaser is retired.
 - The website counts anonymous visits, download views, scroll depth, the friends' contact cards and where visitors leave the demo, with no cookie and nothing about the visitor, and sends nothing when Do Not Track or Global Privacy Control is on. A footer line on the letter says so; `docs/telemetry.md` ("The website") lists every event and property and how to read them.
