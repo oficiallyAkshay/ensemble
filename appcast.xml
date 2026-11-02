@@ -3,6 +3,39 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.49</title>
+            <pubDate>Mon, 02 Nov 2026 23:13:28 +0000</pubDate>
+            <sparkle:version>577</sparkle:version>
+            <sparkle:shortVersionString>0.2.49</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.48:
+
+- Updates open a What's new window with three to five items, and a release without a summary is refused (#249)
+- Shipping a release refuses a skipped version or a build number that does not rise (#247)
+- Comment and guide stop naming the deleted release scripts (ENS-171) (#246)
+- The release docs name only the auto-release workflow and the two launchd release scripts are deleted (#245)
+- Tests pin the switch-off wait at 8 seconds and the send wait cap at 1.2 seconds (#243)
+- Playwright-core 1.64.1 lockfile and a Dependabot entry for the website test folder (ENS-155, hand steps) (#241)
+- The site publish step copies the app's 3D and tracker files (ENS-168, hand step) (#240)
+- The contributor guide lists check-update-signature.sh and ci runs its test (ENS-170) (#239)
+- The home page shows the requirements and the Open Anyway note under the hero Download button and links Claude desktop (#238)
+- A Playwright test runs the home page and the live demo in Firefox and in WebKit (#237)
+- Update (#236)
+- The agent guide says the release workflow is the only automatic release path and the launchd agent is retired (#235)
+- The size budget rises from 9,000,000 to 9,500,000 bytes (#234)
+- The contributor guide says the launchd release agent is retired (ENS-157) (#233)
+- The website-tests and gate checks allow 15 minutes instead of 5 (ENS-121) (#232)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.49/Ensemble-0.2.49.dmg" length="6444422" type="application/octet-stream" sparkle:edSignature="eQ2Aln9PvRWGjEfgrXBq5odOMjbkO42VALNSIbYcikx60si+1SVvSdxFeacWNZusK5b4jdnZwMXnKI9FrgwrCA=="/>
+            <whatsNew>sparkles | Updates open a What's new window | Updates open a What's new window with three to five items, and a release without a summary is refused
+wand.and.stars | Shipping a release refuses a skipped | Shipping a release refuses a skipped version or a build number that does not rise
+hand.raised | Comment and guide stop naming the | Comment and guide stop naming the deleted release scripts (ENS-171)
+gearshape | The release docs name only the | The release docs name only the auto-release workflow and the two launchd release scripts are deleted
+bolt | Tests pin the switch-off wait at | Tests pin the switch-off wait at 8 seconds and the send wait cap at 1.2 seconds
+</whatsNew>
+        </item>
+        <item>
             <title>0.2.48</title>
             <pubDate>Sun, 01 Nov 2026 20:13:08 +0000</pubDate>
             <sparkle:version>562</sparkle:version>
@@ -38,22 +71,6 @@
 - The built app drops Sparkle's 35 unused update-window translations and keeps the English one (#217)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.47/Ensemble-0.2.47.dmg" length="6438874" type="application/octet-stream" sparkle:edSignature="lz1/rKFed7Wlzp9T8P9QVVRwTT9+zPdq9gjIusk+Au3wMsssQ6cH2xxfWAa4+cK+ZHZbEnXTJB+xZQ7TJ9qtDQ=="/>
-        </item>
-        <item>
-            <title>0.2.46</title>
-            <pubDate>Fri, 30 Oct 2026 16:21:30 +0000</pubDate>
-            <sparkle:version>549</sparkle:version>
-            <sparkle:shortVersionString>0.2.46</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since core-v0.1.0:
-
-- The face tracker bundle no longer ends with a pointer to a source map that does not ship (#216)
-- The download section shows one temporary note for the macOS warning instead of three steps (#215)
-- A portability page says what runs on which system and how it is checked (#214)
-- RELEASING.md names the release track of each operating system (#213)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.46/Ensemble-0.2.46.dmg" length="6457470" type="application/octet-stream" sparkle:edSignature="/HpaZZLlWOvpwkKmXD54c64uNMKCQGZ5LuI0iqoswL/araSSMquPi4mXASHtIlRjjJBFeExpqSBeO975ShxnBQ=="/>
         </item>
     </channel>
 </rss>
