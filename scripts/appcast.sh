@@ -8,6 +8,8 @@
 #   SPARKLE_ED_PRIVATE_KEY   the EdDSA private key text (from generate_keys -x). Without it, generate_appcast reads the
 #                            key from this Mac's login keychain (where generate_keys stored it).
 #   ENSEMBLE_RELEASE_NOTES     optional path to a .md/.html/.txt file embedded as the release notes of this version.
+#   ENSEMBLE_WHATS_NEW       required: path to the release's "What's new" summary, docs/whats-new/<version>.txt
+#                            (scripts/whats-new.sh); a release without a valid one is refused.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,6 +21,8 @@ GEN=".build/artifacts/sparkle/Sparkle/bin/generate_appcast"
 PREFIX="${ENSEMBLE_DOWNLOAD_PREFIX:?set ENSEMBLE_DOWNLOAD_PREFIX to the release download URL, ending in /}"
 [ -x "$GEN" ] || { echo "error: $GEN not found (run swift package resolve)" >&2; exit 1; }
 [ -f "$DMG" ] || { echo "error: $DMG not found" >&2; exit 1; }
+WHATS_NEW="${ENSEMBLE_WHATS_NEW:?set ENSEMBLE_WHATS_NEW to the release summary file, docs/whats-new/<version>.txt}"
+bash scripts/whats-new.sh check "$WHATS_NEW"
 
 # generate_appcast works on a folder and applies the prefix to every archive in it, so the folder holds only the
 # new DMG plus the existing appcast, which it extends.
@@ -46,5 +50,8 @@ if [ "$ITEMS" != "$SIGNED" ]; then
   echo "error: $((ITEMS - SIGNED)) of $ITEMS appcast items have no EdDSA signature; not writing the appcast." >&2
   exit 1
 fi
+# The summary rides in the signed feed as the new item's <whatsNew> element; the installed app reads it from there.
+bash scripts/whats-new.sh inject "$WORK/appcast.xml" "$(basename "$DMG")" "$WHATS_NEW"
+
 cp "$WORK/appcast.xml" "$OUT_DIR/appcast.xml"
 echo "[$(date -u +%FT%TZ)] wrote $OUT_DIR/appcast.xml"

@@ -8,11 +8,12 @@ How a release is built, signed, notarized, published, and delivered to installed
 |---|---|
 | `scripts/bundle.sh` | Builds the release binary, assembles `build/Ensemble.app` with Sparkle inside, signs it. Local identity by default; `ENSEMBLE_SIGN_IDENTITY="Developer ID Application: ..."` switches to hardened runtime + secure timestamp + `Sources/Ensemble/Ensemble.entitlements`. |
 | `scripts/release.sh` | Runs `bundle.sh`, optionally notarizes and staples the app, builds `build/Ensemble-<version>.dmg` with `hdiutil` (app plus an Applications shortcut), signs/notarizes/staples the DMG, writes the `.sha256`, prints a summary. `--dry-run` prints the Apple-service commands instead of running them. |
-| `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast`; refuses to write an appcast whose items lack an EdDSA signature. |
+| `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast`, adds the release's "What's new" summary to that item, and refuses to write an appcast whose items lack an EdDSA signature or when `ENSEMBLE_WHATS_NEW` is missing or invalid. |
+| `scripts/whats-new.sh` | `check` refuses a release summary that is not 3 to 5 lines of `icon \| heading \| subheading`; `inject` puts it in the appcast item. |
 | `scripts/check-release-version.sh` | Refuses a version that is not the next patch, minor or major of the newest one in the published appcast, or a build number not above the newest published build. `ship-release.sh` runs it before building. |
 | `.github/workflows/auto-release.yml` | After `ci` passes on a push to `main`, or by hand: decides whether app logic changed since the newest tag, imports the signing identity from the `release` environment, runs `scripts/ship-release.sh` and checks the release and the feed. See "Release on every merge". |
 | `.github/workflows/ci.yml` | On every pull request and push to `main`: `ci` builds in release mode, runs the tests and the repository's network and size checks; `hygiene` runs zizmor, pinact and a secrets scan over the whole history; `coverage`, `periphery` and `website-tests` check EnsembleCore coverage, unused code and the website logic and replay-timeline tests; `script-tests` runs the usage triage script's tests with no network and no secrets; `gate` passes only when all of them did. It never signs or publishes. |
-| `Sources/Ensemble/App/UpdateController.swift` | The Sparkle wrapper and Ensemble's own update interface: feed URL constant, the one alert, the idle gate, the relaunch record. |
+| `Sources/Ensemble/App/UpdateController.swift` | The Sparkle wrapper and Ensemble's own update interface: feed URL constant, the one update window, the idle gate, the relaunch record. |
 
 Log of the last `release.sh` run: `build/release.log`.
 
@@ -113,6 +114,18 @@ Both are marks on one `<item>` of `appcast.xml` on the `gh-pages` branch. `ship-
 
 Source: https://sparkle-project.org/documentation/publishing/ (Critical updates, Major upgrades). That page does not list `generate_appcast` options, and the bundled `generate_appcast --help` was not run when this was written, so `scripts/appcast.sh` passes none and the marks are edited by hand.
 
+## The "What's new" summary (every release)
+
+Every release carries a summary of three to five items, shown in the update window. Write it before cutting the release, from the release's changes in `docs/CHANGELOG.md`, in the same outcome-first plain words (no jargon), and merge it to `main`: `docs/whats-new/<version>.txt`, one item per line:
+
+```
+icon.name | Heading in a few words | One plain sentence saying what changes for the person.
+```
+
+`icon.name` is an SF Symbol name (letters, digits and dots; pick one from the SF Symbols app, because a name macOS does not know shows no icon). Text only: the window leaves room for an image on a major release, but none is built. `scripts/ship-release.sh` and `scripts/appcast.sh` both run `scripts/whats-new.sh check` and stop, before anything is tagged or published, if the file is missing, has fewer than 3 or more than 5 items, or has a malformed line. The summary travels in the existing appcast as a `<whatsNew>` element on that release's item, so the window works offline once Sparkle has the item, and the app makes no new connection. An installed copy that finds the element missing or malformed shows the plain "Install now?" prompt instead. `scripts/whats-new.sh` and `Sources/EnsembleCore/WhatsNew.swift` apply the same rules.
+
+The `auto-release` workflow writes this file itself from the commit subjects since the last release (untracked, so the build still matches what was merged) before it runs `scripts/ship-release.sh`; a release cut by hand needs the file on disk first.
+
 ## Release tracks per operating system
 
 Each system has its own release, so one does not wait for another.
@@ -145,13 +158,13 @@ GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `scripts/sh
   | The user | Before (Sparkle's windows) | Now |
   |---|---|---|
   | Update automatically on | button showed the version; install on idle | installs by itself after 30 s idle, no question; the island says "Installing Ensemble x.y.z", then "Updated to x.y.z" after the reopen |
-  | Presses Check for Updates and a version exists | Check, "Update", "Install Update", restart, open by hand: six clicks | one alert, "Ensemble x.y.z is available. Install now?" with Install, Later and a "What's new" link; Install downloads, installs and reopens: two clicks |
-  | Button already says "Update to x.y.z" | press, then Sparkle's windows | one press does everything |
+  | Presses Check for Updates and a version exists | Check, "Update", "Install Update", restart, open by hand: six clicks | one window, "What's new in Ensemble x.y.z", with the release's three to five items, Install, Later and a "Full release notes" link (a feed item with no valid summary gets the plain prompt, "Ensemble x.y.z is available. Install now?"); Install downloads, installs and reopens: two clicks |
+  | Button already says "Update to x.y.z" | press, then Sparkle's windows | the same window; Install does everything |
   | Presses while dictating, sending, calibrating or in the tour | could restart Ensemble at once if the update was already downloaded | the button says "Installs x.y.z when you finish"; the install starts at the first idle moment |
   | A background check finds a version with automatic install off (only if Sparkle's checks are on without downloads) | Sparkle's window | the alert once per version; Later stops it until the next launch or a press |
   | The download or install fails | Sparkle's error window | one alert, "Ensemble could not update", with Retry |
 
-  The button reads "Checking..." during a check and "Installing x.y.z..." while it downloads and installs. "What's new" opens the release page in the browser; its address comes from the signed feed (the release notes link, or the GitHub release the download comes from), and Ensemble itself fetches nothing for it.
+  The button reads "Checking..." during a check and "Installing x.y.z..." while it downloads and installs. "Full release notes" (or "What's new in x.y.z" on the plain prompt) opens the release page in the browser; its address comes from the signed feed (the release notes link, or the GitHub release the download comes from), and Ensemble itself fetches nothing for it.
 - Relaunch. Sparkle's installer quits Ensemble, installs and opens the new copy. Three things back it up: (1) before quitting, Ensemble starts a detached shell in its own session (so launchd does not kill it with the login agent's job) that looks for a running Ensemble 30 and 60 seconds after the old copy exits and opens it if none is there; (2) with open at login on, the copy Sparkle opened is outside launchd's job, so it quits at once and asks launchd to start the job (`launchctl kickstart`), once only, which keeps crash restarts working; (3) the clean quit for the install exits with status 0, so the login agent's `KeepAlive` (restart on failure only) never starts a second copy, and a second copy would exit at launch anyway. The new copy logs "update: relaunched after update to x.y.z" with who started it, or "did not install" if the version did not change.
 - The new flow ships in a release, so it takes effect from the update after the one that carries it: installing that release still goes through the old windows.
 - To check for updates by default (Sparkle's standard behavior is a prompt on the second launch), remove the `updaterShouldPromptForPermissionToCheck` override and let Sparkle ask, or set `SUEnableAutomaticChecks` to true in `Info.plist` (no consent step).
@@ -193,10 +206,10 @@ These need a notarized build on a real Mac and could not be run from the develop
 
 The first release that carries the flow is installed through the old windows; these checks need the release after it.
 
-1. Update automatically off, open at login on: Check for Updates shows one alert; Install; Ensemble quits and reopens with no other window, and the island says "Updated to x.y.z". `~/Library/Logs/Ensemble` has "relaunched as ... handing over to launchd", then "relaunched after update to x.y.z (started by the login agent)".
+1. Update automatically off, open at login on: Check for Updates shows the "What's new" window; Install; Ensemble quits and reopens with no other window, and the island says "Updated to x.y.z". `~/Library/Logs/Ensemble` has "relaunched as ... handing over to launchd", then "relaunched after update to x.y.z (started by the login agent)".
 2. Same with open at login off: the log says "(opened by Sparkle)".
-3. Press Later, then "Update to x.y.z": one press installs and reopens.
-4. Start a dictation, then press "Update to x.y.z": the button says "Installs x.y.z when you finish" and nothing installs until the dictation ends.
+3. Press Later, then "Update to x.y.z": the "What's new" window opens again; Install installs and reopens.
+4. Start a dictation, then press Install in the window: the button says "Installs x.y.z when you finish" and nothing installs until the dictation ends.
 5. Update automatically on: the update installs about 30 seconds after you stop using Ensemble, with no alert.
 
 ## Homebrew

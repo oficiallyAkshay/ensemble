@@ -66,6 +66,10 @@ REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 PREV="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 log "shipping $TAG from $(git rev-parse --short HEAD) of $REPO (previous: ${PREV:-none})"
 
+# Every release carries its "What's new" summary; refused before anything is built or tagged without a valid one.
+WHATS_NEW="docs/whats-new/$VERSION.txt"
+bash scripts/whats-new.sh check "$WHATS_NEW" || { log "error: $TAG has no valid release summary; write $WHATS_NEW (docs/RELEASING.md)"; exit 1; }
+
 # Checked against the published appcast before anything is built, with the build number release.sh will stamp.
 BUILD="${ENSEMBLE_BUILD:-$(git rev-list --count HEAD)}"
 bash scripts/check-release-version.sh <(git show origin/gh-pages:appcast.xml 2>/dev/null || true) "$VERSION" "$BUILD" 2>&1 | tee -a "$LOG"
@@ -92,7 +96,7 @@ git worktree add --quiet "$PAGES" origin/gh-pages --detach
 rm -rf build/appcast
 mkdir -p build/appcast
 [ ! -f "$PAGES/appcast.xml" ] || cp "$PAGES/appcast.xml" build/appcast/appcast.xml
-ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
+ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" ENSEMBLE_WHATS_NEW="$WHATS_NEW" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
 [ -s build/appcast/appcast.xml ] || { log "error: no appcast was produced; nothing was tagged or published"; exit 1; }
 # What the DMG really holds: the signing authority and the designated requirement of the app inside it. Anything but
 # the expected requirement refuses here, while nothing is public.
