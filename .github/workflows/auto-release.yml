@@ -124,7 +124,7 @@ jobs:
           swift --version
           command -v uvx >/dev/null || brew install uv   # scripts/release.sh runs dmgbuild through uvx
 
-      # Same as scripts/auto-release.sh: where the repository has the tool, an untracked summary of the release for the
+      # Where the repository has the tool, an untracked summary of the release for the
       # update window, written from the commit subjects. Not in the tree, so the build still matches what was merged.
       - name: What's new
         run: |
