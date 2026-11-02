@@ -55,6 +55,19 @@ import Testing
         #expect(DictationRules.disarmStep(stepInFlight: true, startInFlight: false, waited: DictationRules.disarmWait) == .proceed)
     }
 
+    // The safety page promises 8 seconds; plain numbers here so changing the constant fails a test.
+    @Test func disarmWaitIsEightSecondsAsTheSafetyPageSays() {
+        #expect(DictationRules.disarmWait == 8)
+    }
+
+    @Test func disarmStopsWaitingAtExactlyEightSeconds() {
+        for startInFlight in [true, false] {
+            #expect(DictationRules.disarmStep(stepInFlight: true, startInFlight: startInFlight, waited: 7.99) == .wait)
+        }
+        #expect(DictationRules.disarmStep(stepInFlight: true, startInFlight: true, waited: 8) == .stopWhenStarted)
+        #expect(DictationRules.disarmStep(stepInFlight: true, startInFlight: false, waited: 8) == .proceed)
+    }
+
     // MARK: Unreadable microphone state
 
     @Test func onlyADefiniteOffReadingConfirmsOff() {
