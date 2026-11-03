@@ -86,9 +86,8 @@ MNT=""
 PREV_DIR="$(mktemp -d)"
 cleanup() { [ -z "$MNT" ] || hdiutil detach -quiet -force "$MNT" 2>/dev/null || true; rm -rf "$NOTES_DIR"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES" "$PREV_DIR"; }
 trap cleanup EXIT
-# First parent only: a pull request's merge of main into its branch would add its conflict list as a line.
-# A merge commit contributes its body (the pull request title); a squash-merged pull request is an ordinary commit and contributes its subject.
-{ echo "Changes since ${PREV:-the first commit}:"; echo; { git log --first-parent --merges --format='- %b' "${PREV:+$PREV..}HEAD"; git log --first-parent --no-merges --format='- %s' "${PREV:+$PREV..}HEAD"; } | grep -v '^- $' || true; } > "$NOTES"
+# The notes are the change-note files added since the previous tag plus the subject of any change without one (scripts/release-notes.sh).
+bash scripts/release-notes.sh "$PREV" > "$NOTES"
 
 # The appcast lives on gh-pages; extend the published one so older items stay listed. It is built and checked now
 # (scripts/appcast.sh refuses an unsigned item), before anything public exists; the download address is known
