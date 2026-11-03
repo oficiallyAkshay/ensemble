@@ -57,7 +57,7 @@ Every website pull request first checks whether the product UI changed since the
 - E2. Do the island and notch match the app's modes and wording?
 - E3. Is `docs/live/logic.js` in step with `EnsembleCore`, changed in the same pull request as the Swift change (gotcha 19)?
 - E4. Does the demo show any removed feature or gesture? Compare against `docs/gestures.md`.
-- E5. Are `docs/assets/3d/scene3d.js` and `capture-default.js` byte-identical to the copies under `Sources/Ensemble/Resources/web/tour/`?
+- E5. Is `docs/assets/3d/capture-default.js` byte-identical to `Sources/Ensemble/Resources/web/tour/capture-default.js`? The other 3D and tracker files exist once, in the app; the publish step copies them (`docs/live/test/app-copies.mjs` maps each).
 - E6. Do the Claude window mock, icon and wording still match the real Claude desktop app, and is it framed as a mock?
 - E7. Do the headphone claims match `docs/gestures.md` (Bluetooth only, one press toggles, two send)?
 - E8. Does the version string match the latest release and changelog?
