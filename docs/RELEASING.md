@@ -8,7 +8,7 @@ How a release is built, signed, notarized, published, and delivered to installed
 |---|---|
 | `scripts/bundle.sh` | Builds the release binary, assembles `build/Ensemble.app` with Sparkle inside, signs it. Local identity by default; `ENSEMBLE_SIGN_IDENTITY="Developer ID Application: ..."` switches to hardened runtime + secure timestamp + `Sources/Ensemble/Ensemble.entitlements`. |
 | `scripts/release.sh` | Runs `bundle.sh`, optionally notarizes and staples the app, builds `build/Ensemble-<version>.dmg` with `hdiutil` (app plus an Applications shortcut), signs/notarizes/staples the DMG, writes the `.sha256`, prints a summary. `--dry-run` prints the Apple-service commands instead of running them. |
-| `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast`, adds the release's "What's new" summary to that item, and refuses to write an appcast whose items lack an EdDSA signature or when `ENSEMBLE_WHATS_NEW` is missing or invalid. |
+| `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast` (one-day phased-rollout interval; given the previous release's DMG in `ENSEMBLE_PREVIOUS_DMG`, also a `.delta` from it), adds the release's "What's new" summary to that item, and refuses to write an appcast whose items lack an EdDSA signature or when `ENSEMBLE_WHATS_NEW` is missing or invalid. |
 | `scripts/whats-new.sh` | `check` refuses a release summary that is not 3 to 5 lines of `icon \| heading \| subheading`; `inject` puts it in the appcast item. |
 | `scripts/check-release-version.sh` | Refuses a version that is not the next patch, minor or major of the newest one in the published appcast, or a build number not above the newest published build. `ship-release.sh` runs it before building. |
 | `.github/workflows/auto-release.yml` | After `ci` passes on a push to `main`, or by hand: decides whether app logic changed since the newest tag, imports the signing identity from the `release` environment, runs `scripts/ship-release.sh` and checks the release and the feed. See "Release on every merge". |
@@ -112,7 +112,13 @@ Both are marks on one `<item>` of `appcast.xml` on the `gh-pages` branch. `ship-
 - **Critical**: add `<sparkle:criticalUpdate></sparkle:criticalUpdate>` inside the item. Sparkle shows a critical update sooner and offers no way to skip it. To make it critical only for copies older than a given build, name that build: `<sparkle:criticalUpdate sparkle:version="303"></sparkle:criticalUpdate>` is critical for copies below build 303.
 - **Minimum version for very old installs**: add `<sparkle:minimumAutoupdateVersion>303</sparkle:minimumAutoupdateVersion>` inside the item. A copy below build 303 never installs it silently, even with "Update automatically" on: Sparkle hands it to the user instead.
 
-Source: https://sparkle-project.org/documentation/publishing/ (Critical updates, Major upgrades). That page does not list `generate_appcast` options, and the bundled `generate_appcast --help` was not run when this was written, so `scripts/appcast.sh` passes none and the marks are edited by hand.
+Source: https://sparkle-project.org/documentation/publishing/ (Critical updates, Major upgrades). That page does not list `generate_appcast` options, and the bundled `generate_appcast --help` was not run when this was written, so `scripts/appcast.sh` passes no option for the marks (its one extra option is the phased-rollout interval, read from the generator's source) and the marks are edited by hand.
+
+## Deltas and phased rollout
+
+Each release downloads the previous release's DMG and generates a delta from it, so copies one release behind download a small `.delta` instead of the whole DMG. The delta and the previous DMG are attached to the new release, because `generate_appcast` points the previous version's item at the new release too. If the previous DMG cannot be fetched (or the previous tag is a pre-release), the release ships with full downloads only. On the live feed, the newest item holds a `<sparkle:deltas>` block whose enclosure is far smaller than the full DMG.
+
+Each new item also carries `<sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>`: Sparkle offers it to installed copies in seven daily groups, so a bad release reaches everyone only after about a week and can be pulled first. Check for Updates skips the wait.
 
 ## The "What's new" summary (every release)
 
