@@ -3,31 +3,42 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.50</title>
+            <pubDate>Tue, 03 Nov 2026 02:53:14 +0000</pubDate>
+            <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
+            <sparkle:version>584</sparkle:version>
+            <sparkle:shortVersionString>0.2.50</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.49:
+
+- The update button spins while an update checks, downloads or installs, and shows the stage and download percentage (#255)
+- The usage triage tests run in the checks, and the gate requires them (ENS-178) (#254)
+- Releases carry a small delta and roll out to installed copies over about a week (#253)
+- The website stops carrying its own copies of the 3D and face tracker files (#252)
+- The social preview card is re-rendered from the README hero with the deeper skin (ENS-117) (#219)
+- Bump the actions group across 1 directory with 6 updates (#242)
+- The website demo test and the hero hand script drive Chrome through playwright-core (#251)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.50/Ensemble-0.2.50.dmg" length="6445654" type="application/octet-stream" sparkle:edSignature="RGzsuqGpRWdrPn7UNXySAEUD0HD5u0WtPm3rh+GVSXOyAK/VtfRfFBMBt0arIvTuBgRiZlEb9t8+dwlqRVsXAA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.50/Ensemble584-577.delta" sparkle:deltaFrom="577" length="133150" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="Do99GvoziVlLZDBjcaxMZqvJv/ujsL4/CLCMmeunpmR7/YU5CbSXhoteJ+w3Lw4ISp8qxoUsq//SOmnoLMtaDA=="/>
+            </sparkle:deltas>
+            <whatsNew>sparkles | The update button spins while an | The update button spins while an update checks, downloads or installs, and shows the stage and download percentage
+wand.and.stars | The usage triage tests run in | The usage triage tests run in the checks, and the gate requires them (ENS-178)
+hand.raised | Releases carry a small delta and | Releases carry a small delta and roll out to installed copies over about a week
+gearshape | The website stops carrying its own | The website stops carrying its own copies of the 3D and face tracker files
+bolt | The social preview card is re-rendered | The social preview card is re-rendered from the README hero with the deeper skin (ENS-117)
+</whatsNew>
+        </item>
+        <item>
             <title>0.2.49</title>
             <pubDate>Mon, 02 Nov 2026 23:13:28 +0000</pubDate>
             <sparkle:version>577</sparkle:version>
             <sparkle:shortVersionString>0.2.49</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.48:
-
-- Updates open a What's new window with three to five items, and a release without a summary is refused (#249)
-- Shipping a release refuses a skipped version or a build number that does not rise (#247)
-- Comment and guide stop naming the deleted release scripts (ENS-171) (#246)
-- The release docs name only the auto-release workflow and the two launchd release scripts are deleted (#245)
-- Tests pin the switch-off wait at 8 seconds and the send wait cap at 1.2 seconds (#243)
-- Playwright-core 1.64.1 lockfile and a Dependabot entry for the website test folder (ENS-155, hand steps) (#241)
-- The site publish step copies the app's 3D and tracker files (ENS-168, hand step) (#240)
-- The contributor guide lists check-update-signature.sh and ci runs its test (ENS-170) (#239)
-- The home page shows the requirements and the Open Anyway note under the hero Download button and links Claude desktop (#238)
-- A Playwright test runs the home page and the live demo in Firefox and in WebKit (#237)
-- Update (#236)
-- The agent guide says the release workflow is the only automatic release path and the launchd agent is retired (#235)
-- The size budget rises from 9,000,000 to 9,500,000 bytes (#234)
-- The contributor guide says the launchd release agent is retired (ENS-157) (#233)
-- The website-tests and gate checks allow 15 minutes instead of 5 (ENS-121) (#232)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.49/Ensemble-0.2.49.dmg" length="6444422" type="application/octet-stream" sparkle:edSignature="eQ2Aln9PvRWGjEfgrXBq5odOMjbkO42VALNSIbYcikx60si+1SVvSdxFeacWNZusK5b4jdnZwMXnKI9FrgwrCA=="/>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.50/Ensemble-0.2.49.dmg" length="6444422" type="application/octet-stream" sparkle:edSignature="eQ2Aln9PvRWGjEfgrXBq5odOMjbkO42VALNSIbYcikx60si+1SVvSdxFeacWNZusK5b4jdnZwMXnKI9FrgwrCA=="/>
             <whatsNew>sparkles | Updates open a What's new window | Updates open a What's new window with three to five items, and a release without a summary is refused
 wand.and.stars | Shipping a release refuses a skipped | Shipping a release refuses a skipped version or a build number that does not rise
 hand.raised | Comment and guide stop naming the | Comment and guide stop naming the deleted release scripts (ENS-171)
@@ -57,20 +68,6 @@ bolt | Tests pin the switch-off wait at | Tests pin the switch-off wait at 8 sec
 - The release guide states the signing certificate expires on 2036-10-11 (#220)
 ]]></description>
             <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.48/Ensemble-0.2.48.dmg" length="6440030" type="application/octet-stream" sparkle:edSignature="bHh2z0/2XI3AvOwVtHeqToRu1fXD3WzS3+8VZJDn+ez1GayZMAbkYOAsY7bvZEdSsmthqsDAoIZsP7ZEuI96CA=="/>
-        </item>
-        <item>
-            <title>0.2.47</title>
-            <pubDate>Sat, 31 Oct 2026 00:31:57 +0000</pubDate>
-            <sparkle:version>551</sparkle:version>
-            <sparkle:shortVersionString>0.2.47</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.46:
-
-- The nose dot aims up to 40 ms ahead while it moves, and asks for 120 Hz only while moving fast (#218)
-- The built app drops Sparkle's 35 unused update-window translations and keeps the English one (#217)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.47/Ensemble-0.2.47.dmg" length="6438874" type="application/octet-stream" sparkle:edSignature="lz1/rKFed7Wlzp9T8P9QVVRwTT9+zPdq9gjIusk+Au3wMsssQ6cH2xxfWAa4+cK+ZHZbEnXTJB+xZQ7TJ9qtDQ=="/>
         </item>
     </channel>
 </rss>
