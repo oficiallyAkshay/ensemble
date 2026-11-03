@@ -80,7 +80,7 @@ const trackers = new Trackers();
 // The trackers (about 12 MB, gzipped, from this site) load quietly in the background the moment the demo opens, while the person
 // looks around, opens Claude and the menu bar tour. Nothing about the download is ever shown: no bar, no size. Pressing the camera
 // button only waits on this same load, which has normally finished by then. A failed early load is not reported until the person
-// asks for the camera, and is tried again then. Skipped on a data-saving or very slow connection, as the letter's prefetch is.
+// asks for the camera, and is tried again then. Skipped on a data-saving or very slow connection.
 const loader = { promise: null, abort: new AbortController() };
 function loadTrackers() {
   if (trackers.face) return Promise.resolve();
