@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Renders the two hand stills the README hero uses (the double pinch and the thumbs-up) from the same 3D hand and recorded motion
-// the tour and the website use (the app's tour folder, published as assets/3d), with headless Chrome driven over the DevTools Protocol, no packages.
+// the tour and the website use (the app's tour folder, published as assets/3d), with headless Chrome driven by playwright-core (npm ci in docs/live/test first).
 // Writes Assets/hero-hands/pinch.png and Assets/hero-hands/thumbs-up.png. Run it only when the hand model or the recorded
 // motion changes; `scripts/make-hero.mjs` then folds the stills into Assets/hero.svg.
 //
@@ -9,7 +9,7 @@ import { createServer } from 'node:http';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { launch, Page, sleep } from '../docs/live/test/cdp.mjs';
+import { launch, Page, sleep } from '../docs/live/test/browser.mjs';
 import { appCopy } from '../docs/live/test/app-copies.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -53,9 +53,10 @@ const server = createServer((req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const webPort = server.address().port;
 
-const chrome = await launch({ port: 9344, size: '600,600', flags: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const chrome = await launch({ size: '600,600', flags: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 try {
-  const page = await Page.open(9344, `http://127.0.0.1:${webPort}/harness.html`);
+  const page = await Page.open(chrome);
+  await page.page.goto(`http://127.0.0.1:${webPort}/harness.html`);
   await page.send('Page.enable');
   await page.send('Emulation.setDefaultBackgroundColorOverride', { color: { r: 0, g: 0, b: 0, a: 0 } });
   await page.send('Emulation.setDeviceMetricsOverride', { width: 480, height: 480, deviceScaleFactor: 1, mobile: false });

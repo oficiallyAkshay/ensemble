@@ -1,7 +1,8 @@
 // End-to-end check in headless Chrome: node docs/live/test/e2e.mjs [letter|gallerygap|prefetch|camera|denied|nodevice|mouse|phone|tablet|cpu|nowebgl|modelfail|analytics|analyticsPrivacy|analyticsDemo|all]
-// It starts its own static server (serve.mjs, which sends the headers GitHub Pages sends and counts requests) and needs Chrome at the usual macOS path.
+// It starts its own static server (serve.mjs, which sends the headers GitHub Pages sends and counts requests) and needs Chrome at the usual macOS path
+// (CHROME_PATH overrides) and playwright-core (npm ci in this folder).
 // Fake camera: a test pattern with no face or hand.
-import { launch, Page, say, sleep } from './cdp.mjs';
+import { launch, Page, say, sleep } from './browser.mjs';
 import { serve } from './serve.mjs';
 
 const srv = await serve(0);
@@ -30,8 +31,8 @@ function offOrigin(w, allow = []) { return w.requests.filter((r) => !r.url.start
 
 async function camera() {
   say('scenario camera: launching Chrome with a fake camera');
-  const c = await launch({ port: 9333, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Page.navigate', { url: URL_ });
     await p.waitFor("document.readyState === 'complete'", 15000, 'page load');
@@ -91,9 +92,8 @@ async function camera() {
       check('camera restarts without downloading again', w.requests.slice(mark).filter((r) => /models|\.gz/.test(r.url)).length <= 3);
 
       say('hiding the tab');
-      const other = await Page.open(c.port, 'about:blank');
-      await p.send('Target.activateTarget', { targetId: other.targetId }).catch(() => {});
-      await fetch(`http://127.0.0.1:${c.port}/json/activate/${other.targetId}`);
+      const other = await Page.open(c);
+      await other.page.bringToFront();
       await sleep(800);
       const hidden = await p.eval('document.hidden');
       say('document.hidden = ' + hidden);
@@ -116,10 +116,10 @@ async function checkHelp(p, id) {
 
 async function denied() {
   say('scenario denied: camera permission refused');
-  const c = await launch({ port: 9334, flags: ['--use-fake-device-for-media-stream'] });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: ['--use-fake-device-for-media-stream'] });
+  const p = await Page.open(c); const w = await p.watch();
   try {
-    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'denied', origin: ORIGIN });
+    await p.camera('denied', ORIGIN);
     await p.send('Page.navigate', { url: URL_ });
     await p.waitFor("document.readyState === 'complete'", 15000);
     await p.eval("document.getElementById('go-camera').click()");
@@ -135,7 +135,7 @@ async function denied() {
     const big = w.requests.filter((r) => /\.gz$/.test(r.url));
     say(`downloads started before refusal: ${big.length} (aborted on refusal)`);
     say('allowing the camera, then pressing Try again (no reload)');
-    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'granted', origin: ORIGIN });
+    await p.camera('granted', ORIGIN);
     await p.eval("document.getElementById('go-camera').click()");
     await p.waitFor("document.getElementById('app').dataset.state === 'running'", 120000, 'demo running after allowing');
     check('the demo starts on the camera after the camera is allowed', (await p.eval('window.__live.mode')) === 'camera');
@@ -152,8 +152,8 @@ async function denied() {
 
 async function nodevice() {
   say('scenario nodevice: no camera at all');
-  const c = await launch({ port: 9335, flags: ['--use-fake-ui-for-media-stream'] });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: ['--use-fake-ui-for-media-stream'] });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Page.navigate', { url: URL_ });
     await p.waitFor("document.readyState === 'complete'", 15000);
@@ -169,8 +169,8 @@ async function nodevice() {
 
 async function mouse() {
   say('scenario mouse: every gesture with the mouse, in a free order');
-  const c = await launch({ port: 9336, flags: [], size: '1400,860' });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: [], size: '1400,860' });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Page.navigate', { url: URL_ });
     await p.waitFor("document.readyState === 'complete'", 15000);
@@ -245,8 +245,8 @@ async function mouse() {
 
 async function cpu() {
   say('scenario cpu: the GPU path skipped, the CPU delegate must take over');
-  const c = await launch({ port: 9338, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Page.navigate', { url: URL_ + '?delegate=cpu' });
     await p.waitFor("document.readyState === 'complete'", 15000);
@@ -269,8 +269,8 @@ async function cpu() {
 
 async function nowebgl() {
   say('scenario nowebgl: WebGL disabled, a clear message and the mouse instead');
-  const c = await launch({ port: 9341, flags: [...FAKE, '--disable-gpu', '--disable-webgl', '--disable-3d-apis'] });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: [...FAKE, '--disable-gpu', '--disable-webgl', '--disable-3d-apis'] });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Page.navigate', { url: URL_ });
     await p.waitFor("document.readyState === 'complete'", 15000);
@@ -289,8 +289,8 @@ async function nowebgl() {
 
 async function modelfail() {
   say('scenario modelfail: the model download fails');
-  const c = await launch({ port: 9339, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Fetch.enable', { patterns: [{ urlPattern: '*face_landmarker*' }] });
     p.on('Fetch.requestPaused', (e) => p.send('Fetch.failRequest', { requestId: e.requestId, errorReason: 'Failed' }));
@@ -306,10 +306,10 @@ async function modelfail() {
 }
 
 // A phone or tablet sees only the message; the page never requests live.js, the trackers, the models or the 3D files.
-async function desktopOnly(name, port, size, userAgent) {
+async function desktopOnly(name, size, userAgent) {
   say(`scenario ${name}: touch emulation, no hover`);
-  const c = await launch({ port, flags: [], size: `${size.width},${size.height}` });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({ flags: [], size: `${size.width},${size.height}` });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Emulation.setUserAgentOverride', { userAgent });
     await p.send('Emulation.setDeviceMetricsOverride', { width: size.width, height: size.height, deviceScaleFactor: 2, mobile: true });
@@ -326,9 +326,9 @@ async function desktopOnly(name, port, size, userAgent) {
     check(`${name}: no console errors`, real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
-const phone = () => desktopOnly('phone', 9337, { width: 390, height: 844 }, 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
+const phone = () => desktopOnly('phone',{ width: 390, height: 844 }, 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
 // iPadOS reports a desktop Mac user agent, so only the coarse pointer with no hover catches it.
-const tablet = () => desktopOnly('tablet', 9340, { width: 820, height: 1180 }, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15');
+const tablet = () => desktopOnly('tablet',{ width: 820, height: 1180 }, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15');
 
 
 // ---- the letter page: the popover flow, the prefetch, the star count ----
@@ -370,7 +370,7 @@ const names = (p) => p.posthog.map((r) => r.body?.event + (r.body?.properties?.s
 const count = (p, n) => names(p).filter((x) => x === n).length;
 // a fresh browser tab has its own sessionStorage, so each call is a new visit
 async function visitTab(c, { url, size, privacy: how, size_ }) {
-  const p = await Page.open(c.port); const w = await p.watch();
+  const p = await Page.open(c); const w = await p.watch();
   await stub(p, 12); await optIn(p);
   if (how) await privacy(p, how);
   let loadAt = 0; p.on('Page.loadEventFired', () => { loadAt = Date.now(); });
@@ -382,7 +382,7 @@ async function visitTab(c, { url, size, privacy: how, size_ }) {
 
 async function analytics() {
   say('scenario analytics: the letter page counts anonymous visits');
-  const c = await launch({ port: 9371, flags: [] });
+  const c = await launch({flags: [] });
   let t;
   try {
     t = await visitTab(c, { url: LETTER, size: 1280 });
@@ -441,7 +441,7 @@ async function analytics() {
       v.p.close();
     }
     // where sendBeacon is missing or refuses, a keepalive fetch with no credentials, no referrer and low priority sends it instead
-    const f = await Page.open(c.port); const fw = await f.watch(); await stub(f, 12); await optIn(f);
+    const f = await Page.open(c); const fw = await f.watch(); await stub(f, 12); await optIn(f);
     await f.send('Page.addScriptToEvaluateOnNewDocument', { source: 'navigator.sendBeacon = () => false;' });
     await f.send('Page.navigate', { url: LETTER }); await f.waitFor("document.readyState === 'complete'", 15000); await sleep(1200);
     const fr = fw.requests.filter((r) => r.url === POSTHOG_URL);
@@ -453,7 +453,7 @@ async function analytics() {
 
 async function analyticsPrivacy() {
   say('scenario analyticsPrivacy: Do Not Track and Global Privacy Control send nothing');
-  const c = await launch({ port: 9372, flags: [] });
+  const c = await launch({flags: [] });
   try {
     for (const [how, label] of [['dnt', 'navigator.doNotTrack'], ['window', 'window.doNotTrack'], ['gpc', 'globalPrivacyControl']]) {
       for (const [url, what] of [[LETTER, 'letter'], [URL_, 'demo']]) {
@@ -473,7 +473,7 @@ async function analyticsPrivacy() {
     check('control: the same demo visit without the signal sends demo_stage opened', JSON.stringify(names(on.p)) === '["demo_stage:opened"]', names(on.p).join(' '));
     on.p.close();
     // and with no opt-in, a local address sends nothing at all
-    const p = await Page.open(c.port); const w = await p.watch(); await stub(p, 12);
+    const p = await Page.open(c); const w = await p.watch(); await stub(p, 12);
     await p.send('Page.navigate', { url: LETTER }); await p.waitFor("document.readyState === 'complete'", 15000); await sleep(1200);
     check('a page on a local address sends nothing unless the test opts in', p.posthog.length === 0 && !w.requests.some((r) => r.url === POSTHOG_URL));
     p.close();
@@ -482,7 +482,7 @@ async function analyticsPrivacy() {
 
 async function analyticsDemo() {
   say('scenario analyticsDemo: the demo reports the last stage a visitor reached (mouse mode)');
-  const c = await launch({ port: 9373, flags: [], size: '1400,860' });
+  const c = await launch({flags: [], size: '1400,860' });
   let t;
   try {
     t = await visitTab(c, { url: URL_ });
@@ -528,8 +528,8 @@ async function analyticsDemo() {
 
 async function letter() {
   say('scenario letter: the popover asks for the camera, then the demo starts with no gate');
-  const c = await launch({ port: 9351, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Page.navigate', { url: LETTER });
@@ -594,8 +594,8 @@ async function lettersStars() {
     ['12 stars, releases rate limited', 12, 'limit', /^12 stars$/],
     ['12 stars, releases are not a list', 12, { message: 'oops' }, /^12 stars$/],
   ]) {
-    const c = await launch({ port: 9352, flags: FAKE });
-    const p = await Page.open(c.port); const w = await p.watch();
+    const c = await launch({flags: FAKE });
+    const p = await Page.open(c); const w = await p.watch();
     try {
       await stub(p, stars, releases);
       await p.send('Page.navigate', { url: LETTER });
@@ -613,11 +613,11 @@ async function lettersStars() {
 
 async function letterDenied() {
   say('scenario letter-denied: the camera is refused in the popover');
-  const c = await launch({ port: 9353, flags: ['--use-fake-device-for-media-stream'] });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: ['--use-fake-device-for-media-stream'] });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
-    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'denied', origin: ORIGIN });
+    await p.camera('denied', ORIGIN);
     await p.send('Page.navigate', { url: LETTER });
     await p.waitFor("document.readyState === 'complete'", 15000);
     await p.eval("document.getElementById('try').click()");
@@ -628,7 +628,7 @@ async function letterDenied() {
     await p.waitFor("document.querySelectorAll('#pop-help details').length === 3", 5000, 'allow-again steps');
     await checkHelp(p, 'pop-help');
     check('Try again is offered', await p.eval("(() => { const b = document.getElementById('pop-retry'); return b.offsetParent !== null && b.textContent.trim() === 'Try again'; })()"));
-    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'granted', origin: ORIGIN });
+    await p.camera('granted', ORIGIN);
     await p.eval("document.getElementById('pop-retry').click()");
     await p.waitFor("location.pathname.includes('/live/')", 15000, 'demo after allowing');
     check('Try again hands over to the demo, with no page reload in between', (await p.eval('location.search')) === '?go=1');
@@ -636,7 +636,7 @@ async function letterDenied() {
     await turnOn(p);
     await p.waitFor("document.getElementById('app').dataset.state === 'running'", 120000, 'demo running after allowing');
     check('the demo runs on the camera after the camera is allowed', (await p.eval('window.__live.mode')) === 'camera');
-    await p.send('Browser.setPermission', { permission: { name: 'camera' }, setting: 'denied', origin: ORIGIN });
+    await p.camera('denied', ORIGIN);
     await p.send('Page.navigate', { url: LETTER });
     await p.waitFor("document.readyState === 'complete'", 15000);
     await p.eval("document.getElementById('try').click()");
@@ -660,8 +660,8 @@ async function letterDenied() {
 async function letterNoDevice() {
   say('scenario letter-nodevice: no camera, and a camera another app holds');
   for (const [name, err, want] of [['no camera', 'NotFoundError', /No camera found/], ['camera busy', 'NotReadableError', /would not start/]]) {
-    const c = await launch({ port: 9354, flags: ['--use-fake-ui-for-media-stream'] });
-    const p = await Page.open(c.port); const w = await p.watch();
+    const c = await launch({flags: ['--use-fake-ui-for-media-stream'] });
+    const p = await Page.open(c); const w = await p.watch();
     try {
       await stub(p, 12);
       await p.send('Page.addScriptToEvaluateOnNewDocument', { source: `navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('x', '${err}'));` });
@@ -682,8 +682,8 @@ async function letterNoDevice() {
 async function prefetch() {
   say('scenario prefetch: the letter warms the cache, then the demo loads from it');
   srv.hits.clear();
-  const c = await launch({ port: 9355, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Page.navigate', { url: LETTER });
@@ -723,8 +723,8 @@ async function prefetch() {
 async function saveData() {
   say('scenario savedata: Save-Data on, so nothing is prefetched');
   srv.hits.clear();
-  const c = await launch({ port: 9356, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'connection', { value: { saveData: true, effectiveType: '4g' } });" });
@@ -737,8 +737,8 @@ async function saveData() {
     check('no 3D file fetched with Save-Data on', !w.requests.some((r) => /assets\/3d\//.test(r.url)));
   } finally { p.close(); await c.close(); }
   srv.hits.clear();
-  const c2 = await launch({ port: 9357, flags: FAKE });
-  const p2 = await Page.open(c2.port); await p2.watch();
+  const c2 = await launch({flags: FAKE });
+  const p2 = await Page.open(c2); await p2.watch();
   try {
     await p2.send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'connection', { value: { saveData: false, effectiveType: '2g' } });" });
     await stub(p2, 12);
@@ -751,8 +751,8 @@ async function saveData() {
 
 async function letter3d() {
   say('scenario letter-3d: the tour\'s scenes load only when a step scrolls into view, and show the Claude window answering the hand');
-  const c = await launch({ port: 9359, flags: [...FAKE, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], size: '1280,800' });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: [...FAKE, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], size: '1280,800' });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });   // this machine's Chrome may report reduce
@@ -818,8 +818,8 @@ async function letter3d() {
 
 async function letterReduced() {
   say('scenario letter-reduced: reduced motion shows still frames');
-  const c = await launch({ port: 9360, flags: [...FAKE, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], size: '1280,800' });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: [...FAKE, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], size: '1280,800' });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
@@ -838,8 +838,8 @@ async function letterReduced() {
 
 async function letterPhone() {
   say('scenario letter-phone: 390 px wide, device emulation');
-  const c = await launch({ port: 9358, flags: [], size: '390,844' });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: [], size: '390,844' });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Emulation.setUserAgentOverride', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
@@ -863,8 +863,8 @@ async function letterPhone() {
 // The download circle drifts and is rotated, so it is measured at the start and the end of its drift; it must stay below the closed-lid vignette with a gap.
 async function gallerygap() {
   say('scenario gallerygap: the download circle stays below the last vignette at 320, 390, 768, 1280 and 1920 px');
-  const c = await launch({ port: 9384, flags: [], size: '1280,900' });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: [], size: '1280,900' });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     for (const width of [320, 390, 768, 1280, 1920]) {
@@ -886,8 +886,8 @@ async function gallerygap() {
 
 async function downloadNote() {
   say('scenario downloadnote: the download section holds one note, the macOS Open Anyway help');
-  const c = await launch({ port: 9385, flags: [], size: '1280,900' });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: [], size: '1280,900' });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Page.navigate', { url: LETTER });
@@ -900,8 +900,8 @@ async function downloadNote() {
 
 async function centre() {
   say('scenario centre: the centring step, with synthetic head readings (the fake camera shows no face)');
-  const c = await launch({ port: 9361, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   const feed = (yaw, pitch) => p.eval(`(() => { clearInterval(window.__feed); window.__feed = setInterval(() => window.__live.feedHead(${yaw} + 0.004 * Math.sin(performance.now() / 37), ${pitch}), 33); })()`);
   const stopFeed = () => p.eval('clearInterval(window.__feed)');
   const st = () => p.eval('window.__live.centring()');
@@ -973,8 +973,8 @@ async function centre() {
 
 async function pinchDebug() {
   say('scenario pinch: the pinch value in the panel, ?debug=1 logging, and thresholds that adapt');
-  const c = await launch({ port: 9362, flags: FAKE });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({flags: FAKE });
+  const p = await Page.open(c); const w = await p.watch();
   try {
     await p.send('Page.navigate', { url: URL_ + '?debug=1' });
     await p.waitFor("document.readyState === 'complete'", 15000);
@@ -1005,8 +1005,8 @@ async function pinchDebug() {
 async function smooth() {
   say('scenario smooth: 60 fps camera, hand on every frame, the dot drawn at display rate, quick taps at 20 Hz');
   for (const fps of [60, 20]) {
-    const c = await launch({ port: 9371 + (fps === 60 ? 0 : 1), flags: ['--use-fake-ui-for-media-stream', `--use-fake-device-for-media-stream=fps=${fps}`] });
-    const p = await Page.open(c.port); const w = await p.watch();
+    const c = await launch({flags: ['--use-fake-ui-for-media-stream', `--use-fake-device-for-media-stream=fps=${fps}`] });
+    const p = await Page.open(c); const w = await p.watch();
     try {
       await stub(p, 12);
       await p.send('Page.navigate', { url: URL_ + '?go=1' });
@@ -1052,8 +1052,8 @@ async function smooth() {
 async function scrollable() {
   say('scenario scrollable: long histories at 1440x900 and 2560x1440, opening at the bottom, a visible scroll, a synthetic pinch-drag');
   for (const [w, h] of [[1440, 900], [2560, 1440]]) {
-    const c = await launch({ port: 9381 + (w > 2000 ? 1 : 0), flags: FAKE, size: `${w},${h}` });
-    const p = await Page.open(c.port); const wt = await p.watch();
+    const c = await launch({flags: FAKE, size: `${w},${h}` });
+    const p = await Page.open(c); const wt = await p.watch();
     try {
       await stub(p, 12);
       await p.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });

@@ -1,8 +1,8 @@
 // A new person's first minutes, followed on the real website: node docs/live/test/first-run.mjs [base address]
-// Default base: the live website. Needs the network and Chrome at the usual macOS path (CHROME_PATH overrides).
+// Default base: the live website. Needs the network, Chrome at the usual macOS path (CHROME_PATH overrides) and playwright-core (npm ci in this folder).
 // It follows the steps marked "test" in docs/first-run.md, prints each one it checks, and says which steps it cannot reach.
 // It installs nothing, grants or resets no permission and never opens the installed app: the disk image is only asked about with a header request.
-import { launch, Page, say } from './cdp.mjs';
+import { launch, Page, say } from './browser.mjs';
 
 const BASE = (process.argv[2] || process.env.ENSEMBLE_SITE || 'https://oficiallyakshay.github.io/ensemble/').replace(/\/?$/, '/');
 const ORIGIN = new URL(BASE).origin;
@@ -14,8 +14,8 @@ const check = (name, ok, detail = '') => { results.push({ name, ok }); say(`${ok
 
 async function run() {
   say(`following the first-run path on ${BASE}`);
-  const c = await launch({ port: 9335, flags: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
-  const p = await Page.open(c.port); const w = await p.watch();
+  const c = await launch({ flags: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+  const p = await Page.open(c); const w = await p.watch();
   const failed = [];
   p.on('Network.loadingFailed', (e) => { if (!e.canceled) failed.push(`${e.errorText} ${w.requests.find((r) => r.id === e.requestId)?.url || ''}`); });
   try {

@@ -1,53 +1,36 @@
-// A very small Chrome DevTools Protocol client over node's built-in WebSocket: no packages.
-import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+// The test browser: the installed Chrome, driven by playwright-core (npm install in this folder first).
+// Playwright owns the launch, the pages and the permissions. Request priority, encoded data length and cache flags are not in
+// Playwright's API, so each page also holds a Chrome DevTools Protocol session, used for those and for the raw calls the scenarios make.
+import { chromium } from 'playwright-core';
 
 export const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 export const say = (m) => console.log(`[${new Date().toISOString()}] ${m}`);
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function launch({ port, flags = [], size = '1280,800' }) {
-  const dir = mkdtempSync(join(tmpdir(), 'live-chrome-'));
+export async function launch({ flags = [], size = '1280,800' }) {
   // Chrome refuses to start as root without this, and cloud sessions run as root; the test browser only opens local pages.
   const asRoot = process.platform !== 'darwin' && process.getuid?.() === 0 ? ['--no-sandbox'] : [];
-  const proc = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check',
-    '--disable-background-timer-throttling', `--window-size=${size}`, ...asRoot, ...flags, 'about:blank'], { stdio: 'ignore' });
-  for (let i = 0; i < 100; i++) {
-    try { const r = await fetch(`http://127.0.0.1:${port}/json/version`); if (r.ok) break; } catch { /* not up yet */ }
-    await sleep(100);
-  }
-  return {
-    port, proc,
-    async close() { proc.kill('SIGTERM'); await sleep(300); rmSync(dir, { recursive: true, force: true }); },
-  };
+  // headless:false so the new headless mode is chosen by the flag below, not by Playwright's own headless choice.
+  const browser = await chromium.launch({ executablePath: CHROME, headless: false,
+    args: ['--headless=new', '--no-first-run', '--no-default-browser-check', '--disable-background-timer-throttling', `--window-size=${size}`, ...asRoot, ...flags] });
+  // viewport:null keeps the window size above as the page size, as a plain Chrome window has it.
+  const context = await browser.newContext({ viewport: null });
+  return { browser, context, close: () => browser.close() };
 }
 
 export class Page {
-  constructor(ws) { this.ws = ws; this.id = 0; this.pending = new Map(); this.handlers = new Map(); ws.addEventListener('message', (e) => this.onMessage(e)); }
+  constructor(page, session) { this.page = page; this.session = session; }
 
-  static async open(port, url = 'about:blank') {
-    const t = await (await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' })).json();
-    const ws = new WebSocket(t.webSocketDebuggerUrl);
-    await new Promise((res, rej) => { ws.addEventListener('open', res); ws.addEventListener('error', rej); });
-    const p = new Page(ws); p.targetId = t.id;
+  static async open(c) {
+    const page = await c.context.newPage();
+    const p = new Page(page, await c.context.newCDPSession(page));
+    p.c = c;
     return p;
   }
 
-  onMessage(e) {
-    const m = JSON.parse(e.data);
-    if (m.id) { const p = this.pending.get(m.id); this.pending.delete(m.id); if (m.error) p.rej(new Error(m.error.message)); else p.res(m.result); return; }
-    for (const h of this.handlers.get(m.method) || []) h(m.params);
-  }
+  send(method, params = {}) { return this.session.send(method, params); }
 
-  send(method, params = {}) {
-    const id = ++this.id;
-    this.ws.send(JSON.stringify({ id, method, params }));
-    return new Promise((res, rej) => this.pending.set(id, { res, rej }));
-  }
-
-  on(method, fn) { (this.handlers.get(method) || this.handlers.set(method, []).get(method)).push(fn); }
+  on(method, fn) { this.session.on(method, fn); }
 
   async eval(expression) {
     const r = await this.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
@@ -68,6 +51,15 @@ export class Page {
     await this.send('Input.dispatchMouseEvent', { type, x, y, button: type === 'mouseMoved' ? 'none' : 'left', clickCount: 1, ...extra });
   }
 
+  /** The camera permission for one address: Playwright grants it; a refusal is not in its API, so it is set on the browser itself. */
+  async camera(setting, origin) {
+    if (setting === 'granted') { await this.c.context.grantPermissions(['camera'], { origin }); return; }
+    const { targetInfo } = await this.send('Target.getTargetInfo');
+    const browserSession = await this.c.browser.newBrowserCDPSession();
+    try { await browserSession.send('Browser.setPermission', { permission: { name: 'camera' }, setting, origin, browserContextId: targetInfo.browserContextId }); }
+    finally { await browserSession.detach(); }
+  }
+
   /** Records requests, bytes and console problems from now on. */
   async watch() {
     const w = { requests: [], bytes: new Map(), errors: [], logs: [] };
@@ -82,5 +74,5 @@ export class Page {
     return w;
   }
 
-  close() { try { this.ws.close(); } catch { /* closed */ } }
+  close() { this.session.detach().catch(() => { /* closed */ }); }
 }
