@@ -4,6 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- The update button now spins for as long as an update check, download or install runs, and names the stage: "Checking...", "Downloading x.y.z (42%)" with the percentage once the size is known, "Installing x.y.z...". While the install waits for you to finish dictating it reads "Installs x.y.z when you finish" with no spinner, and after a failed update it reads "Update failed. Retry". The menu bar panel, the Option-Command-K panel and Settings always agree.
 - A written walkthrough from the website link to the first working gesture (`docs/first-run.md`) lists every step and where a stranger stops, and `docs/live/test/first-run.mjs` follows the first half of it on the live website.
 - The auto-release workflow is now the only automatic release path; the launchd agent dev.ensemble.releaser is retired.
 - Check for Updates and the "Update to x.y.z" button now open a small "What's new" window with three to five items (an icon, a heading and a subheading each) taken from the update feed, so you see what is changing before you press Install; a release whose summary is missing or malformed shows the plain "Install now?" prompt. Every release writes its summary (`docs/whats-new/<version>.txt`) and one cut without it is refused (`docs/RELEASING.md`).

@@ -101,10 +101,10 @@ import Testing
     }
 
     @Test func buttonShowsInstallProgressAndWaiting() {
-        #expect(UpdatePolicy.buttonTitle(available: "0.3.0", showingUpToDate: false, installing: "0.3.0") == "Installing 0.3.0...")
-        #expect(UpdatePolicy.buttonTitle(available: "0.3.0", showingUpToDate: false, installing: "0.3.0", waitingForIdle: true)
+        #expect(UpdatePolicy.buttonState(available: "0.3.0", showingUpToDate: false, installing: "0.3.0").title == "Installing 0.3.0...")
+        #expect(UpdatePolicy.buttonState(available: "0.3.0", showingUpToDate: false, installing: "0.3.0", waitingForIdle: true).title
                 == "Installs 0.3.0 when you finish")
-        #expect(UpdatePolicy.buttonTitle(available: nil, showingUpToDate: false, checking: true) == "Checking...")
+        #expect(UpdatePolicy.buttonState(available: nil, showingUpToDate: false, checking: true).title == "Checking...")
     }
 
     @Test func whatsNewPrefersTheFeedsOwnLinks() {
