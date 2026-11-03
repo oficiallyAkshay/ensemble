@@ -641,19 +641,8 @@
     hosts.forEach((h) => lazy.observe(h));
   }
 
-  // ---- quietly warm the demo's files once the page has settled, so the demo starts instantly ----
-  // Same URLs the demo itself fetches, so they land in the browser's HTTP cache. Low priority, never blocks this page.
-  const FILES = ['live/vendor/vision_bundle.js', 'live/vendor/wasm/vision_wasm_internal.js', 'live/vendor/wasm/vision_wasm_internal.wasm.gz', 'live/models/face_landmarker.task.gz', 'live/models/gesture_recognizer.task.gz'];
-  async function warm() {
-    const c = navigator.connection;
-    if (phone || (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')))) return;
-    window.__warm = { started: true, done: 0, failed: 0, total: FILES.length };
-    for (const f of FILES) {
-      try { const r = await fetch(f, { priority: 'low' }); if (!r.ok) throw new Error(r.status); await r.arrayBuffer(); window.__warm.done++; }
-      catch { window.__warm.failed++; }
-    }
-  }
-  const both = () => { if (!(navigator.connection && navigator.connection.saveData)) counts(); warm(); };
+  // The demo's tracker files (about 12 MB) are not fetched here: the demo page loads them itself when the visitor opens it.
+  const both = () => { if (!(navigator.connection && navigator.connection.saveData)) counts(); };
   const later = () => (window.requestIdleCallback ? requestIdleCallback(both, { timeout: 4000 }) : setTimeout(both, 1000));
   if (document.readyState === 'complete') setTimeout(later, 600); else addEventListener('load', () => setTimeout(later, 600));
 })();
