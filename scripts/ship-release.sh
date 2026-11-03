@@ -83,7 +83,8 @@ NOTES="$NOTES_DIR/notes.md"
 PAGES="$(mktemp -d)"
 # The gh-pages checkout is a git worktree: remove it on every exit, or a failed run leaves it registered.
 MNT=""
-cleanup() { [ -z "$MNT" ] || hdiutil detach -quiet -force "$MNT" 2>/dev/null || true; rm -rf "$NOTES_DIR"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES"; }
+PREV_DIR="$(mktemp -d)"
+cleanup() { [ -z "$MNT" ] || hdiutil detach -quiet -force "$MNT" 2>/dev/null || true; rm -rf "$NOTES_DIR"; git worktree remove --force "$PAGES" 2>/dev/null || true; rm -rf "$PAGES" "$PREV_DIR"; }
 trap cleanup EXIT
 # First parent only: a pull request's merge of main into its branch would add its conflict list as a line.
 # A merge commit contributes its body (the pull request title); a squash-merged pull request is an ordinary commit and contributes its subject.
@@ -96,7 +97,18 @@ git worktree add --quiet "$PAGES" origin/gh-pages --detach
 rm -rf build/appcast
 mkdir -p build/appcast
 [ ! -f "$PAGES/appcast.xml" ] || cp "$PAGES/appcast.xml" build/appcast/appcast.xml
-ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" ENSEMBLE_WHATS_NEW="$WHATS_NEW" scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
+# The previous release's DMG lets the appcast carry a small delta for copies one release behind. A pre-release is
+# not in the appcast, so no copy updates from it. Without the DMG the release ships with full downloads only.
+PREV_DMG=""
+if [ -n "$PREV" ] && [ "$PREV" = "${PREV%%-*}" ] \
+  && gh release download "$PREV" --pattern "Ensemble-${PREV#v}.dmg" --dir "$PREV_DIR" 2>&1 | tee -a "$LOG" \
+  && [ -f "$PREV_DIR/Ensemble-${PREV#v}.dmg" ]; then
+  PREV_DMG="$PREV_DIR/Ensemble-${PREV#v}.dmg"
+else
+  log "no previous release DMG; shipping without a delta"
+fi
+ENSEMBLE_PREVIOUS_DMG="$PREV_DMG" ENSEMBLE_DOWNLOAD_PREFIX="https://github.com/$REPO/releases/download/$TAG/" ENSEMBLE_RELEASE_NOTES="$NOTES" ENSEMBLE_WHATS_NEW="$WHATS_NEW" \
+  scripts/appcast.sh "$DMG" build/appcast 2>&1 | tee -a "$LOG"
 [ -s build/appcast/appcast.xml ] || { log "error: no appcast was produced; nothing was tagged or published"; exit 1; }
 # What the DMG really holds: the signing authority and the designated requirement of the app inside it. Anything but
 # the expected requirement refuses here, while nothing is public.
@@ -126,7 +138,13 @@ PAGES_SHA="$(gh api "repos/$REPO/contents/appcast.xml?ref=gh-pages" --jq .sha 2>
 # Ensemble.dmg, the same file under a fixed name, is what the website's Download buttons fetch directly:
 # https://github.com/<repo>/releases/latest/download/Ensemble.dmg always resolves to the newest release.
 cp "$DMG" build/Ensemble.dmg
-gh release create "$TAG" "$DMG" "$DMG.sha256" build/Ensemble.dmg --target "$(git rev-parse HEAD)" \
+# The appcast points the delta, and the previous version's item, at this release, so both files are attached to it.
+ASSETS=("$DMG" "$DMG.sha256" build/Ensemble.dmg)
+for DELTA in build/appcast/*.delta; do
+  [ ! -f "$DELTA" ] || ASSETS+=("$DELTA")
+done
+[ -z "$PREV_DMG" ] || ASSETS+=("$PREV_DMG")
+gh release create "$TAG" "${ASSETS[@]}" --target "$(git rev-parse HEAD)" \
   --title "Ensemble $VERSION" --notes-file "$NOTES" | tee -a "$LOG"
 
 gh api -X PUT "repos/$REPO/contents/appcast.xml" -f branch=gh-pages -f message="Appcast: Ensemble $VERSION" \

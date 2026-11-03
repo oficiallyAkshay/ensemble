@@ -8,6 +8,9 @@
 #   SPARKLE_ED_PRIVATE_KEY   the EdDSA private key text (from generate_keys -x). Without it, generate_appcast reads the
 #                            key from this Mac's login keychain (where generate_keys stored it).
 #   ENSEMBLE_RELEASE_NOTES     optional path to a .md/.html/.txt file embedded as the release notes of this version.
+#   ENSEMBLE_PREVIOUS_DMG    optional path to the previous release's DMG. generate_appcast then writes a .delta next to
+#                            the appcast, published under the same prefix as the new DMG. The previous version's item is
+#                            rewritten under that prefix too, so the previous DMG must be published there as well.
 #   ENSEMBLE_WHATS_NEW       required: path to the release's "What's new" summary, docs/whats-new/<version>.txt
 #                            (scripts/whats-new.sh); a release without a valid one is refused.
 set -euo pipefail
@@ -31,15 +34,19 @@ trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$OUT_DIR"
 [ ! -f "$OUT_DIR/appcast.xml" ] || cp "$OUT_DIR/appcast.xml" "$WORK/appcast.xml"
 cp "$DMG" "$WORK/"
+[ -z "${ENSEMBLE_PREVIOUS_DMG:-}" ] || cp "$ENSEMBLE_PREVIOUS_DMG" "$WORK/"
 if [ -n "${ENSEMBLE_RELEASE_NOTES:-}" ]; then
   cp "$ENSEMBLE_RELEASE_NOTES" "$WORK/$(basename "${DMG%.dmg}").${ENSEMBLE_RELEASE_NOTES##*.}"
 fi
 
 echo "[$(date -u +%FT%TZ)] generate_appcast for $(basename "$DMG")"
+# A new item is offered to installed copies over seven one-day steps (a manual check skips the wait), so a bad
+# release can be pulled before everyone has it.
+ARGS=(--download-url-prefix "$PREFIX" --embed-release-notes --phased-rollout-interval 86400)
 if [ -n "${SPARKLE_ED_PRIVATE_KEY:-}" ]; then
-  printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | "$GEN" --ed-key-file - --download-url-prefix "$PREFIX" --embed-release-notes "$WORK"
+  printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | "$GEN" --ed-key-file - "${ARGS[@]}" "$WORK"
 else
-  "$GEN" --download-url-prefix "$PREFIX" --embed-release-notes "$WORK"
+  "$GEN" "${ARGS[@]}" "$WORK"
 fi
 
 # An unsigned item is rejected by every installed copy, so never publish one (usually: SUPublicEDKey in Info.plist
@@ -54,4 +61,7 @@ fi
 bash scripts/whats-new.sh inject "$WORK/appcast.xml" "$(basename "$DMG")" "$WHATS_NEW"
 
 cp "$WORK/appcast.xml" "$OUT_DIR/appcast.xml"
+for DELTA in "$WORK"/*.delta; do
+  [ ! -f "$DELTA" ] || cp "$DELTA" "$OUT_DIR/"
+done
 echo "[$(date -u +%FT%TZ)] wrote $OUT_DIR/appcast.xml"
