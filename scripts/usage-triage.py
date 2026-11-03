@@ -12,8 +12,8 @@ Nothing that identifies an install ever goes into a ticket draft. See docs/telem
 
 Contract with the caller. Tickets live in Linear. With --json the output holds, next to the report, `ticket_drafts`: one
 ready-to-file draft per FIRING rule, each {rule_id, marker, title, body_markdown, observed_value, affected_versions}.
-Without --json the text report ends with the same drafts as a dry run. The caller (an AI scheduled task using the Linear
-connector) files and dedupes:
+Without --json the text report ends with the same drafts as a dry run. The caller, scripts/usage-file-tickets.py (run by
+scripts/usage-monitor.sh), files and dedupes:
   1. Search Linear for the draft's `marker` (the hidden comment `<!-- usage-triage:<rule_id> -->`).
   2. No ticket has it: create one in team Ensemble (key ENS), project "Ensemble: Board", with the draft's title and
      body_markdown.
