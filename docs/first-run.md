@@ -9,7 +9,7 @@ node docs/live/test/first-run.mjs                 # the live website
 node docs/live/test/first-run.mjs http://127.0.0.1:8791/   # a local copy: node docs/live/test/serve.mjs 8791
 ```
 
-It needs the network and Chrome at the usual macOS path (`CHROME_PATH` overrides), prints one PASS or FAIL line per step it checked, and exits 1 on any FAIL. It runs a headless Chrome with a fake camera, asks GitHub for the disk image's headers only, installs nothing, and grants or resets no permission. It is not part of the required checks: it needs the network, so run it from a developer's Mac after a website change or when the path is in doubt.
+It needs the network, Chrome at the usual macOS path (`CHROME_PATH` overrides) and playwright-core (`npm ci` once in `docs/live/test`), prints one PASS or FAIL line per step it checked, and exits 1 on any FAIL. It runs a headless Chrome with a fake camera, asks GitHub for the disk image's headers only, installs nothing, and grants or resets no permission. It is not part of the required checks: it needs the network, so run it from a developer's Mac after a website change or when the path is in doubt.
 
 ## The steps
 
