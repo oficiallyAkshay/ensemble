@@ -45,7 +45,7 @@ const server = createServer((req, res) => {
     if (!file.startsWith(DOCS)) throw new Error('outside docs');
     // The 3D files live in the app; serve them at their published path when docs/ has no copy.
     let body;
-    try { body = readFileSync(file); } catch (e) { body = await appCopy(ROOT, path); if (!body) throw e; }
+    try { body = readFileSync(file); } catch (e) { body = await appCopy(path); if (!body) throw e; }
     res.writeHead(200, { 'Content-Type': path.endsWith('.js') ? 'text/javascript' : 'application/octet-stream' });
     res.end(body);
   })().catch(() => { res.writeHead(404).end(); });

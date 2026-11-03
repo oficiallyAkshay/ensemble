@@ -21,7 +21,7 @@ export async function serve(port = 0) {
       // A file the app owns is served from the app when docs/ has no copy of it, at the same published path.
       let st, body;
       try { st = await stat(file); body = await readFile(file); } catch (e) {
-        body = await appCopy(ROOT, path);
+        body = await appCopy(path);
         if (!body) throw e;
         st = { size: body.length, mtime: new Date(0) };
       }
