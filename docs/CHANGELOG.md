@@ -4,6 +4,7 @@ Each release and what changed, newest first, dated by its release on GitHub. Bac
 
 ## Unreleased
 
+- The usage monitor now runs every 2 hours as a launchd job on the owner's Mac with no Claude app: a new filing script files or updates one Linear ticket per firing rule, and a run with thin data files nothing (`docs/telemetry.md`, "Reading the data").
 - The update button now spins for as long as an update check, download or install runs, and names the stage: "Checking...", "Downloading x.y.z (42%)" with the percentage once the size is known, "Installing x.y.z...". While the install waits for you to finish dictating it reads "Installs x.y.z when you finish" with no spinner, and after a failed update it reads "Update failed. Retry". The menu bar panel, the Option-Command-K panel and Settings always agree.
 - A written walkthrough from the website link to the first working gesture (`docs/first-run.md`) lists every step and where a stranger stops, and `docs/live/test/first-run.mjs` follows the first half of it on the live website.
 - The auto-release workflow is now the only automatic release path; the launchd agent dev.ensemble.releaser is retired.
