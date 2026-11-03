@@ -89,7 +89,7 @@ A real run by hand, with the due check: `gh workflow run auto-release.yml -f dry
 scripts/ship-release.sh <next version>
 ```
 
-The next version is the latest tag with one added to the patch number (`0.2.24` becomes `0.2.25`). There is no major or minor policy; the owner changes the leading numbers by naming a version. A version is never reused or lowered, and a tag is never moved. The release notes are the `docs/CHANGELOG.md` "Unreleased" entries. `ship-release.sh` signs with the owner's login keychain, so this runs on the owner's Mac (the workflow above runs it for you). It stops before anything is public if the build, the signature or the appcast refuses; fix the cause and run it again, do not work around it.
+The next version is the latest tag with one added to the patch number (`0.2.24` becomes `0.2.25`). There is no major or minor policy; the owner changes the leading numbers by naming a version. A version is never reused or lowered, and a tag is never moved. The release notes are the note files added under `docs/changes/` since the previous tag plus the subject of any change without one (`scripts/release-notes.sh`). `ship-release.sh` signs with the owner's login keychain, so this runs on the owner's Mac (the workflow above runs it for you). It stops before anything is public if the build, the signature or the appcast refuses; fix the cause and run it again, do not work around it.
 
 **Taking it back.** A bad release is fixed by the next release; the version that shipped stays published because installed copies compare build numbers. Stop the releases by removing this section and the exception in `AGENTS.md`.
 

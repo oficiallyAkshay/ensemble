@@ -1,6 +1,6 @@
 # Ensemble: instructions for coding agents
 
-Ensemble is a macOS menu bar app (Swift, SwiftPM, macOS 14.2+, Apple Silicon) that drives Claude desktop sessions hands-free with a webcam. This is the one agent-instructions file; `CLAUDE.md` only points here. Commands, structure and the order of work are in `.github/CONTRIBUTING.md`. Guides and references are in `docs/`: `setup.md`, `gestures.md`, `safety.md`, `telemetry.md` (the usage report, and the website's anonymous visit counts), `workflows.md`, `performance.md`, `gotchas.md` (incident lessons, read before touching signing, Claude's labels, scrolling, pinch timing, overlays, audio, resources or workflows) and `RELEASING.md`.
+Ensemble is a macOS menu bar app (Swift, SwiftPM, macOS 14.2+, Apple Silicon) that drives Claude desktop sessions hands-free with a webcam. This is the one agent-instructions file; `CLAUDE.md` only points here. Commands, structure and the order of work are in `.github/CONTRIBUTING.md`. Guides and references are in `docs/`: `setup.md`, `gestures.md`, `safety.md`, `telemetry.md` (the usage report, and the website's anonymous visit counts), `workflows.md`, `performance.md`, `gotchas.md` (incident lessons, read before touching signing, Claude's labels, scrolling, pinch timing, overlays, audio, resources or workflows), `RELEASING.md` and `changes/` (one release note per pull request).
 
 ## Commands
 
@@ -26,6 +26,7 @@ scripts/bundle.sh           # build/Ensemble.app, signed; needs a signing identi
 - Branch before editing; open a pull request; `gate` (which waits for `ci`, `hygiene`, coverage and the other checks) must pass. No force-push to `main`, no `git add -A`, no amended commits, no skipped hooks.
 - After a pull request that changes app logic merges to `main`, the release is cut (`docs/RELEASING.md`, "Release on every merge"): by the `auto-release` workflow, the only automatic release path, or by hand with `scripts/ship-release.sh` if it is off. Never reuse or lower a version, never move a tag, never release from anything but a clean, green `main`.
 - Commit messages state the outcome. No emojis in commits, code, comments or docs.
+- A pull request never edits `docs/CHANGELOG.md`; it adds its release note as a new file in `docs/changes/` (`docs/changes/README.md`).
 - Do not revert values the owner set by hand (`docs/gotchas.md`, 9). Never merge a branch created before the history rewrite (10).
 - `Sources/EnsembleCore` has no UI and no camera, and every change there comes with a test. Never edit a fixture to make a test pass. Only `Coordinator` decides to press Claude's controls.
 - Comments explain why, not what. Delete dead code instead of hiding it.
