@@ -42,6 +42,14 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
     /// True while an install is waiting for Ensemble to be idle.
     @Published private(set) var waitingForIdle = false
     @Published private(set) var checking = false
+    /// True from the owner's go-ahead until Sparkle starts unpacking the download.
+    @Published private(set) var downloading = false
+    /// Percent of the download received; nil until Sparkle reports the size.
+    @Published private(set) var downloadPercent: Int?
+    /// True after an update the owner started failed, until the next press.
+    @Published private(set) var failed = false
+    private var downloadReceived: UInt64 = 0
+    private var downloadExpected: UInt64 = 0
     /// True while installing would interrupt the user (dictating, sending, calibrating, tour open); set by the app.
     var isBusy: () -> Bool = { false }
     /// A short island notice (title, body); set by the app.
@@ -66,11 +74,13 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
     private var upToDateTask: Task<Void, Never>?
     private var notesLink: URL?
 
-    /// What the one update button says.
-    var buttonTitle: String {
-        UpdatePolicy.buttonTitle(available: availableVersion, showingUpToDate: showingUpToDate, installing: installingVersion,
-                                 waitingForIdle: waitingForIdle, checking: checking)
+    /// What the one update button shows: its title and whether it spins.
+    var buttonState: UpdateButtonState {
+        UpdatePolicy.buttonState(available: availableVersion, showingUpToDate: showingUpToDate, installing: installingVersion,
+                                 waitingForIdle: waitingForIdle, checking: checking, failed: failed,
+                                 downloading: downloading, downloadPercent: downloadPercent)
     }
+    var buttonTitle: String { buttonState.title }
 
     /// The installed version, read from the bundle (no network): "Version 0.4.2 (42)".
     static var installedVersion: String {
@@ -122,6 +132,7 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
             return
         }
         guard installingVersion == nil else { return }
+        failed = false
         declined.removeAll()
         if pendingOffer != nil {
             // A found version waiting for its window: the press brings it up now.
@@ -210,7 +221,9 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
         if byOwner { installRequested = true }
         installingVersion = version
         checking = false
+        failed = false
         if stage == .notDownloaded {
+            downloading = true
             // Downloading is harmless while busy; Sparkle then asks `showReady(toInstallAndRelaunch:)`, which waits.
             reply(.install)
         } else {
@@ -319,6 +332,8 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
         }
         waitingForIdle = false
         checking = false
+        downloading = false
+        downloadPercent = nil
         pendingInstallReply = nil
         tick()
     }
@@ -371,17 +386,33 @@ final class UpdateController: NSObject, ObservableObject, SPUUpdaterDelegate, SP
         userCheckInFlight = false
         endSession()
         guard ownersFlow else { return }
+        failed = true
         pendingError = error
         tick()
     }
 
-    func showDownloadInitiated(cancellation: @escaping () -> Void) {}
+    func showDownloadInitiated(cancellation: @escaping () -> Void) {
+        downloadReceived = 0
+        downloadExpected = 0
+        downloadPercent = nil
+        downloading = true
+    }
 
-    func showDownloadDidReceiveExpectedContentLength(_ expectedContentLength: UInt64) {}
+    func showDownloadDidReceiveExpectedContentLength(_ expectedContentLength: UInt64) {
+        downloadExpected = expectedContentLength
+    }
 
-    func showDownloadDidReceiveData(ofLength length: UInt64) {}
+    func showDownloadDidReceiveData(ofLength length: UInt64) {
+        downloadReceived += length
+        // Published only when the whole percent moves, so the button redraws at most 100 times.
+        let percent = UpdatePolicy.downloadPercent(received: downloadReceived, expected: downloadExpected)
+        if percent != downloadPercent { downloadPercent = percent }
+    }
 
-    func showDownloadDidStartExtractingUpdate() {}
+    func showDownloadDidStartExtractingUpdate() {
+        downloading = false
+        downloadPercent = nil
+    }
 
     func showExtractionReceivedProgress(_ progress: Double) {}
 
