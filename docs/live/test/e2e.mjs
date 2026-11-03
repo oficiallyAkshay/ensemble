@@ -343,7 +343,7 @@ const phone = () => desktopOnly('phone',{ width: 390, height: 844 }, 'Mozilla/5.
 const tablet = () => desktopOnly('tablet',{ width: 820, height: 1180 }, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15');
 
 
-// ---- the letter page: the popover flow, the prefetch, the star count ----
+// ---- the letter page: the popover flow, no demo download, the star count ----
 
 // `releases` is 'fail', 'limit', 'missing' or the releases list the stub returns.
 // The default is an empty list, not a 404: the browser logs a 404 as a console error, which scenarios that check for none would trip on.
@@ -692,26 +692,18 @@ async function letterNoDevice() {
 }
 
 async function prefetch() {
-  say('scenario prefetch: the letter warms the cache, then the demo loads from it');
+  say('scenario prefetch: the letter fetches no demo file on its own, the demo fetches all five when it starts');
   srv.hits.clear();
   const c = await launch({flags: FAKE });
   const p = await Page.open(c); const w = await p.watch();
   try {
     await stub(p, 12);
     await p.send('Page.navigate', { url: LETTER });
-    let loadAt = 0; p.on('Page.loadEventFired', () => { loadAt = Date.now(); });
     await p.waitFor("document.readyState === 'complete'", 15000);
     await sleep(300);
     check('nothing heavy requested before the page settled', !hitsOf().some(Boolean), JSON.stringify(hitsOf()));
-    await p.waitFor("window.__warm && window.__warm.done + window.__warm.failed === 5", 60000, 'prefetch to finish');
-    const warm = await p.eval('window.__warm');
-    check('all five files fetched in the background, none failed', warm.done === 5 && warm.failed === 0, JSON.stringify(warm));
-    const pre = w.requests.filter((r) => HEAVY.some((u) => r.url.endsWith(u)));
-    check('prefetch started after the load event, at low priority', pre.length === 5 && pre.every((r) => r.at >= loadAt - 50 && /Low|VeryLow/i.test(r.priority || '')), pre.map((r) => `${r.priority}@${r.at - loadAt}ms`).join(' '));
-    let bytes = 0; for (const r of pre) bytes += r.bytes || 0;
-    say(`prefetched ${(bytes / 1e6).toFixed(2)} MB over ${pre.length} requests`);
-    check('about 11.7 MB, gzipped, fetched', bytes > 11e6 && bytes < 12.5e6, `${(bytes / 1e6).toFixed(2)} MB`);
-    check('each file hit the server exactly once', hitsOf().every((n) => n === 1), JSON.stringify(hitsOf()));
+    await sleep(6000);   // past the idle callback that sends the visit counts, which used to start the downloads
+    check('nothing heavy requested after the page settled either', !hitsOf().some(Boolean) && !w.requests.some((r) => HEAVY.some((u) => r.url.endsWith(u))), JSON.stringify(hitsOf()));
     const mark = w.requests.length;
     await p.eval("location.href = 'live/?go=1'");
     await p.waitFor("location.pathname.includes('/live/')", 15000);
@@ -724,16 +716,15 @@ async function prefetch() {
     say(`demo up ${ms} ms after navigation settled`);
     const second = w.requests.slice(mark).filter((r) => HEAVY.some((u) => r.url.endsWith(u)));
     for (const r of second) say(`  ${r.cached ? 'CACHE' : 'NET  '} ${r.status} ${r.url.replace(ORIGIN, '')}`);
-    check('the demo asked for the same five files', second.length === 5, String(second.length));
-    check('every one was served from the browser cache', second.every((r) => r.cached), second.filter((r) => !r.cached).map((r) => r.url).join(' '));
-    check('the server saw no second request for any of them', hitsOf().every((n) => n === 1), JSON.stringify(hitsOf()));
+    check('the demo fetched all five files itself', second.length === 5, String(second.length));
+    check('each file hit the server exactly once', hitsOf().every((n) => n === 1), JSON.stringify(hitsOf()));
     check('only the two GitHub requests left the site', offOrigin(w, LETTER_ALLOWED).length === 0, offOrigin(w, LETTER_ALLOWED).join(' '));
     check('no console errors', real(w).length === 0, real(w).join(' | '));
   } finally { p.close(); await c.close(); }
 }
 
 async function saveData() {
-  say('scenario savedata: Save-Data on, so nothing is prefetched');
+  say('scenario savedata: Save-Data on, so no heavy file and no count is fetched');
   srv.hits.clear();
   const c = await launch({flags: FAKE });
   const p = await Page.open(c); const w = await p.watch();
