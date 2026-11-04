@@ -36,9 +36,19 @@ Never sent: your name, email, machine name, file paths, window or session titles
 
 ## Where it goes and how long it is kept
 
-PostHog Cloud (US), `https://us.i.posthog.com/i/v0/e/`, written by Ensemble over plain HTTPS with `URLSession`: no PostHog SDK and no other dependency. The project key is write-only and public (`usageWriteKey` in `Sources/Ensemble/App/UsageReporter.swift`). Retention: reports stay in the PostHog project until the owner deletes them; no automatic expiry is set up yet. Anyone can ask for their reports to be deleted through an issue, giving the install id shown in "Show what would be sent" (the id is only known after the first send). Moving to the EU cloud later means changing the host in `UsageReporter.swift` and in `scripts/check-network.sh`, and the sentence above.
+PostHog Cloud (US), `https://us.i.posthog.com/i/v0/e/`, written by Ensemble over plain HTTPS with `URLSession`: no PostHog SDK and no other dependency. The project key is write-only and public (`usageWriteKey` in `Sources/Ensemble/App/UsageReporter.swift`). How long reports are kept is in "Retention period" below, and how to ask for deletion is in "Deletion requests". Moving to the EU cloud later means changing the host in `UsageReporter.swift` and in `scripts/check-network.sh`, and the sentence above.
 
 A send that does not get a 2xx answer is kept and tried again at the next hourly check; a summary older than 7 days is dropped. Nothing is sent while sharing is off, and `scripts/check-network.sh` allows exactly this one file to use `URLSession` and exactly this one extra address.
+
+## Retention period
+
+The chosen retention period is 13 months: a report older than that is to be deleted by PostHog. This is chosen and not yet applied. The expiry setting is not yet set in the PostHog project, so today reports stay until the owner deletes them. This page will say the expiry is live only after the owner sets it.
+
+## Deletion requests
+
+To ask for your reports to be deleted, open an issue in this repository and give the install id shown by "Show what would be sent" in Settings, General, Privacy. The id is only known after the first send. The owner finds the reports with that id in the PostHog screen and deletes them there. The owner replies within 30 days. Never paste anyone's install id into a ticket, comment or log other than your own request.
+
+The procedure has not yet been run on a test id. The test run uses a made-up id: send one event with it, delete it, and read back that zero events remain. Date of the run: not yet done. Result: not yet done.
 
 ## The checksum and spam
 
