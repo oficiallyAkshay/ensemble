@@ -3,6 +3,34 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.51</title>
+            <pubDate>Wed, 04 Nov 2026 06:40:11 +0000</pubDate>
+            <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
+            <sparkle:version>590</sparkle:version>
+            <sparkle:shortVersionString>0.2.51</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.50:
+
+- A new Light mode switch in Settings, General (off by default) lets pinch-and-drag scroll the window of another app that you look at, with a short note on the island; dictation, send and every other gesture still work only on Claude.
+- The home page no longer downloads the demo's 12 MB of hand and face tracking files when it opens; they download only when you start the demo.
+- Release notes are now built from one small note file per pull request, so open pull requests no longer conflict over the changelog.
+- The usage monitor runs as a launchd job on the owner's Mac with no Claude app (#259)
+- The website's browser test matches the current page and lists what it skips and why (#257)
+- The website test server finds the app's 3D and tracker files again (ENS-162) (#256)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.51/Ensemble-0.2.51.dmg" length="6448502" type="application/octet-stream" sparkle:edSignature="2tborWrI3S5TPqsVLVnh8/2ngvw0+X8pC0eZ7ssKRWxIR3b2GZCh1O3dR53UPlMELoM3iQHa7bFY+KzUFLBwAA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.51/Ensemble590-584.delta" sparkle:deltaFrom="584" length="164514" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="V0X9OCSY6UUq8B23l5axSsD1oOU5VDdqoFTagasBpFYYImNhtjpasHa1EovAx6LPkB9c8LOWxa6VFRbBXXahAQ=="/>
+            </sparkle:deltas>
+            <whatsNew>sparkles | Add an opt-in Light mode so | Add an opt-in Light mode so pinch-and-drag scrolls the window of another app you look at
+wand.and.stars | The home page no longer downloads | The home page no longer downloads the demo's tracker files when it loads
+hand.raised | Update | Update
+gearshape | The usage monitor runs as a | The usage monitor runs as a launchd job on the owner's Mac with no Claude app
+bolt | The website's browser test matches the | The website's browser test matches the current page and lists what it skips and why
+</whatsNew>
+        </item>
+        <item>
             <title>0.2.50</title>
             <pubDate>Tue, 03 Nov 2026 02:53:14 +0000</pubDate>
             <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
@@ -10,17 +38,7 @@
             <sparkle:shortVersionString>0.2.50</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.49:
-
-- The update button spins while an update checks, downloads or installs, and shows the stage and download percentage (#255)
-- The usage triage tests run in the checks, and the gate requires them (ENS-178) (#254)
-- Releases carry a small delta and roll out to installed copies over about a week (#253)
-- The website stops carrying its own copies of the 3D and face tracker files (#252)
-- The social preview card is re-rendered from the README hero with the deeper skin (ENS-117) (#219)
-- Bump the actions group across 1 directory with 6 updates (#242)
-- The website demo test and the hero hand script drive Chrome through playwright-core (#251)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.50/Ensemble-0.2.50.dmg" length="6445654" type="application/octet-stream" sparkle:edSignature="RGzsuqGpRWdrPn7UNXySAEUD0HD5u0WtPm3rh+GVSXOyAK/VtfRfFBMBt0arIvTuBgRiZlEb9t8+dwlqRVsXAA=="/>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.51/Ensemble-0.2.50.dmg" length="6445654" type="application/octet-stream" sparkle:edSignature="RGzsuqGpRWdrPn7UNXySAEUD0HD5u0WtPm3rh+GVSXOyAK/VtfRfFBMBt0arIvTuBgRiZlEb9t8+dwlqRVsXAA=="/>
             <sparkle:deltas>
                 <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.50/Ensemble584-577.delta" sparkle:deltaFrom="577" length="133150" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="Do99GvoziVlLZDBjcaxMZqvJv/ujsL4/CLCMmeunpmR7/YU5CbSXhoteJ+w3Lw4ISp8qxoUsq//SOmnoLMtaDA=="/>
             </sparkle:deltas>
@@ -45,29 +63,6 @@ hand.raised | Comment and guide stop naming the | Comment and guide stop naming 
 gearshape | The release docs name only the | The release docs name only the auto-release workflow and the two launchd release scripts are deleted
 bolt | Tests pin the switch-off wait at | Tests pin the switch-off wait at 8 seconds and the send wait cap at 1.2 seconds
 </whatsNew>
-        </item>
-        <item>
-            <title>0.2.48</title>
-            <pubDate>Sun, 01 Nov 2026 20:13:08 +0000</pubDate>
-            <sparkle:version>562</sparkle:version>
-            <sparkle:shortVersionString>0.2.48</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.47:
-
-- Update (#231)
-- A written first-run walkthrough and a live-website script follow a new person from the link to the first gesture (#230)
-- A refused camera now says the camera is needed and shows how to allow it in Safari, Firefox and Chrome (#229)
-- The home page headline and text now stop before the 3D scene at 1100, 1500 and 1920 px wide (#228)
-- The docs say the required checks run the usage triage tests on every pull request (#226)
-- The changelog says the auto-release workflow is the only automatic release path (#225)
-- The docs name the library release dry run as the Linux and Windows test check (#224)
-- The gotchas list states the signing certificate expiry date and the Developer ID grant reset (#223)
-- The portability page no longer states test counts and says where to read them (#222)
-- The home page hero tours the main screen, the side screen's top session and its non-Claude bottom window before it loops (#221)
-- The release guide states the signing certificate expires on 2036-10-11 (#220)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.48/Ensemble-0.2.48.dmg" length="6440030" type="application/octet-stream" sparkle:edSignature="bHh2z0/2XI3AvOwVtHeqToRu1fXD3WzS3+8VZJDn+ez1GayZMAbkYOAsY7bvZEdSsmthqsDAoIZsP7ZEuI96CA=="/>
         </item>
     </channel>
 </rss>
