@@ -15,6 +15,7 @@ final class SettingsStore: ObservableObject {
         static let pointerSmoothing = "pointerSmoothing"
         static let correctForPosition = "correctForPosition"
         static let reverseScroll = "reverseScroll"
+        static let lightMode = "lightMode"
         static let liveSoundBars = "liveSoundBars"
         static let warnWhenLeavingClaude = "warnWhenLeavingClaude"
         static let playSounds = "playSounds"
@@ -56,6 +57,8 @@ final class SettingsStore: ObservableObject {
     @Published var correctForPosition: Bool { didSet { defaults.set(correctForPosition, forKey: Key.correctForPosition) } }
     /// Flips pinch-and-drag scrolling relative to the Mac's own scroll direction.
     @Published var reverseScroll: Bool { didSet { defaults.set(reverseScroll, forKey: Key.reverseScroll) } }
+    /// Off by default. On: with another app in front, pinch-and-drag scrolls the window you look at (`LightScroll`).
+    @Published var lightMode: Bool { didSet { defaults.set(lightMode, forKey: Key.lightMode) } }
     /// Off by default: the listening sign is a blinking microphone dot and Ensemble never asks for the microphone.
     /// On: sound bars follow the voice level, which needs microphone permission.
     @Published var liveSoundBars: Bool { didSet { defaults.set(liveSoundBars, forKey: Key.liveSoundBars) } }
@@ -157,6 +160,7 @@ final class SettingsStore: ObservableObject {
         pointerSmoothing = store.object(forKey: Key.pointerSmoothing) as? Double ?? PointerSmoothing.defaultLevel
         correctForPosition = bool(Key.correctForPosition, true)
         reverseScroll = store.bool(forKey: Key.reverseScroll)
+        lightMode = store.bool(forKey: Key.lightMode)
         liveSoundBars = store.bool(forKey: Key.liveSoundBars)
         warnWhenLeavingClaude = bool(Key.warnWhenLeavingClaude, true)
         let seconds = store.object(forKey: Key.sendCountdownSeconds) as? Double ?? 0.75
