@@ -386,5 +386,14 @@ class Filing(unittest.TestCase):
         self.assertEqual(out.getvalue().splitlines()[0], report["summary_line"])
 
 
+class TelemetryPage(unittest.TestCase):
+    def test_retention_and_deletion_headings_exist(self):
+        path = os.path.join(HERE, "..", "docs", "telemetry.md")
+        with open(path, encoding="utf-8") as f:
+            headings = {line.strip() for line in f if line.startswith("#")}
+        for heading in ("## Retention period", "## Deletion requests"):
+            self.assertIn(heading, headings)
+
+
 if __name__ == "__main__":
     unittest.main()
