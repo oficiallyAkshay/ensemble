@@ -9,7 +9,7 @@
  *   The welcome and calibrate scenes fill el with one 3D canvas (desk, head, monitors). The closed-lid scene fills it with a closed
  *   laptop on the same light rig and materials; no page mounts it yet. The hero scene (the website's top) is the desk
  *   with the dictate scene's Claude window on the main screen and the dictate hand beside it, on a transparent canvas. The gesture scenes (dictate,
- *   send, scroll) mount the frame layout instead: a flat 2D Claude window with one focused session, and over its
+ *   send, scroll, peace, scissors) mount the frame layout instead: a flat 2D Claude window with one focused session, and over its
  *   right COLUMN share a top panel holding the 3D hand alone. The bottom half of that column is left empty for the
  *   app to draw the camera's hand skeleton in, except on dictate, where the panel takes the whole column.
  *   A mounted instance keeps its layout; setScene switches within it.
@@ -54,9 +54,9 @@
 
   // hero: the website's top scene. The window and the dictate hand play one dictate take (eventsFor reads dictate's) while the head
   // stays on the main screen, then rest while the head tours the side screen; durOf('hero') is the whole tour, heroKeys below.
-  var DURATIONS = { welcome: 8, look: 8, calibrate: 12, dictate: 6.4, send: 5.2, scroll: 5.6, 'closed-lid': 6, hero: 13.5 };
-  var STATIC_T = { welcome: 0.8, look: 0.8, calibrate: 3.0, dictate: 0.66, send: 1.5, scroll: 2.3, 'closed-lid': 1.5, hero: 4.5 };
-  var HAND_SCENES = { dictate: 1, send: 1, scroll: 1 };
+  var DURATIONS = { welcome: 8, look: 8, calibrate: 12, dictate: 6.4, send: 5.2, scroll: 5.6, peace: 5.2, scissors: 5.6, 'closed-lid': 6, hero: 13.5 };
+  var STATIC_T = { welcome: 0.8, look: 0.8, calibrate: 3.0, dictate: 0.66, send: 1.5, scroll: 2.3, peace: 3.3, scissors: 4.0, 'closed-lid': 1.5, hero: 4.5 };
+  var HAND_SCENES = { dictate: 1, send: 1, scroll: 1, peace: 1, scissors: 1 };
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   function smooth(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
@@ -710,10 +710,13 @@
     }
 
     // ---- the focused session ----
-    var FP = hero ? HERO_PANE : { x: PANES[1].x, y: PANE_Y, w: PANES[1].w, h: PANE_H }, PX = FP.x, PY = FP.y, PW = FP.w, PH = FP.h;
+    var FP = hero ? HERO_PANE : { x: PANES[1].x, y: PANE_Y, w: PANES[1].w, h: PANE_H }, PX, PY = FP.y, PW, PH = FP.h;
     var F = '16px ' + SANS, LH = 24, GAP = 18;
-    var X0 = PX + 38, X1 = PX + PW - 18;                 // assistant column left edge, user bubble right edge
-    var CX0 = PX + 14, CW = PW - 28, CH = 84, CY0 = PY + PH - 14 - CH;   // composer
+    var X0, X1;                                          // assistant column left edge, user bubble right edge
+    var CX0, CW, CH = 84, CY0 = PY + PH - 14 - CH;   // composer
+    // Drawn text never falls below 14 CSS px (12 on a phone-width card): the window is drawn in a 960-wide design space and
+    // scaled to the card, so a small card needs a larger design size. The hero's window is a texture, not a card, and keeps its sizes.
+    function fz(px) { return hero ? px : Math.max(px, (cssW >= 640 ? 14 : 12) / (cssW / VW)); }
     var CONV_T = PY + 62, CONV_B = CY0 - 12;
     var CODE = [
       ['async function', ' drain', '(q: Queue) {'],
@@ -725,7 +728,7 @@
     ];
 
     function userBubble(text) {
-      var lines = wrap(text, 280, F), w = 0;
+      var lines = wrap(text, Math.min(280, X1 - X0 - 32), F), w = 0;
       lines.forEach(function (l) { w = Math.max(w, ctx.measureText(l).width); });
       var bw = w + 32, bh = lines.length * LH + 20;
       return { h: bh, draw: function (y, a) {
@@ -766,21 +769,34 @@
         });
       } };
     }
-    var shortList = [
-      userBubble('Add retries with backoff to the sync job.'),
-      asst('On it. I wrapped the flush call in a retry loop.'),
-      code(),
-      asst('Done: up to 5 attempts, waiting 100 ms and doubling each time. Tests pass.')
-    ];
-    var longList = shortList.concat([
-      userBubble('Log each retry with its attempt number.'),
-      asst('Added a debug line in the catch block. It prints the attempt and the wait.'),
-      tool('Edit', 'src/worker/sync.ts  +3 -1'),
-      asst('All 14 tests pass. Want a metric for the final failure as well?')
-    ]);
-    var newBubble = userBubble(DRAFT_TEXT);
     function total(list) { var h = 0; list.forEach(function (m) { h += m.h + GAP; }); return h - GAP; }
-    var SCROLL_DIST = Math.min(Math.max(0, total(longList) - (CONV_B - CONV_T)), 340);
+    var shortList, longList, newBubble, SCROLL_DIST;
+    // The focused session's left edge and width: peace and scissors change them as the divider moves, so the messages re-wrap.
+    function place(px, pw) {
+      if (shortList && px === PX && pw === PW) return;
+      PX = px; PW = pw; X0 = PX + 38; X1 = PX + PW - 18; CX0 = PX + 14; CW = PW - 28;
+      shortList = [
+        userBubble('Add retries with backoff to the sync job.'),
+        asst('On it. I wrapped the flush call in a retry loop.'),
+        code(),
+        asst('Done: up to 5 attempts, waiting 100 ms and doubling each time. Tests pass.')
+      ];
+      longList = shortList.concat([
+        userBubble('Log each retry with its attempt number.'),
+        asst('Added a debug line in the catch block. It prints the attempt and the wait.'),
+        tool('Edit', 'src/worker/sync.ts  +3 -1'),
+        asst('All 14 tests pass. Want a metric for the final failure as well?')
+      ]);
+      newBubble = userBubble(DRAFT_TEXT);
+      SCROLL_DIST = Math.min(Math.max(0, total(longList) - (CONV_B - CONV_T)), 340);
+    }
+    place(FP.x, FP.w);
+    // peace and scissors: the focused session's share of the row, 0 = every session the same width, 1 = the chat's default width
+    var EVEN_W = (PANES[0].w + PANES[1].w + PANES[2].w + PANES[3].w) / 4;
+    function panesAt(k) {
+      var fw = lerp(EVEN_W, PANES[1].w, k), ow = (4 * EVEN_W - fw) / 3, x = PANES[0].x;
+      return [ow, fw, ow, ow].map(function (w, i) { var p = { x: x, w: w, focus: i === 1 }; x += w + 6; return p; });
+    }
 
     // The Ensemble capsule sits in the title bar over the focused session.
     function capsule(st, t) {
@@ -790,7 +806,7 @@
       else if (st.gesture === 'scroll') mode = st.scroll > 0.02 ? 'scroll' : 'ready';
       var label = { ready: 'Ready', listen: 'Listening', hold: 'Hold to send', sent: 'Sent', scroll: 'Scrolling' }[mode];
       var w = { ready: 150, listen: 252, hold: 300, sent: 150, scroll: 190 }[mode], h = 42, x = 640 - w / 2, y = 4;
-      var Q = 0.78;
+      var Q = Math.max(0.78, fz(19 * 0.78) / 19);   // the label is 19 * Q design px
       ctx.save();
       ctx.translate(PX + PW / 2 - 640 * Q, 0); ctx.scale(Q, Q);
       ctx.fillStyle = '#000'; rr(x, y, w, h, 21); ctx.fill();
@@ -856,8 +872,10 @@
       ctx.fillStyle = C.pane; rr(PX, PY, PW, PH, 12); ctx.fill();
       ctx.textBaseline = 'alphabetic';
       txt('ensemble-tour', PX + 20, PY + 34, '600 17px ' + SANS, C.strong);
-      ctx.fillStyle = C.bubble; rr(PX + 148, PY + 16, 156, 26, 13); ctx.fill();
-      txt('feature/onboarding', PX + 162, PY + 34, '12px ' + MONO, C.dim);
+      if (PW > 340) {   // the branch pill needs room; a narrowed session leaves it out
+        ctx.fillStyle = C.bubble; rr(PX + 148, PY + 16, 156, 26, 13); ctx.fill();
+        txt('feature/onboarding', PX + 162, PY + 34, '12px ' + MONO, C.dim);
+      }
       if (!skel) { ctx.fillStyle = C.faint; ctx.font = '13px ' + SANS; ctx.textAlign = 'right'; ctx.fillText('Opus', PX + PW - 20, PY + 34); ctx.textAlign = 'left'; }
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(PX, PY + 50); ctx.lineTo(PX + PW, PY + 50); ctx.stroke();
 
@@ -919,7 +937,10 @@
         micButton(bx - 42, by, 22);
         micRings(bx - 42, by, 22, ev, t);
       } else {
-        ctx.fillStyle = C.faint; ctx.font = '12.5px ' + SANS; ctx.fillText('Plan mode  ·  Opus  ·  Auto-accept off', CX0 + 20, CY0 + 68);
+        // the mode line is real text even on the website, so it follows the size floor; where it no longer fits it gets shorter, then goes
+        ctx.fillStyle = C.faint; ctx.font = fz(12.5) + 'px ' + SANS;
+        var modeLine = ['Plan mode  ·  Opus  ·  Auto-accept off', 'Plan mode'].filter(function (s) { return ctx.measureText(s).width <= CW - 72; })[0];
+        if (modeLine) ctx.fillText(modeLine, CX0 + 20, CY0 + 68);
         sendButton(bx, by, 17, text ? C.orange : C.send);
       }
     }
@@ -962,9 +983,11 @@
       ctx.fillStyle = C.head; ctx.fillRect(0, 0, VW, 38);
       ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 38.5); ctx.lineTo(VW, 38.5); ctx.stroke();
       [['#ff5f57', 0], ['#febc2e', 1], ['#28c840', 2]].forEach(function (d) { ctx.fillStyle = d[0]; ctx.beginPath(); ctx.arc(20 + d[1] * 18, 19, 5, 0, 6.2832); ctx.fill(); });
-      ctx.fillStyle = C.dim; ctx.font = '600 13px ' + SANS; ctx.textBaseline = 'alphabetic'; ctx.fillText('Claude', 82, 23);
+      var titlePx = fz(13);
+      ctx.fillStyle = C.dim; ctx.font = '600 ' + titlePx + 'px ' + SANS; ctx.textBaseline = 'alphabetic'; ctx.fillText('Claude', 82, 23 + (titlePx - 13) * 0.35);
       skel = plainText || name === 'dictate';
-      if (!hero) PANES.forEach(function (p, i) { if (!p.focus) skeleton(p, i); });
+      var row = name === 'peace' || name === 'scissors' ? panesAt(st.wide) : PANES;
+      if (!hero) { place(row[1].x, row[1].w); row.forEach(function (p, i) { if (!p.focus) skeleton(p, i); }); }
       focused(st, name, t);
       // Ensemble focus: blue outline only, never filled
       ctx.strokeStyle = C.blue; ctx.lineWidth = 3; rr(PX - 2, PY - 2, PW + 4, PH + 4, 14); ctx.stroke();
@@ -1277,7 +1300,7 @@
   // finger cascade offset (s) per finger for the curls
   var CASCADE = 0.04;
 
-  var DUR = { dictate: 6.4, send: 5.2, scroll: 5.6 };
+  var DUR = { dictate: 6.4, send: 5.2, scroll: 5.6, peace: 5.2, scissors: 5.6 };
 
   function specDictate() {
     var D = DUR.dictate;
@@ -1313,14 +1336,36 @@
       tilt: { k: mv, w: 7 }
     };
   }
+  // The width gestures. raise: the hand comes up; fold: ring and little finger close; vee: index and middle spread; wide: the focused
+  // session's share of the row (1 = the chat's default width, 0 = all sessions the same). Peace holds the sign 0.6 s before the session widens.
+  function specPeace() {
+    var D = DUR.peace;
+    return {
+      raise: { k: [[0, 0], [0.5, 0], [1.0, 1], [3.8, 1], [4.4, 0], [D, 0]], w: 14 },
+      fold: { k: [[0, 0], [0.9, 0], [1.3, 1], [3.8, 1], [4.3, 0], [D, 0]], w: 24 },
+      vee: { k: [[0, 0], [1.3, 0], [1.7, 1], [3.8, 1], [4.2, 0], [D, 0]], w: 18 },
+      wide: { k: [[0, 0], [2.3, 0], [3.0, 1], [4.4, 1], [4.9, 0], [D, 0]], w: 0 }
+    };
+  }
+  // Scissors starts from the wide row, closes the two fingers in 0.5 s, and the sessions even out.
+  function specScissors() {
+    var D = DUR.scissors;
+    return {
+      raise: { k: [[0, 0], [0.4, 0], [0.9, 1], [4.2, 1], [4.8, 0], [D, 0]], w: 14 },
+      fold: { k: [[0, 0], [0.8, 0], [1.2, 1], [4.1, 1], [4.7, 0], [D, 0]], w: 24 },
+      vee: { k: [[0, 0], [1.1, 0], [1.5, 1], [2.6, 1], [3.1, 0.1], [4.0, 0.1], [4.6, 0], [D, 0]], w: 18 },
+      wide: { k: [[0, 1], [3.1, 1], [3.8, 0], [4.9, 0], [5.4, 1], [D, 1]], w: 0 }
+    };
+  }
+  var SPECS = { dictate: specDictate, send: specSend, scroll: specScroll, peace: specPeace, scissors: specScissors };
   var TABLES = {};
   function tableFor(name) {
-    if (!TABLES[name]) TABLES[name] = bake(DUR[name], name === 'dictate' ? specDictate() : name === 'send' ? specSend() : specScroll());
+    if (!TABLES[name]) TABLES[name] = bake(DUR[name], SPECS[name]());
     return TABLES[name];
   }
 
   function HAND_HOME_V(n) { var h = HAND_HOME[n]; return new THREE.Vector3(h[0], h[1], h[2]); }
-  var HAND_HOME = { dictate: [2.9, 2.5, -3.2], send: [3.0, 2.5, -3.2], scroll: [2.9, 2.35, -3.2] };
+  var HAND_HOME = { dictate: [2.9, 2.5, -3.2], send: [3.0, 2.5, -3.2], scroll: [2.9, 2.35, -3.2], peace: [2.9, 2.5, -3.2], scissors: [2.9, 2.5, -3.2] };
 
   function breathe(D, t, amp) {
     var w = 2 * Math.PI * t / D;
@@ -1350,6 +1395,12 @@
       p.ci = 0.1 + 0.42 * s.pinch; p.cm = 0.12 + 0.2 * s.pinchM; p.cr = 0.16 + 0.3 * s.pinchR; p.cp = 0.2 + 0.38 * s.pinchP;
       p.pinch = 0.12 + 0.88 * s.pinch;
       p.spread = 0.6 - 0.2 * s.pinch;
+    } else if (name === 'peace' || name === 'scissors') {
+      // index and middle up and apart, ring and little folded, the thumb left out (docs/gestures.md allows either)
+      p.y -= 0.7 * (1 - s.raise);
+      p.ci = 0.08; p.cm = 0.1; p.cr = 0.15 + 0.85 * s.fold; p.cp = 0.2 + 0.85 * s.fold;
+      p.spread = 0.55 + 3.0 * s.vee;
+      p.pinch = 0; p.tflex = s.fold;
     } else {
       qa = G.Q_REST_S; qb = G.Q_THUMB; ok = s.orient;
       p.ci = 0.12 + 0.88 * s.ci; p.cm = 0.14 + 0.86 * s.cm; p.cr = 0.18 + 0.82 * s.cr; p.cp = 0.2 + 0.8 * s.cp;
@@ -1888,7 +1939,7 @@
     return tk && tk.events.staticT !== undefined ? tk.events.staticT : STATIC_T[name];
   }
   function stateFor(name, t) {
-    var s = { listening: false, draft: 0, hold: 0, sent: false, scroll: 0 };
+    var s = { listening: false, draft: 0, hold: 0, sent: false, scroll: 0, wide: 0 };
     var which = name, gesture = name === 'hero' ? 'dictate' : name;
     var tk = capTake(gesture), e = eventsFor(gesture);
     name = gesture;
@@ -1900,6 +1951,8 @@
       s.sent = t >= e.sentAt && t < e.sentOff;
     } else if (name === 'scroll') {
       s.scroll = tk ? clamp(capScalar(tk, tk.scroll, t), 0, 1) : clamp(sampleTable(tableFor('scroll'), t).mv, 0, 1);
+    } else if (name === 'peace' || name === 'scissors') {
+      s.wide = clamp(sampleTable(tableFor(name), t).wide, 0, 1);
     }
     s.scene = which; s.gesture = gesture; s.t = t;
     return s;
