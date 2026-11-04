@@ -2,7 +2,7 @@
 
 The rule: Claude's microphone is never left recording because of Ensemble. The summary a reader needs is in the [README](../README.md).
 
-Ensemble acts only on Claude: with another app in front, gestures do nothing. The one exception is Settings, General, Light mode, off by default. With it on, a pinch-and-drag scrolls the front app's window under your look, and nothing else reaches that app: no dictation, no send, no typing, no other gesture, no new permission. It holds still while you type or use the mouse, and stops when another app's window covers the scroll point.
+Ensemble acts only on Claude and on supported terminal agents: with another app in front, gestures do nothing. The one exception is Settings, General, Light mode, off by default. With it on, a pinch-and-drag scrolls the front app's window under your look, and nothing else reaches that app: no dictation, no send, no typing, no other gesture, no new permission. It holds still while you type or use the mouse, and stops when another app's window covers the scroll point.
 
 ## Safety design
 

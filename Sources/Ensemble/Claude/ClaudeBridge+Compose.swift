@@ -44,6 +44,10 @@ extension ClaudeBridge {
         await run { self.sendNow(s, shown: shown, stoppedAt: stoppedAt, inputAge: inputAge) }
     }
 
+    /// The desktop app gets no interrupt and no terminal typing.
+    func interrupt(_ s: ClaudeSession) async -> BridgeResult { .refused("Claude desktop is not a terminal agent") }
+    func typeIntoTerminal(_ s: ClaudeSession, draft: String) async -> BridgeResult { .refused("Claude desktop is not a terminal agent") }
+
     private func sendNow(_ s: ClaudeSession, shown: String, stoppedAt: Date, inputAge: () -> Double) -> BridgeResult {
         guard let entry = dictatedEntry(s) else { return .refused("the dictated session is no longer where it was") }
         let e = entry.elements
