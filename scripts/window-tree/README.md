@@ -10,11 +10,10 @@ Proves that another app's window tree can be read on Windows (UI Automation), Li
 | `read_tree.py` | Starts the stand-in app with `--force-renderer-accessibility`, reads its tree with xa11y, prints the window titles and control names, then one `RESULT:` line. Each failure is one `DIAG:` line. |
 | `linux-run.sh` | Runs the reader under a virtual display and a private session bus with the accessibility bus started. |
 | `screenshot-windows.ps1` | Writes the Windows screenshot. Linux uses ImageMagick `import`, macOS uses `screencapture`. |
-| `window-tree.yml.txt` | The text of the manual workflow `window-tree` (Windows, Ubuntu, macOS jobs). |
 
-## The workflow is not live
+## The workflow
 
-GitHub reads workflows only from `.github/workflows/`. Copy `window-tree.yml.txt` there as `window-tree.yml` by hand, then start it from the Actions tab. Each job uploads `tree.txt` and `screenshot.png` as an artifact. Read `tree.txt` (its `RESULT:` line and `DIAG:` lines), not the job colour: the reader step is `continue-on-error`, so a job is green even when no tree was read.
+The manual workflow `window-tree` (Windows, Ubuntu, macOS jobs) lives in `.github/workflows/window-tree.yml`. Start it from the Actions tab. Each job uploads `tree.txt` and `screenshot.png` as an artifact. Read `tree.txt` (its `RESULT:` line and `DIAG:` lines), not the job colour: the reader step is `continue-on-error`, so a job is green even when no tree was read.
 
 ## Lockfile
 
@@ -22,4 +21,4 @@ GitHub reads workflows only from `.github/workflows/`. Copy `window-tree.yml.txt
 
 ## Not run yet
 
-The reader and the stand-in app were written without being run. The first run of the hand-copied workflow is the first test of both.
+The reader and the stand-in app were written without being run. The first run of the workflow is the first test of both.
