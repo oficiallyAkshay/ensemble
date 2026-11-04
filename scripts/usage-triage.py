@@ -10,8 +10,12 @@ unless something is broken (no key, PostHog refused, bad rules file). No event i
 public, so every event is checked (schema, checksum, version string, bounds) and the rest is discarded and counted.
 Nothing that identifies an install ever goes into a ticket draft. See docs/telemetry.md.
 
+It also reads a 60-day look-back (the rules and the report still use --days) to tell a stale or broken feed from a thin one:
+the report holds `feed` and `summary_line`, and up to one feed alert (usage_feed_stale or usage_kept_zero) is drafted
+without any minimum of installs. --key-alert-from-log LOGFILE drafts usage_key_unreadable from the monitor's log.
+
 Contract with the caller. Tickets live in Linear. With --json the output holds, next to the report, `ticket_drafts`: one
-ready-to-file draft per FIRING rule, each {rule_id, marker, title, body_markdown, observed_value, affected_versions}.
+ready-to-file draft per FIRING rule or alert, each {rule_id, marker, title, body_markdown, observed_value, affected_versions}.
 Without --json the text report ends with the same drafts as a dry run. The caller, scripts/usage-file-tickets.py (run by
 scripts/usage-monitor.sh), files and dedupes:
   1. Search Linear for the draft's `marker` (the hidden comment `<!-- usage-triage:<rule_id> -->`).
@@ -35,6 +39,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_THRESHOLDS = os.path.join(HERE, "usage-thresholds.json")
 HOST = "https://us.posthog.com"
 ROW_LIMIT = 50000
+LOOKBACK_DAYS = 60  # only the feed alerts use it; the rules stay on --days
+STALE_DAYS = 3
 SALT = "ensemble-usage-1"
 SCHEMA_VERSION = 1
 
@@ -357,7 +363,43 @@ def fmt(v):
 
 # ---------------------------------------------------------------- report
 
-def analyse(rows, rules, days):
+def row_day(row):
+    """The day a row arrived, kept or not; None when unreadable."""
+    try:
+        return datetime.date.fromisoformat(str(row[2])[:10])
+    except (TypeError, IndexError, ValueError):
+        return None
+
+
+def feed_state(rows, events, today):
+    """What the longer look-back shows about the feed itself. Only kept events say the feed has ever worked, because
+    the write key is public; rows of any kind say it is still sending."""
+    last = max((ev["day"] for ev in events), default=None)
+    first_recent = today - datetime.timedelta(days=STALE_DAYS - 1)
+    return {"days_since_last_kept": None if last is None else max(0, (today - last).days),
+            "kept_events_lookback": len(events),
+            "rows_last_3_days": sum(1 for r in rows if (row_day(r) or datetime.date.min) >= first_recent),
+            "row_limit_reached": len(rows) >= ROW_LIMIT}
+
+
+def summary_line(report):
+    feed = report["feed"]
+    last = feed["days_since_last_kept"]
+    return "usage feed: last kept report %s, installs %d, events kept %d, discarded %d, rules with enough data %d of %d%s" % (
+        "none in the look-back" if last is None else "%d days ago" % last, report["installs"], report["valid_events"],
+        report["discarded_total"], feed["rules_with_data"], len(report["rules"]),
+        "; row limit reached, older rows are missing" if feed["row_limit_reached"] else "")
+
+
+def analyse(rows, rules, days, today=None, lookback=0):
+    """The rules and the report use the last `days` days. With `lookback` above `days`, rows holds that longer read and
+    the feed alerts use all of it; the report numbers are the same as if only the last `days` days had been read."""
+    today = today or datetime.date.today()
+    wide, wide_events = rows, None
+    if lookback > days:
+        cutoff = today - datetime.timedelta(days=days)
+        rows = [r for r in wide if row_day(r) is None or row_day(r) >= cutoff]
+        wide_events = load_events(wide)[0]
     events, discarded, total = load_events(rows)
     overall, by_version = build_groups(events)
     report = {
@@ -378,6 +420,9 @@ def analyse(rows, rules, days):
     }
     for name, g in by_version.items():
         report["versions"][name] = group_summary(g)
+    report["feed"] = feed_state(wide, wide_events if wide_events is not None else events, today)
+    report["feed"]["rules_with_data"] = sum(1 for r in report["rules"] if r["status"] != "not enough data")
+    report["summary_line"] = summary_line(report)
     return report
 
 
@@ -407,6 +452,8 @@ def render(report):
     w("")
     w("Window: last %d days. Sample size: %d installs, %d install-days, %s active hours." % (
         report["days"], report["installs"], report["install_days"], report["active_hours"]))
+    w("")
+    w(report["summary_line"])
     w("")
     w("## Counts")
     w("- Events read: %d" % report["rows_read"])
@@ -462,7 +509,7 @@ def summary_lines(out, s):
 
 def fetch_rows(key, project_id, days, opener=urllib.request.urlopen):
     query = ("select properties, distinct_id, timestamp from events where event = 'daily_summary' "
-             "and timestamp > now() - interval %d day order by timestamp limit %d" % (days, ROW_LIMIT))
+             "and timestamp > now() - interval %d day order by timestamp desc limit %d" % (days, ROW_LIMIT))
     body = json.dumps({"query": {"kind": "HogQLQuery", "query": query}, "refresh": "force_blocking"}).encode()
     req = urllib.request.Request(
         "%s/api/projects/%s/query/" % (HOST, project_id), data=body, method="POST",
@@ -480,7 +527,8 @@ def fetch_rows(key, project_id, days, opener=urllib.request.urlopen):
         raise HardError("PostHog answer has no results")
     if len(rows) >= ROW_LIMIT:
         sys.stderr.write("warning: row limit %d reached; older events are missing\n" % ROW_LIMIT)
-    return rows
+    # Newest first, so a cut read drops only the oldest rows; back to oldest first for the rest of the script.
+    return rows[::-1]
 
 
 # ---------------------------------------------------------------- ticket drafts
@@ -526,6 +574,54 @@ def ticket_drafts(results, distinct_ids):
     return drafts
 
 
+def alert_draft(rule_id, title, observed, value, investigation, distinct_ids):
+    """A draft for an alert that is not a threshold rule (no minimum of installs). Same shape as ticket_drafts."""
+    body = "\n".join([MARKER % rule_id, "", "Observed: %s" % observed, "",
+                      "Suggested investigation: %s" % investigation, "", FOOTER, ""])
+    if any(i in body for i in distinct_ids):
+        raise HardError("refusing to draft %s: body contains an install id" % rule_id)
+    return {"rule_id": rule_id, "marker": MARKER % rule_id, "title": "Usage monitor: %s" % title,
+            "body_markdown": body, "observed_value": value, "affected_versions": []}
+
+
+def feed_alert_drafts(feed, distinct_ids):
+    """At most one draft. Both alerts need a kept event in the look-back (so none fires before the first real report),
+    none when the row limit cut the read, and no kept event for STALE_DAYS days. They split on whether rows of any kind
+    still arrive: none is a stale feed, rows with nothing kept is a feed whose events no longer pass the checks."""
+    last = feed["days_since_last_kept"]
+    if last is None or last < STALE_DAYS or feed["row_limit_reached"]:
+        return []
+    if feed["rows_last_3_days"] == 0:
+        return [alert_draft(
+            "usage_feed_stale", "no usage report for %d days" % last,
+            "No row of any kind arrived in the last %d days. The last kept report was %d days ago." % (STALE_DAYS, last),
+            last, "Check that the app's usage report still reaches PostHog and that the project key was not rotated or "
+            "deleted (docs/telemetry.md).", distinct_ids)]
+    return [alert_draft(
+        "usage_kept_zero", "usage reports arrive but none passes the checks",
+        "Rows arrived in the last %d days, but none was kept. The last kept report was %d days ago; %d were kept "
+        "in the look-back." % (STALE_DAYS, last, feed["kept_events_lookback"]),
+        feed["kept_events_lookback"], "A schema or checksum change in the app's report, or a changed allowlist, would "
+        "do this. Read the discard reasons in the latest report.", distinct_ids)]
+
+
+KEY_ERROR_RE = re.compile(r"^\[[^\]]*\] error: could not read (the (?:PostHog read key|PostHog project id|Linear key)) "
+                          "from 1Password$")
+
+
+def key_alert_from_log(text):
+    """The draft when the log ends with the same key-read error twice in a row, else None. Any other line between
+    them (a result of a good run) breaks the run. No network and no key."""
+    last = [KEY_ERROR_RE.match(line) for line in [l for l in text.splitlines() if l.strip()][-2:]]
+    if len(last) < 2 or not all(last) or last[0].group(1) != last[1].group(1):
+        return None
+    return alert_draft(
+        "usage_key_unreadable", "%s could not be read twice in a row" % last[1].group(1),
+        "The usage monitor could not read %s from 1Password on its last two runs, so it could not look at the usage "
+        "numbers." % last[1].group(1), 2, "Check that 1Password is unlocked for the monitor and that the item still "
+        "exists. The monitor log holds the error lines.", ())
+
+
 # ---------------------------------------------------------------- main
 
 def main(argv=None):
@@ -533,8 +629,19 @@ def main(argv=None):
     ap.add_argument("--days", type=int, default=14, help="how many days back to read (default 14)")
     ap.add_argument("--json", action="store_true", help="machine-readable output, with a ticket draft per firing rule")
     ap.add_argument("--thresholds", default=DEFAULT_THRESHOLDS, help="rules file")
+    ap.add_argument("--key-alert-from-log", metavar="LOGFILE",
+                    help="no network and no key: print a ticket draft if the log ends with the same key-read error twice")
     args = ap.parse_args(argv)
     try:
+        if args.key_alert_from_log:
+            try:
+                with open(args.key_alert_from_log, encoding="utf-8", errors="replace") as f:
+                    draft = key_alert_from_log(f.read())
+            except OSError as e:
+                raise HardError("cannot read the log: %s" % type(e).__name__)
+            if draft:
+                print(json.dumps({"ticket_drafts": [draft]}, indent=2, sort_keys=True))
+            return 0
         if not 1 <= args.days <= 365:
             raise HardError("--days must be between 1 and 365")
         key = os.environ.get("POSTHOG_PERSONAL_API_KEY", "")
@@ -544,10 +651,13 @@ def main(argv=None):
         if not re.fullmatch(r"[0-9]+", project):
             raise HardError("POSTHOG_PROJECT_ID must be a number")
         rules = load_rules(args.thresholds)
-        rows = fetch_rows(key, project, args.days)
-        report = analyse(rows, rules, args.days)
+        look = max(args.days, LOOKBACK_DAYS)
+        rows = fetch_rows(key, project, look)
+        report = analyse(rows, rules, args.days, lookback=look)
         ids = {r[1] for r in rows if isinstance(r, list) and len(r) > 1 and isinstance(r[1], str)}
-        drafts = ticket_drafts(report["rules"], ids)
+        if any(i in report["summary_line"] for i in ids):
+            raise HardError("refusing the summary line: it contains an install id")
+        drafts = ticket_drafts(report["rules"], ids) + feed_alert_drafts(report["feed"], ids)
         if args.json:
             print(json.dumps(dict(report, ticket_drafts=drafts), indent=2, sort_keys=True))
         else:

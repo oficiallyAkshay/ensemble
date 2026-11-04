@@ -9,7 +9,7 @@ Per entry in `ticket_drafts` it searches team Ensemble (key ENS) for the hidden 
   - no ticket has it: creates one in project "Ensemble: Board" ("filed");
   - a ticket has it: adds a comment only if `observed_value` moved by 25 percent or more from the value last recorded
     on that ticket, or `affected_versions` changed ("commented"); otherwise does nothing ("unchanged").
-One line per draft is printed. With no draft it prints one summary line and exits 0. A draft whose text looks like an
+The input's `summary_line`, if any, is printed first. One line per draft is printed. With no draft it prints one line and exits 0. A draft whose text looks like an
 install id is refused ("refused") and the run exits 1. Any failure of the input or of Linear exits 1 with a message that
 never holds the key. The key comes from the environment only and is never printed or stored.
 """
@@ -143,6 +143,9 @@ def run(report, gql, out):
     drafts = report.get("ticket_drafts") if isinstance(report, dict) else None
     if not isinstance(drafts, list):
         raise FilingError("the input has no ticket_drafts list")
+    line = report.get("summary_line")
+    if isinstance(line, str) and "\n" not in line and not looks_like_install_id(line):
+        out.write(line + "\n")
     if not drafts:
         out.write("no rule is firing; nothing filed\n")
         return 0
