@@ -3,6 +3,27 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.53</title>
+            <pubDate>Wed, 04 Nov 2026 20:20:31 +0000</pubDate>
+            <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
+            <sparkle:version>597</sparkle:version>
+            <sparkle:shortVersionString>0.2.53</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.52:
+
+- The website shows a peace sign card and a scissors card with a 3D hand, the text drawn in the 3D cards is sized to stay readable on a phone, and every 3D card has a place for a small still picture.
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.53/Ensemble-0.2.53.dmg" length="6449674" type="application/octet-stream" sparkle:edSignature="LX9qXC+RH+BEBvNX3CLWbCWm/ISrcpbzX4nUUbhyzcSzlPjtQG9aXR1iZ1C5sUxDfHYXXfxNBEJmp4n1z7MVAQ=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.53/Ensemble597-596.delta" sparkle:deltaFrom="596" length="77490" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="9o/awg4n0nE8W3QAogLXGlnCa8fRzxWjlvmFlcFEqr0sScJU2H2iBE5YGerPJF3rZwK0PT4UAMbr/xzHxfPyCQ=="/>
+            </sparkle:deltas>
+            <whatsNew>sparkles | Update | Update
+checkmark.circle | Fixes and polish | Smaller fixes and behind-the-scenes improvements.
+checkmark.circle | Fixes and polish | Smaller fixes and behind-the-scenes improvements.
+</whatsNew>
+        </item>
+        <item>
             <title>0.2.52</title>
             <pubDate>Wed, 04 Nov 2026 18:33:46 +0000</pubDate>
             <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
@@ -10,16 +31,7 @@
             <sparkle:shortVersionString>0.2.52</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.51:
-
-- The adapter interface gains an interrupt call and a terminal typing path, both refused for Claude desktop and for terminal Claude Code, and the rule that gestures do nothing with another app in front now names supported terminal agents beside Claude.
-- The website's Firefox and WebKit demo test and first-run walkthrough test are documented as part of the required checks and of every site publish.
-- A compiled Python file and a duplicate copy of the window-tree workflow are removed from the repository, and Python cache files are now ignored; the app itself does not change.
-- Two written notes in the docs compare app shells for Windows and Linux and hand tracking without Apple Vision; the app itself does not change.
-- The usage page now names the chosen 13-month retention period, says it is not yet applied, and explains how to ask for your reports to be deleted, with a 30-day reply limit.
-- The usage monitor now logs a summary line on every run and raises an alert when the usage feed goes quiet, stops passing its checks, or a key cannot be read twice in a row.
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.52/Ensemble-0.2.52.dmg" length="6448458" type="application/octet-stream" sparkle:edSignature="DdqbE4tYutVyRp9bL9ci2MiRiUQtuS0NbauzGXMfQhwFslW6evrI+eT2EIC1Kh9DZaZQGJc6n9mh7o+QB+lVBg=="/>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.53/Ensemble-0.2.52.dmg" length="6448458" type="application/octet-stream" sparkle:edSignature="DdqbE4tYutVyRp9bL9ci2MiRiUQtuS0NbauzGXMfQhwFslW6evrI+eT2EIC1Kh9DZaZQGJc6n9mh7o+QB+lVBg=="/>
             <sparkle:deltas>
                 <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.52/Ensemble596-590.delta" sparkle:deltaFrom="590" length="109002" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="EjEdmDr4yHuLnkxoiv0GRT8vVTznakN6Xp+VO3U1lcFt1GC5RdlD82/ilu4SPddEpT0jw+QFqu+/qCM280MzCA=="/>
             </sparkle:deltas>
@@ -47,25 +59,6 @@ wand.and.stars | The home page no longer downloads | The home page no longer dow
 hand.raised | Update | Update
 gearshape | The usage monitor runs as a | The usage monitor runs as a launchd job on the owner's Mac with no Claude app
 bolt | The website's browser test matches the | The website's browser test matches the current page and lists what it skips and why
-</whatsNew>
-        </item>
-        <item>
-            <title>0.2.50</title>
-            <pubDate>Tue, 03 Nov 2026 02:53:14 +0000</pubDate>
-            <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
-            <sparkle:version>584</sparkle:version>
-            <sparkle:shortVersionString>0.2.50</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.51/Ensemble-0.2.50.dmg" length="6445654" type="application/octet-stream" sparkle:edSignature="RGzsuqGpRWdrPn7UNXySAEUD0HD5u0WtPm3rh+GVSXOyAK/VtfRfFBMBt0arIvTuBgRiZlEb9t8+dwlqRVsXAA=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.50/Ensemble584-577.delta" sparkle:deltaFrom="577" length="133150" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="Do99GvoziVlLZDBjcaxMZqvJv/ujsL4/CLCMmeunpmR7/YU5CbSXhoteJ+w3Lw4ISp8qxoUsq//SOmnoLMtaDA=="/>
-            </sparkle:deltas>
-            <whatsNew>sparkles | The update button spins while an | The update button spins while an update checks, downloads or installs, and shows the stage and download percentage
-wand.and.stars | The usage triage tests run in | The usage triage tests run in the checks, and the gate requires them (ENS-178)
-hand.raised | Releases carry a small delta and | Releases carry a small delta and roll out to installed copies over about a week
-gearshape | The website stops carrying its own | The website stops carrying its own copies of the 3D and face tracker files
-bolt | The social preview card is re-rendered | The social preview card is re-rendered from the README hero with the deeper skin (ENS-117)
 </whatsNew>
         </item>
     </channel>
