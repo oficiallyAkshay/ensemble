@@ -3,6 +3,34 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.52</title>
+            <pubDate>Wed, 04 Nov 2026 18:33:46 +0000</pubDate>
+            <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
+            <sparkle:version>596</sparkle:version>
+            <sparkle:shortVersionString>0.2.52</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.51:
+
+- The adapter interface gains an interrupt call and a terminal typing path, both refused for Claude desktop and for terminal Claude Code, and the rule that gestures do nothing with another app in front now names supported terminal agents beside Claude.
+- The website's Firefox and WebKit demo test and first-run walkthrough test are documented as part of the required checks and of every site publish.
+- A compiled Python file and a duplicate copy of the window-tree workflow are removed from the repository, and Python cache files are now ignored; the app itself does not change.
+- Two written notes in the docs compare app shells for Windows and Linux and hand tracking without Apple Vision; the app itself does not change.
+- The usage page now names the chosen 13-month retention period, says it is not yet applied, and explains how to ask for your reports to be deleted, with a 30-day reply limit.
+- The usage monitor now logs a summary line on every run and raises an alert when the usage feed goes quiet, stops passing its checks, or a key cannot be read twice in a row.
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.52/Ensemble-0.2.52.dmg" length="6448458" type="application/octet-stream" sparkle:edSignature="DdqbE4tYutVyRp9bL9ci2MiRiUQtuS0NbauzGXMfQhwFslW6evrI+eT2EIC1Kh9DZaZQGJc6n9mh7o+QB+lVBg=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.52/Ensemble596-590.delta" sparkle:deltaFrom="590" length="109002" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="EjEdmDr4yHuLnkxoiv0GRT8vVTznakN6Xp+VO3U1lcFt1GC5RdlD82/ilu4SPddEpT0jw+QFqu+/qCM280MzCA=="/>
+            </sparkle:deltas>
+            <whatsNew>sparkles | The adapter interface gains an interrupt | The adapter interface gains an interrupt call and a terminal typing path, proven with a fake terminal
+wand.and.stars | The browser test README says where | The browser test README says where the Firefox and WebKit tests run
+hand.raised | Remove a tracked compiled Python file | Remove a tracked compiled Python file and a duplicate workflow copy, and ignore Python cache files
+gearshape | Two written notes: the app shell | Two written notes: the app shell for Windows and Linux, and hand tracking without Apple Vision
+bolt | The usage page names the 13-month | The usage page names the 13-month retention period and explains deletion requests
+</whatsNew>
+        </item>
+        <item>
             <title>0.2.51</title>
             <pubDate>Wed, 04 Nov 2026 06:40:11 +0000</pubDate>
             <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
@@ -10,16 +38,7 @@
             <sparkle:shortVersionString>0.2.51</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.50:
-
-- A new Light mode switch in Settings, General (off by default) lets pinch-and-drag scroll the window of another app that you look at, with a short note on the island; dictation, send and every other gesture still work only on Claude.
-- The home page no longer downloads the demo's 12 MB of hand and face tracking files when it opens; they download only when you start the demo.
-- Release notes are now built from one small note file per pull request, so open pull requests no longer conflict over the changelog.
-- The usage monitor runs as a launchd job on the owner's Mac with no Claude app (#259)
-- The website's browser test matches the current page and lists what it skips and why (#257)
-- The website test server finds the app's 3D and tracker files again (ENS-162) (#256)
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.51/Ensemble-0.2.51.dmg" length="6448502" type="application/octet-stream" sparkle:edSignature="2tborWrI3S5TPqsVLVnh8/2ngvw0+X8pC0eZ7ssKRWxIR3b2GZCh1O3dR53UPlMELoM3iQHa7bFY+KzUFLBwAA=="/>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.52/Ensemble-0.2.51.dmg" length="6448502" type="application/octet-stream" sparkle:edSignature="2tborWrI3S5TPqsVLVnh8/2ngvw0+X8pC0eZ7ssKRWxIR3b2GZCh1O3dR53UPlMELoM3iQHa7bFY+KzUFLBwAA=="/>
             <sparkle:deltas>
                 <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.51/Ensemble590-584.delta" sparkle:deltaFrom="584" length="164514" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="V0X9OCSY6UUq8B23l5axSsD1oOU5VDdqoFTagasBpFYYImNhtjpasHa1EovAx6LPkB9c8LOWxa6VFRbBXXahAQ=="/>
             </sparkle:deltas>
@@ -47,21 +66,6 @@ wand.and.stars | The usage triage tests run in | The usage triage tests run in t
 hand.raised | Releases carry a small delta and | Releases carry a small delta and roll out to installed copies over about a week
 gearshape | The website stops carrying its own | The website stops carrying its own copies of the 3D and face tracker files
 bolt | The social preview card is re-rendered | The social preview card is re-rendered from the README hero with the deeper skin (ENS-117)
-</whatsNew>
-        </item>
-        <item>
-            <title>0.2.49</title>
-            <pubDate>Mon, 02 Nov 2026 23:13:28 +0000</pubDate>
-            <sparkle:version>577</sparkle:version>
-            <sparkle:shortVersionString>0.2.49</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.50/Ensemble-0.2.49.dmg" length="6444422" type="application/octet-stream" sparkle:edSignature="eQ2Aln9PvRWGjEfgrXBq5odOMjbkO42VALNSIbYcikx60si+1SVvSdxFeacWNZusK5b4jdnZwMXnKI9FrgwrCA=="/>
-            <whatsNew>sparkles | Updates open a What's new window | Updates open a What's new window with three to five items, and a release without a summary is refused
-wand.and.stars | Shipping a release refuses a skipped | Shipping a release refuses a skipped version or a build number that does not rise
-hand.raised | Comment and guide stop naming the | Comment and guide stop naming the deleted release scripts (ENS-171)
-gearshape | The release docs name only the | The release docs name only the auto-release workflow and the two launchd release scripts are deleted
-bolt | Tests pin the switch-off wait at | Tests pin the switch-off wait at 8 seconds and the send wait cap at 1.2 seconds
 </whatsNew>
         </item>
     </channel>
