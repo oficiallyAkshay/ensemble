@@ -56,6 +56,10 @@ public protocol AgentAdapter: AnyObject, Sendable {
     func draftText(_: ClaudeSession) async -> String?
     func sendDraft(_: ClaudeSession, shown _: String, stoppedAt _: Date, inputAge: @escaping @Sendable () -> Double) async -> BridgeResult
 
+    // Terminal agents. Both refuse unless the session's own terminal is the app in front.
+    func interrupt(_: ClaudeSession) async -> BridgeResult
+    func typeIntoTerminal(_: ClaudeSession, draft _: String) async -> BridgeResult
+
     // Panes
     func paneDividers(in _: ClaudeSession) async -> [PaneDivider]
     func focusDivider(_: AnyObject, in _: ClaudeSession) async -> Bool

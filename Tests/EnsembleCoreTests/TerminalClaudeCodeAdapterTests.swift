@@ -58,6 +58,17 @@ import Testing
         #expect(await adapter.chatColumns(in: [s]).isEmpty)
     }
 
+    @Test func interruptRefuses() async {
+        let s = ClaudeSession(id: "a", frame: .zero, windowNumber: 0)
+        #expect(await TerminalClaudeCodeAdapter().interrupt(s) == .refused("terminal Claude Code is read-only"))
+    }
+
+    @Test func typingIntoTheTerminalRefuses() async {
+        let s = ClaudeSession(id: "a", frame: .zero, windowNumber: 0)
+        let result = await TerminalClaudeCodeAdapter().typeIntoTerminal(s, draft: "x")
+        #expect(result == .refused("terminal Claude Code is read-only"))
+    }
+
     @Test func theAppAndItsMicrophoneAreNotThere() {
         let adapter = TerminalClaudeCodeAdapter()
         adapter.beginShutdown()
