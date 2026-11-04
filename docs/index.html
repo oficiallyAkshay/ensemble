@@ -117,6 +117,9 @@
   /* the 3D stages: transparent canvases that sit on a pale card, loaded only when they scroll into view */
   .card3d { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px rgba(10, 10, 10, 0.08); }
   .card3d.desk { aspect-ratio: 4 / 3; }
+  /* a small still of the scene (assets/posters, made by scripts/render-card-posters.mjs): it shows before the scene loads and goes when the scene is ready; a poster file that is missing is removed and the card stays plain */
+  .card3d .poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.6s ease; }
+  .card3d.ready .poster { opacity: 0; }
   .card3d canvas { opacity: 0; transition: opacity 0.6s ease; }
   .card3d.ready canvas { opacity: 1; }
   .scene { position: relative; width: 100%; height: 100%; }
@@ -379,7 +382,7 @@
     </article>
 
     <article class="vig reveal">
-      <div class="vig-art card3d" role="img" aria-label="A 3D closed aluminium laptop turns slowly, its lid shut."><div class="scene" data-scene="closed-lid"></div></div>
+      <div class="vig-art card3d" role="img" aria-label="A 3D closed aluminium laptop turns slowly, its lid shut."><img class="poster" src="assets/posters/closed-lid.webp" alt="" width="640" height="400" loading="lazy" decoding="async" onerror="this.remove()"><div class="scene" data-scene="closed-lid"></div></div>
       <h3>A closed lid does not stop you</h3>
       <p>The input moves to another microphone when the lid closes, and back when it opens.</p>
     </article>
@@ -392,12 +395,12 @@
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">01</span><h3>Look.</h3><p>Focus follows your nose. The session you face gets the blue outline.</p></div>
-    <figure class="shot"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four windows on two monitors. Three are Claude sessions and light up blue when the head faces them; the fourth is not a Claude session and shows an off mark instead."><div class="scene" data-scene="look"></div></div><figcaption>Notice: a Claude window the head faces gets the blue outline; the other window shows off.</figcaption></figure>
+    <figure class="shot"><div class="card3d desk" role="img" aria-label="A 3D head turns to look at one of four windows on two monitors. Three are Claude sessions and light up blue when the head faces them; the fourth is not a Claude session and shows an off mark instead."><img class="poster" src="assets/posters/look.webp" alt="" width="640" height="400" loading="lazy" decoding="async" onerror="this.remove()"><div class="scene" data-scene="look"></div></div><figcaption>Notice: a Claude window the head faces gets the blue outline; the other window shows off.</figcaption></figure>
   </div>
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">02</span><h3>Pinch twice.</h3><p>Two quick pinches of thumb and index start Claude's own dictation.</p></div>
-    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches twice beside a Claude window; the island turns to listening and the message types in."><div class="scene" data-scene="dictate"></div></div><figcaption>Notice: after the second pinch, the window starts listening.</figcaption></figure>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches twice beside a Claude window; the island turns to listening and the message types in."><img class="poster" src="assets/posters/dictate.webp" alt="" width="640" height="400" loading="lazy" decoding="async" onerror="this.remove()"><div class="scene" data-scene="dictate"></div></div><figcaption>Notice: after the second pinch, the window starts listening.</figcaption></figure>
   </div>
 
   <div class="moment">
@@ -408,12 +411,22 @@
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">04</span><h3 style="white-space:nowrap">Thumbs-up.</h3><p>Hold it to send. Then look at the next session.</p></div>
-    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand makes a thumbs-up and holds it beside a Claude window; the island fills while it is held, then reads Sent and the message moves into the transcript."><div class="scene" data-scene="send"></div></div><figcaption>Notice: the message only sends once the thumbs-up has been held.</figcaption></figure>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand makes a thumbs-up and holds it beside a Claude window; the island fills while it is held, then reads Sent and the message moves into the transcript."><img class="poster" src="assets/posters/send.webp" alt="" width="640" height="400" loading="lazy" decoding="async" onerror="this.remove()"><div class="scene" data-scene="send"></div></div><figcaption>Notice: the message only sends once the thumbs-up has been held.</figcaption></figure>
   </div>
 
   <div class="moment">
     <div class="moment-head reveal"><span class="n">05</span><h3>Pinch and drag.</h3><p>Pinch, then move your hand up or down to scroll the session you are looking at.</p></div>
-    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches and drags up and down beside a Claude window, and the session in the window scrolls with it."><div class="scene" data-scene="scroll"></div></div><figcaption>Notice: the session scrolls only while the pinch is held.</figcaption></figure>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand pinches and drags up and down beside a Claude window, and the session in the window scrolls with it."><img class="poster" src="assets/posters/scroll.webp" alt="" width="640" height="400" loading="lazy" decoding="async" onerror="this.remove()"><div class="scene" data-scene="scroll"></div></div><figcaption>Notice: the session scrolls only while the pinch is held.</figcaption></figure>
+  </div>
+
+  <div class="moment">
+    <div class="moment-head reveal"><span class="n">06</span><h3>Peace sign.</h3><p>Hold it to widen the session you look at to Claude's default chat width. The sessions beside it give up only the width that takes.</p></div>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand makes a peace sign beside a row of four equal Claude windows; the focused window widens and the others narrow."><img class="poster" src="assets/posters/peace.webp" alt="" width="640" height="400" loading="lazy" decoding="async" onerror="this.remove()"><div class="scene" data-scene="peace"></div></div><figcaption>Notice: the session you look at gets wider; the others give up only the width that takes.</figcaption></figure>
+  </div>
+
+  <div class="moment">
+    <div class="moment-head reveal"><span class="n">07</span><h3>Scissors.</h3><p>Make a peace sign, then close the two fingers together. Every session gets an equal share of the width again.</p></div>
+    <figure class="shot"><div class="card3d" role="img" aria-label="A 3D hand makes a peace sign and closes the two fingers like scissors beside a row of Claude windows; the wide window and its narrow neighbours even out to the same width."><img class="poster" src="assets/posters/scissors.webp" alt="" width="640" height="400" loading="lazy" decoding="async" onerror="this.remove()"><div class="scene" data-scene="scissors"></div></div><figcaption>Notice: the sessions even out to equal widths once the fingers close.</figcaption></figure>
   </div>
 </section>
 
