@@ -18,7 +18,7 @@ These tests run in the `browser-tests` job of `ci.yml`, which `gate` requires, t
 
 ```
 cd docs/live/test/browsers
-npm install                            # creates package-lock.json; commit it
+npm ci                                 # installs from package-lock.json
 npx playwright install firefox webkit
 npx playwright test --list             # the same tests under both projects
 npx playwright test                    # the live run in both browsers
