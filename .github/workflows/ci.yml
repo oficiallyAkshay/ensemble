@@ -123,6 +123,37 @@ jobs:
       - name: README hero matches its spec
         run: node scripts/make-hero.mjs --check
 
+  # The Firefox and WebKit demo test and the first-run walkthrough, each against its own copy of the site.
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Firefox and WebKit demo test
+        working-directory: docs/live/test/browsers
+        run: |
+          npm ci
+          npx playwright install --with-deps firefox webkit
+          npx playwright test
+
+      - name: First-run walkthrough
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          npm ci --prefix docs/live/test
+          node docs/live/test/serve.mjs 8791 &
+          curl --retry-connrefused --retry 30 --retry-delay 1 -sf http://127.0.0.1:8791/index.html -o /dev/null
+          node docs/live/test/first-run.mjs http://127.0.0.1:8791/
+
   # Line coverage of EnsembleCore only: the app target needs a camera and Accessibility, so it is not measured. Every
   # line this change adds or edits under Sources/EnsembleCore must be covered, and the total may not fall below the
   # recorded baseline.
@@ -224,7 +255,7 @@ jobs:
   # every one of them succeeded.
   gate:
     if: ${{ always() }}
-    needs: [ci, hygiene, website-tests, coverage, periphery, script-tests]
+    needs: [ci, hygiene, website-tests, browser-tests, coverage, periphery, script-tests]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions: {}
