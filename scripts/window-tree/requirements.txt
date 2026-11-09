@@ -1,1 +1,8 @@
-xa11y==0.15.4
+# Hashes come from PyPI's listing for xa11y 0.15.4; replace them whenever the version changes.
+xa11y==0.15.4 \
+    --hash=sha256:3cb4db68ae12a123731687c366de4d7561187492e5718a9e29a355f4e2d0d445 \
+    --hash=sha256:d7e3e4f8018bee968820220faffcbc8c6e8ec402f6df6068cf3dfc5f9c8359ae \
+    --hash=sha256:cb61fcca0abae50e2b413f5298fad8b82f8fe5dc57da3199d35f58c91872208d \
+    --hash=sha256:192862a0b653cba03849cc75e2c0f1ff8f690bee147ed944e4566d65371d0272 \
+    --hash=sha256:b208f89e7df9da3457c75c7c35f247ca89f1d2a311de9329957b91b3348726fe \
+    --hash=sha256:a2aa620a06717eb0fc60d9aca6d2e6a80c2291652e40e435cb3857c1bd73c6b9

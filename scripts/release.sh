@@ -117,11 +117,16 @@ fi
 log "step 3/5: create $DMG"
 rm -rf "$STAGE" "$DMG"
 # The installer window (background, icon positions, no toolbar) is laid out by dmgbuild from scripts/dmg-settings.py,
-# run through uv so nothing is installed globally. Pinned: bump deliberately.
-command -v uvx >/dev/null || die "uvx is missing (brew install uv); it runs dmgbuild for the installer window"
+# run from a throwaway uv environment so nothing is installed globally. The install refuses any package whose hash
+# is not in scripts/dmgbuild-requirements.txt, so bump versions there deliberately.
+command -v uv >/dev/null || die "uv is missing (brew install uv); it builds the environment that runs dmgbuild for the installer window"
+DMG_VENV="$(mktemp -d)"
+trap 'rm -rf "$DMG_VENV"' EXIT
+uv venv --quiet "$DMG_VENV"
+uv pip install --quiet --python "$DMG_VENV/bin/python" --require-hashes -r scripts/dmgbuild-requirements.txt
 mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/Ensemble.app"
-uvx --from "dmgbuild==1.6.7" dmgbuild -s scripts/dmg-settings.py -D app="$STAGE/Ensemble.app" "$VOLNAME" "$DMG"
+"$DMG_VENV/bin/dmgbuild" -s scripts/dmg-settings.py -D app="$STAGE/Ensemble.app" "$VOLNAME" "$DMG"
 rm -rf "$STAGE"
 
 if [ "$DISTRIBUTION" = "1" ]; then
