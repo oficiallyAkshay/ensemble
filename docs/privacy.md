@@ -1,33 +1,6 @@
-# Security policy
+# Privacy: what the app touches, and what leaves the Mac
 
-## Reporting a vulnerability
-
-Use GitHub private vulnerability reporting: open the repository's **Security** tab and choose **Report a vulnerability**
-(https://github.com/oficiallyAkshay/ensemble/security/advisories/new). The report is visible only to the maintainer.
-Please do not open a public issue or pull request for a vulnerability.
-
-Include what you did, what you expected and what happened, the Ensemble version (menu bar panel, About), and your macOS
-and Claude desktop versions. A screenshot or a log excerpt helps; remove anything you do not want shared.
-
-Ensemble is maintained by one person, so there is no service-level promise. A report is acknowledged as soon as it is
-read, and a confirmed vulnerability is fixed and released before it is described publicly.
-
-## What counts
-
-- Ensemble acting on something other than Claude, or sending a draft the user did not dictate, to a session the user did
-  not dictate it to, or after the safety rules in [docs/safety.md](docs/safety.md) should have stopped it.
-- Claude's microphone left recording because of Ensemble.
-- Any network connection other than the update feed and the usage report in [docs/telemetry.md](docs/telemetry.md), any data leaving the Mac beyond that report's fixed fields, or any camera frame reaching disk.
-- A way for a web page, another app or a crafted update to make Ensemble run code or press Claude's controls.
-- A secret, token or personal address committed to the repository or its history.
-
-Out of scope: a Claude desktop update that renames the controls Ensemble reads (it makes Ensemble stop working, not act
-wrongly; the app turns itself off if a dictation step fails after an update), and findings that need the attacker to
-already control the user's Mac account.
-
-## What the app touches, and what leaves the Mac
-
-Video, text and names never leave the Mac. The app has no crash upload. It sends one anonymous usage report a day (counts only, listed field by field in [docs/telemetry.md](docs/telemetry.md)), which Settings, General, Privacy turns off.
+Video, text and names never leave the Mac. The app has no crash upload. It sends one anonymous usage report a day (counts only, listed field by field in [docs/telemetry.md](telemetry.md)), which Settings, General, Privacy turns off.
 
 | What | How it is used | Where it goes |
 |---|---|---|
@@ -47,7 +20,3 @@ are configured it never starts. Updates are verified against an EdDSA key pinned
 before they are installed. The face tracker's page, WebAssembly and model are bundled and served through a custom URL
 scheme, so nothing is fetched at run time. CI fails if a network call appears in the app sources
 (`scripts/check-network.sh`).
-
-## Supported versions
-
-Only the latest release receives fixes.
