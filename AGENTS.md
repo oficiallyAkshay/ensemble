@@ -24,6 +24,7 @@ scripts/bundle.sh           # build/Ensemble.app, signed; needs a signing identi
 ## Working rules
 
 - Branch before editing; open a pull request; `gate` (which waits for `ci`, `hygiene`, coverage and the other checks) must pass. No force-push to `main`, no `git add -A`, no amended commits, no skipped hooks.
+- A merged pull request is not a release. Installed copies update only from the appcast that `scripts/ship-release.sh` publishes from the owner's Mac (`docs/RELEASING.md`), so when a merged fix is meant to reach the owner's own copy, say in the same message that a release is the next step.
 - After a pull request that changes app logic merges to `main`, the release is cut (`docs/RELEASING.md`, "Release on every merge"): by the `auto-release` workflow, the only automatic release path, or by hand with `scripts/ship-release.sh` if it is off. Never reuse or lower a version, never move a tag, never release from anything but a clean, green `main`.
 - Commit messages state the outcome. No emojis in commits, code, comments or docs.
 - A pull request never edits `docs/CHANGELOG.md`; it adds its release note as a new file in `docs/changes/` (`docs/changes/README.md`).
