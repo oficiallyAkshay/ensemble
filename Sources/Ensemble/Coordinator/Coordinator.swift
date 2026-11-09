@@ -681,14 +681,16 @@ final class Coordinator: AppCoordinating {
     private func updateFaceRate(now: TimeInterval) {
         let full = needsFullRate
         engine.setForceFullRate(full)
-        engine.setOtherAppInFront(focus.userLeftClaude)
-        let slow = FrameRatePlanner.wantsSlowFace(needsFull: full, tourOpen: tourOpen, otherAppInFront: focus.userLeftClaude,
+        // Light mode needs every hand frame and the nose, so another app in front is no reason to slow either.
+        let probeOnly = focus.userLeftClaude && !settings.lightMode
+        engine.setOtherAppInFront(probeOnly)
+        let slow = FrameRatePlanner.wantsSlowFace(needsFull: full, tourOpen: tourOpen, otherAppInFront: probeOnly,
                                                   sessionsOnScreen: !ctx.sessions.isEmpty,
                                                   pausedFor: ctx.handsBusy ? now - pausedSince : nil)
         engine.setSlowFace(slow)
         guard slow != faceSlow else { return }
         faceSlow = slow
-        let why = focus.userLeftClaude ? "another app in front" : ctx.sessions.isEmpty ? "no Claude session on screen" : "paused for the keyboard or mouse"
+        let why = probeOnly ? "another app in front" : ctx.sessions.isEmpty ? "no Claude session on screen" : "paused for the keyboard or mouse"
         EnsembleLog.write(slow ? "face tracking at 10 Hz (\(why))" : "face tracking at full rate")
     }
 
@@ -764,7 +766,28 @@ final class Coordinator: AppCoordinating {
 
     // MARK: - Intents and cross-cutting steps
 
+    /// Light mode is in force: another app is in front and the look is not on a Claude session. Only a pinch-and-drag
+    /// acts then; every other gesture stays Claude-only and does nothing here.
+    private var lightModeInForce: Bool {
+        settings.lightMode && focus.userLeftClaude && focus.target == nil && ctx.listening == nil
+    }
+
+    /// The front app's window under the look point, when light mode lets a pinch-and-drag scroll it.
+    private func lightTarget() -> ScrollController.LightTarget? {
+        guard let nose = focusNose, let head = ctx.latestHead, CACurrentMediaTime() - head.t <= Self.staleHeadSeconds,
+              let owner = LightScroll.owner(enabled: settings.lightMode, claudeFront: !focus.userLeftClaude,
+                                            onClaudeSession: focus.target != nil, dictating: ctx.listening != nil,
+                                            handsBusy: ctx.handsBusy,
+                                            frontPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                                            ownerAtLook: ScreenFacts.topWindowOwner(at: nose)) else { return nil }
+        return ScrollController.LightTarget(point: nose, owner: owner)
+    }
+
     private func apply(_ intent: GestureIntent) {
+        if lightModeInForce, !LightScroll.allows(intent) {
+            if intent == .talkBegan { gestures.abortTalk() }   // no dictation started, so the gesture must not wait for its end
+            return
+        }
         switch intent {
         case .scroll, .dragScroll: break
         default: EnsembleLog.write("gesture: \(intent)")
@@ -792,7 +815,7 @@ final class Coordinator: AppCoordinating {
             if ctx.listening != nil || ctx.busy { send.sendAfterStop(in: ctx.listening); EnsembleLog.write("send after stop") } else { requestSend() }
         case .scroll(let dy): scroll.scroll(dy, target: focus.target)
         case .dragScrollEnded: scroll.released()
-        case .dragScroll(let handDy): scroll.drag(handDy: handDy, target: focus.target)
+        case .dragScroll(let handDy): scroll.drag(handDy: handDy, target: focus.target, lightTarget: { self.lightTarget() })
         case .maximizeSession: panes.request(true, target: focus.target)
         case .evenOutSessions: panes.request(false, target: focus.target)
         }

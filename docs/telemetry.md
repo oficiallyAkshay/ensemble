@@ -36,9 +36,19 @@ Never sent: your name, email, machine name, file paths, window or session titles
 
 ## Where it goes and how long it is kept
 
-PostHog Cloud (US), `https://us.i.posthog.com/i/v0/e/`, written by Ensemble over plain HTTPS with `URLSession`: no PostHog SDK and no other dependency. The project key is write-only and public (`usageWriteKey` in `Sources/Ensemble/App/UsageReporter.swift`). Retention: reports stay in the PostHog project until the owner deletes them; no automatic expiry is set up yet. Anyone can ask for their reports to be deleted through an issue, giving the install id shown in "Show what would be sent" (the id is only known after the first send). Moving to the EU cloud later means changing the host in `UsageReporter.swift` and in `scripts/check-network.sh`, and the sentence above.
+PostHog Cloud (US), `https://us.i.posthog.com/i/v0/e/`, written by Ensemble over plain HTTPS with `URLSession`: no PostHog SDK and no other dependency. The project key is write-only and public (`usageWriteKey` in `Sources/Ensemble/App/UsageReporter.swift`). How long reports are kept is in "Retention period" below, and how to ask for deletion is in "Deletion requests". Moving to the EU cloud later means changing the host in `UsageReporter.swift` and in `scripts/check-network.sh`, and the sentence above.
 
 A send that does not get a 2xx answer is kept and tried again at the next hourly check; a summary older than 7 days is dropped. Nothing is sent while sharing is off, and `scripts/check-network.sh` allows exactly this one file to use `URLSession` and exactly this one extra address.
+
+## Retention period
+
+The chosen retention period is 13 months: a report older than that is to be deleted by PostHog. This is chosen and not yet applied. The expiry setting is not yet set in the PostHog project, so today reports stay until the owner deletes them. This page will say the expiry is live only after the owner sets it.
+
+## Deletion requests
+
+To ask for your reports to be deleted, open an issue in this repository and give the install id shown by "Show what would be sent" in Settings, General, Privacy. The id is only known after the first send. The owner finds the reports with that id in the PostHog screen and deletes them there. The owner replies within 30 days. Never paste anyone's install id into a ticket, comment or log other than your own request.
+
+The procedure has not yet been run on a test id. The test run uses a made-up id: send one event with it, delete it, and read back that zero events remain. Date of the run: not yet done. Result: not yet done.
 
 ## The checksum and spam
 
@@ -134,3 +144,13 @@ python3 -I -m unittest discover -s scripts -p 'test_usage_triage.py'            
 ```
 
 The checks run these tests on every pull request (the `script-tests` job, which `gate` waits for). The script never talks to GitHub or to any ticket system; `scripts/usage-file-tickets.py` is the one script that talks to Linear. Tickets live in Linear. With `--json` it adds `ticket_drafts` to the report: one ready-to-file draft per firing rule, `{rule_id, marker, title, body_markdown, observed_value, affected_versions}`, where `marker` is the hidden comment `<!-- usage-triage:<rule_id> -->`. The caller is a launchd job on the owner's Mac, with no Claude app involved: `scripts/install-usage-monitor.sh` (with `--dry-run` and `--uninstall`) installs the agent `dev.ensemble.usage-monitor` from `scripts/dev.ensemble.usage-monitor.plist`, which runs `scripts/usage-monitor.sh` every 2 hours. That wrapper reads the PostHog read key, the project id and a Linear API key at run time from the 1Password command-line tool, gives each only to the one process that needs it, and logs one line per result to `~/Library/Logs/Ensemble/usage-monitor.log`. It pipes `usage-triage.py --json` into `scripts/usage-file-tickets.py`, which files and dedupes: it searches Linear for the marker; if no ticket has it, it creates one in team Ensemble (key ENS), project "Ensemble: Board"; if one does, it adds a comment only when `observed_value` moved by 25 percent or more or the affected versions changed (the last value is kept in a hidden line on the ticket, so no local file is needed), so a rule that keeps firing never opens a second ticket. It prints one line per draft (filed, commented, unchanged or refused) and refuses any draft whose text looks like an install id, exiting non-zero. With thin data or no firing rule it files nothing and exits 0. Its tests (`test_usage_file_tickets.py`) use a stand-in Linear and no network. The read key stays in 1Password and in the GitHub secret `POSTHOG_PERSONAL_API_KEY`; the Linear key stays in 1Password only. A draft holds aggregate numbers and version names only: never an install id or a raw event (the script refuses to produce a draft that does), because the repository is public.
+
+### Silence is not health: the summary line and three alerts
+
+With one install none of the rules can fire, so a quiet monitor would look the same as a healthy one. Every run that reaches the analysis therefore logs one summary line (via `usage-file-tickets.py`, even when nothing is filed): days since the last kept report, installs in the window, events kept and discarded, and how many rules had enough data. It never holds an install id, and says so when the row limit cut the read. Three alerts do not need 5 installs. Each is one draft with a stable marker, filed and deduped like a rule, so a repeat run updates the same ticket and never opens a second:
+
+- `usage_feed_stale`: no row of any kind arrived in the last 3 days, and at least one kept event exists in the last 60 days.
+- `usage_kept_zero`: rows still arrive but none was kept in the last 3 days (a schema or checksum change, or forged events only), and at least one kept event exists in the last 60 days. It cannot fire together with the stale alert.
+- `usage_key_unreadable`: the monitor log ends with the same 1Password key-read error twice in a row (`usage-triage.py --key-alert-from-log`, no network and no key). If the unreadable one is the Linear key, nothing can be filed and the log line is the only signal.
+
+The two feed alerts count kept events only when judging "has reported before", because the write key is public. They read a 60-day look-back (the rules and the report stay on the 14-day window with unchanged numbers), so a feed silent for more than 60 days looks like one that never reported and fires nothing. The read is newest first; if it reaches the 50000-row limit, neither feed alert fires and the summary line says older rows are missing.

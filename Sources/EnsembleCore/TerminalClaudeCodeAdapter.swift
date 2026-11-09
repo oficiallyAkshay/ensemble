@@ -69,6 +69,9 @@ public final class TerminalClaudeCodeAdapter: AgentAdapter, @unchecked Sendable 
         .refused(Self.refusal)
     }
 
+    public func interrupt(_: ClaudeSession) async -> BridgeResult { .refused(Self.refusal) }
+    public func typeIntoTerminal(_: ClaudeSession, draft _: String) async -> BridgeResult { .refused(Self.refusal) }
+
     public func paneDividers(in _: ClaudeSession) async -> [PaneDivider] { [] }
     public func focusDivider(_: AnyObject, in _: ClaudeSession) async -> Bool { false }
     public func dividerHoldsKeyboard(_: AnyObject) async -> Bool { false }

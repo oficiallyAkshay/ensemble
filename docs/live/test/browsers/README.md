@@ -10,14 +10,16 @@ Runs the website's home page and the live demo in Firefox and in WebKit (Safari'
 
 Off-origin requests keep the allow-list of `LETTER_ALLOWED` in `../e2e.mjs` (the two GitHub counts and the anonymous visit events); each is answered with an empty stand-in, and any other address fails the test.
 
-## Run it (once, by hand, on the dev MacBook)
+## Where it runs
+
+These tests run in the `browser-tests` job of `ci.yml`, which `gate` requires, together with `../first-run.mjs`. The `site.yml` workflow runs the same two tests in its `test` job, and `publish` waits for it: a failing test leaves the site unpublished.
+
+## Run it by hand
 
 ```
 cd docs/live/test/browsers
-npm install                            # creates package-lock.json; commit it
+npm ci                                 # installs from package-lock.json
 npx playwright install firefox webkit
 npx playwright test --list             # the same tests under both projects
 npx playwright test                    # the live run in both browsers
 ```
-
-The wiring into the required checks is not done here; it is an edit under `.github/`.

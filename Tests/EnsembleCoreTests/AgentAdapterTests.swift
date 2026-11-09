@@ -32,6 +32,8 @@ private final class StubAdapter: AgentAdapter, @unchecked Sendable {
     func sendDraft(_ s: ClaudeSession, shown: String, stoppedAt: Date, inputAge: @escaping @Sendable () -> Double) async -> BridgeResult {
         .refused("typed \(inputAge())")
     }
+    func interrupt(_ s: ClaudeSession) async -> BridgeResult { .done }
+    func typeIntoTerminal(_ s: ClaudeSession, draft: String) async -> BridgeResult { .done }
     func paneDividers(in s: ClaudeSession) async -> [PaneDivider] { [divider] }
     func focusDivider(_ divider: AnyObject, in s: ClaudeSession) async -> Bool { divider === self.divider.element }
     func dividerHoldsKeyboard(_ divider: AnyObject) async -> Bool { false }
