@@ -200,7 +200,8 @@ listed there too; do not change them without asking in an issue.
 ## Reporting problems
 
 A bug: open an issue with your macOS version, Claude desktop version and the lines from the log around the problem (remove
-anything you do not want shared). A security problem: do not open an issue; see `SECURITY.md`.
+anything you do not want shared). A security problem: do not open a public issue; tell the maintainer in private. What the app touches is listed in
+[docs/privacy.md](../docs/privacy.md).
 
 ## Credits
 
