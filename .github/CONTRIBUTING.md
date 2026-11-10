@@ -134,7 +134,7 @@ These are not style preferences. A pull request that breaks one will not be merg
 5. Commit with a message that states the outcome ("Hold-to-send stops counting after a keystroke"), not the mechanism.
    No emojis in commits, code, comments or docs. Do not amend or force-push a branch someone has reviewed.
 6. Open a pull request against `main`. `gate` must pass: it waits for `ci` (build, tests and the repository's own checks on a macOS runner), `hygiene`
-   (zizmor, pinact, secrets scan), `website-tests`, `coverage` (every changed line in `Sources/EnsembleCore` covered, and total
+   (zizmor, pinact, secrets scan), `website-tests`, `browser-tests` (the Firefox and WebKit demo test and the first-run walkthrough), `coverage` (every changed line in `Sources/EnsembleCore` covered, and total
    coverage not below `.github/coverage-baseline.json`) and `periphery` (no unused declarations in EnsembleCore). A pull request that changes dictation, sending or the Accessibility bridge
    gets a manual check on a real Mac with Claude desktop; say what you ran.
 7. The maintainer merges once the checks pass.
