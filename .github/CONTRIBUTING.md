@@ -118,7 +118,7 @@ These are not style preferences. A pull request that breaks one will not be merg
 6. **Dictation is never left recording because of Ensemble.** Anything that touches dictation or sending must keep the
    safety design in [docs/safety.md](../docs/safety.md) intact (written before pressed, dead-man check, standing check, narrow send rules, stop on
    typing or clicking). Say in the pull request how your change preserves it.
-7. **Ensemble acts only on Claude.** With another app in front, gestures do nothing.
+7. **Ensemble acts only on Claude.** With another app in front, gestures do nothing, except that Settings, General, Light mode (off by default) lets a pinch-and-drag scroll the window you look at.
 8. **Pin everything the build runs.** Every GitHub Action is a full commit SHA with the version in a trailing comment;
    workflows start from `permissions: {}`; no `${{ }}` expression inside a `run:` step (pass it through `env:`).
    Dependabot proposes bumps weekly.
