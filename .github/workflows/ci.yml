@@ -58,6 +58,37 @@ jobs:
       - name: Size check
         run: scripts/check-size.sh 2>&1 | tee /tmp/ensemble-ci-size.log
 
+      # The release path (hash-pinned uv, the disk image built from the hash-checked list) is tried here, so a release never
+      # finds it broken. It runs only when a file it depends on changed; the checkout is one commit deep, so the parent is fetched first.
+      - name: Release dry run and hash check
+        env:
+          ENSEMBLE_SIGN_IDENTITY: "-"
+          UV_VERSION: 0.13.7
+          UV_SHA256: f91a229093163eefca89ea1b220a221d64c3beade05d03519a6584d1797a5a5f
+        run: |
+          git fetch --depth=2 origin "$GITHUB_SHA"
+          if git diff --quiet HEAD^1 HEAD -- scripts/release.sh scripts/bundle.sh scripts/dmg-settings.py scripts/dmgbuild-requirements.txt .github/workflows/ci.yml .github/workflows/auto-release.yml; then
+            echo "::notice::no file the release depends on changed; the release dry run is not needed"
+          else
+            printf 'uv==%s --hash=sha256:%s\n' "$UV_VERSION" "$UV_SHA256" > "$RUNNER_TEMP/uv-requirements.txt"
+            python3 -m pip install --require-hashes --no-deps --only-binary :all: --target "$RUNNER_TEMP/uv" -r "$RUNNER_TEMP/uv-requirements.txt"
+            test -x "$RUNNER_TEMP/uv/bin/uv" && test -x "$RUNNER_TEMP/uv/bin/uvx"
+            export PATH="$RUNNER_TEMP/uv/bin:$PATH"
+            scripts/release.sh --dry-run 2>&1 | tee /tmp/ensemble-ci-release-dry-run.log
+            ls build/Ensemble-*.dmg
+            # A good list installs; the same list with every digest zeroed is refused for its digests, not for a missing interpreter.
+            uv venv "$RUNNER_TEMP/hash-good"
+            uv pip install --no-cache --python "$RUNNER_TEMP/hash-good/bin/python" --require-hashes -r scripts/dmgbuild-requirements.txt
+            uv venv "$RUNNER_TEMP/hash-bad"
+            ZEROS="$(printf '%064d' 0)"
+            sed -E "s/sha256:[0-9a-f]{64}/sha256:$ZEROS/" scripts/dmgbuild-requirements.txt > "$RUNNER_TEMP/zeros-requirements.txt"
+            OUT="$RUNNER_TEMP/zeros-install.log"
+            if uv pip install --no-cache --python "$RUNNER_TEMP/hash-bad/bin/python" --require-hashes -r "$RUNNER_TEMP/zeros-requirements.txt" > "$OUT" 2>&1; then exit 1; fi
+            cat "$OUT"
+            grep -qi 'hash' "$OUT"
+            grep -qi 'hash mismatch' "$OUT"
+          fi
+
       - name: Keep the logs
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

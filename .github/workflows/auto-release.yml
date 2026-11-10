@@ -118,10 +118,21 @@ jobs:
           fetch-depth: 0   # the build number is the commit count, which Sparkle needs to grow every release
           persist-credentials: false
 
+      # uv comes from a hash-checked wheel, not a package manager with no pin, because this job later holds the signing identity and the update key.
+      - name: Install uv
+        env:
+          UV_VERSION: 0.13.7
+          UV_SHA256: f91a229093163eefca89ea1b220a221d64c3beade05d03519a6584d1797a5a5f
+        run: |
+          printf 'uv==%s --hash=sha256:%s\n' "$UV_VERSION" "$UV_SHA256" > "$RUNNER_TEMP/uv-requirements.txt"
+          python3 -m pip install --require-hashes --no-deps --only-binary :all: --target "$RUNNER_TEMP/uv" -r "$RUNNER_TEMP/uv-requirements.txt"
+          test -x "$RUNNER_TEMP/uv/bin/uv" && test -x "$RUNNER_TEMP/uv/bin/uvx"
+
       - name: Toolchain
         run: |
           xcodebuild -version
           swift --version
+          export PATH="$RUNNER_TEMP/uv/bin:$PATH"
           command -v uvx >/dev/null || brew install uv   # scripts/release.sh runs dmgbuild through uvx
 
       # Where the repository has the tool, an untracked summary of the release for the
@@ -199,6 +210,7 @@ jobs:
             exit 0
           fi
           if [ "$DRY" = "true" ]; then export ENSEMBLE_SHIP_DRY_RUN=1; fi
+          export PATH="$RUNNER_TEMP/uv/bin:$PATH"
           scripts/ship-release.sh "$VERSION"
           echo "shipped=true" >> "$GITHUB_OUTPUT"
 
