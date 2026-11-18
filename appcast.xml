@@ -3,6 +3,39 @@
     <channel>
         <title>Ensemble</title>
         <item>
+            <title>0.2.54</title>
+            <pubDate>Wed, 18 Nov 2026 19:09:14 +0000</pubDate>
+            <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
+            <sparkle:version>608</sparkle:version>
+            <sparkle:shortVersionString>0.2.54</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.53:
+
+- On a first run, Automatic camera starts the Mac's own camera instead of a Continuity Camera iPhone (#183)
+- Bump the actions group with 5 updates (#285)
+- The release guide now says dmgbuild lays out the installer window, instead of naming the old disk image tool; the app itself does not change.
+- The release job installs a hash-pinned uv, and CI dry-runs the release path and proves a wrong hash is refused (#282)
+- Remove SECURITY.md (owner's ruling, 2026-11-09) (#281)
+- Update (#280)
+- The browser tests get a lock file, so the install is exact and repeatable (#274)
+- The release script now installs the installer-window tool and its two dependencies only from a hash-checked list, and stops if any package does not match; the app itself does not change.
+- The browser tests install the same packages on every run.
+- The window-tree reader requirement is pinned by hash (#273)
+- The clonometer workflow ticks hourly and counts twice a day by default (#272)
+]]></description>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.54/Ensemble-0.2.54.dmg" length="6449834" type="application/octet-stream" sparkle:edSignature="/u19WEY6ZxMBatfz7w5C8+t6oVYZyexSLIR3rIfK0mCQWFwDP5NaYrc5C5PLUgUBxwXB5lVQTx939oLk35TgDw=="/>
+            <sparkle:deltas>
+                <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.54/Ensemble608-597.delta" sparkle:deltaFrom="597" length="102962" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="4s1Y/jbgIMrwEgo6E8iWBYGpMsBjyTizOwPNJVQcbKBJSRtm5H6Khi+cyvhRKOOvy5YzXywk9pk1Iz515QMzDQ=="/>
+            </sparkle:deltas>
+            <whatsNew>sparkles | On a first run, Automatic camera | On a first run, Automatic camera starts the Mac's own camera instead of a Continuity Camera iPhone
+wand.and.stars | Bump the actions group with 5 | Bump the actions group with 5 updates
+hand.raised | The release guide says dmgbuild lays | The release guide says dmgbuild lays out the installer window
+gearshape | The release job installs a hash-pinned | The release job installs a hash-pinned uv, and CI dry-runs the release path and proves a wrong hash is refused
+bolt | Remove SECURITY.md (owner's ruling, 2026-11-09) | Remove SECURITY.md (owner's ruling, 2026-11-09)
+</whatsNew>
+        </item>
+        <item>
             <title>0.2.53</title>
             <pubDate>Wed, 04 Nov 2026 20:20:31 +0000</pubDate>
             <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
@@ -10,11 +43,7 @@
             <sparkle:shortVersionString>0.2.53</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[Changes since v0.2.52:
-
-- The website shows a peace sign card and a scissors card with a 3D hand, the text drawn in the 3D cards is sized to stay readable on a phone, and every 3D card has a place for a small still picture.
-]]></description>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.53/Ensemble-0.2.53.dmg" length="6449674" type="application/octet-stream" sparkle:edSignature="LX9qXC+RH+BEBvNX3CLWbCWm/ISrcpbzX4nUUbhyzcSzlPjtQG9aXR1iZ1C5sUxDfHYXXfxNBEJmp4n1z7MVAQ=="/>
+            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.54/Ensemble-0.2.53.dmg" length="6449674" type="application/octet-stream" sparkle:edSignature="LX9qXC+RH+BEBvNX3CLWbCWm/ISrcpbzX4nUUbhyzcSzlPjtQG9aXR1iZ1C5sUxDfHYXXfxNBEJmp4n1z7MVAQ=="/>
             <sparkle:deltas>
                 <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.53/Ensemble597-596.delta" sparkle:deltaFrom="596" length="77490" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="9o/awg4n0nE8W3QAogLXGlnCa8fRzxWjlvmFlcFEqr0sScJU2H2iBE5YGerPJF3rZwK0PT4UAMbr/xzHxfPyCQ=="/>
             </sparkle:deltas>
@@ -40,25 +69,6 @@ wand.and.stars | The browser test README says where | The browser test README sa
 hand.raised | Remove a tracked compiled Python file | Remove a tracked compiled Python file and a duplicate workflow copy, and ignore Python cache files
 gearshape | Two written notes: the app shell | Two written notes: the app shell for Windows and Linux, and hand tracking without Apple Vision
 bolt | The usage page names the 13-month | The usage page names the 13-month retention period and explains deletion requests
-</whatsNew>
-        </item>
-        <item>
-            <title>0.2.51</title>
-            <pubDate>Wed, 04 Nov 2026 06:40:11 +0000</pubDate>
-            <sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>
-            <sparkle:version>590</sparkle:version>
-            <sparkle:shortVersionString>0.2.51</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.2</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.52/Ensemble-0.2.51.dmg" length="6448502" type="application/octet-stream" sparkle:edSignature="2tborWrI3S5TPqsVLVnh8/2ngvw0+X8pC0eZ7ssKRWxIR3b2GZCh1O3dR53UPlMELoM3iQHa7bFY+KzUFLBwAA=="/>
-            <sparkle:deltas>
-                <enclosure url="https://github.com/oficiallyAkshay/ensemble/releases/download/v0.2.51/Ensemble590-584.delta" sparkle:deltaFrom="584" length="164514" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="468432" sparkle:deltaFromSparkleLocales="Base" sparkle:edSignature="V0X9OCSY6UUq8B23l5axSsD1oOU5VDdqoFTagasBpFYYImNhtjpasHa1EovAx6LPkB9c8LOWxa6VFRbBXXahAQ=="/>
-            </sparkle:deltas>
-            <whatsNew>sparkles | Add an opt-in Light mode so | Add an opt-in Light mode so pinch-and-drag scrolls the window of another app you look at
-wand.and.stars | The home page no longer downloads | The home page no longer downloads the demo's tracker files when it loads
-hand.raised | Update | Update
-gearshape | The usage monitor runs as a | The usage monitor runs as a launchd job on the owner's Mac with no Claude app
-bolt | The website's browser test matches the | The website's browser test matches the current page and lists what it skips and why
 </whatsNew>
         </item>
     </channel>
