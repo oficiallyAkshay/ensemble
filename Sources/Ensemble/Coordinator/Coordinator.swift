@@ -96,7 +96,7 @@ final class Coordinator: AppCoordinating {
         send = SendController(ctx: ctx)
         dictation = DictationController(ctx: ctx, focus: focus, send: send)
         headphone = HeadphoneRemote(settingOn: { [weak settings] in (settings?.headphonePresses ?? false) && (settings?.enabled ?? false) },
-                                    claudeRunning: { [weak ctx] in ctx?.bridge.claudeIsRunning() ?? false })
+                                    claudeRunning: { [weak ctx] in ctx?.agent.claudeIsRunning() ?? false })
         microphone = MicrophoneSwitcher(settings: settings, overlay: overlay, isIdle: { [weak ctx] in
             guard let ctx else { return false }
             return ctx.listening == nil && !ctx.busy
@@ -207,8 +207,8 @@ final class Coordinator: AppCoordinating {
         tick()
         refreshTimer?.invalidate()
         refreshTimer = commonModeTimer(1.0) { [weak self] in self?.refreshSessions() }
-        ctx.bridge.watcher.startWorkspaceWatch()
-        ctx.bridge.watcher.onChange = { [weak self] in self?.refreshSessions(notified: true) }
+        ctx.agent.startWorkspaceWatch()
+        ctx.agent.onSessionsChanged = { [weak self] in self?.refreshSessions(notified: true) }
         refreshSessions()
         health.update()
     }
@@ -282,7 +282,7 @@ final class Coordinator: AppCoordinating {
         health.running = false
         ctx.latestHead = nil
         tickTimer?.invalidate(); tickTimer = nil
-        refreshTimer?.invalidate(); refreshTimer = nil; ctx.bridge.watcher.onChange = nil
+        refreshTimer?.invalidate(); refreshTimer = nil; ctx.agent.onSessionsChanged = nil
         headphone.stop()
         if disarm { dictation.clearAndDisarm() } else if ctx.listening != nil { dictation.end(reason: "turned off") }
         engine.stop()
@@ -304,9 +304,9 @@ final class Coordinator: AppCoordinating {
         EnsembleLog.write("shutdown")
         health.running = false
         tickTimer?.invalidate(); tickTimer = nil
-        refreshTimer?.invalidate(); refreshTimer = nil; ctx.bridge.watcher.onChange = nil
+        refreshTimer?.invalidate(); refreshTimer = nil; ctx.agent.onSessionsChanged = nil
         headphone.stop()
-        ctx.bridge.beginShutdown()
+        ctx.agent.beginShutdown()
         engine.stop()
         scroll.cancel()
         dictation.shutdown()
@@ -479,7 +479,7 @@ final class Coordinator: AppCoordinating {
         headStats.n += 1; headStats.faces[min(head.faceCount, 2)] += 1
         guard head.t - headStats.since >= 30 else { return }
         let nose = ctx.pointer.point(for: head).map { "\(Int($0.x)),\(Int($0.y))" } ?? "none"
-        EnsembleLog.write("head: \(headStats.n) readings in 30 s, faces 0/1/2+ = \(headStats.faces), nose at \(nose), accessibility \(AXIsProcessTrusted()), Claude running \(ctx.bridge.claudeIsRunning()), sessions \(ctx.sessions.count), nose on Claude: \(focus.target != nil), \(ctx.bridge.micSnapshot)")
+        EnsembleLog.write("head: \(headStats.n) readings in 30 s, faces 0/1/2+ = \(headStats.faces), nose at \(nose), accessibility \(AXIsProcessTrusted()), Claude running \(ctx.agent.claudeIsRunning()), sessions \(ctx.sessions.count), nose on Claude: \(focus.target != nil), \(ctx.agent.micSnapshot)")
         headStats = (head.t, 0, [0, 0, 0])
     }
 
@@ -627,7 +627,7 @@ final class Coordinator: AppCoordinating {
         frameRefreshInFlight = true
         Task { @MainActor in
             defer { self.frameRefreshInFlight = false }
-            guard let frame = await self.ctx.bridge.paneFrame(session), frame.width > 50, frame.height > 50,
+            guard let frame = await self.ctx.agent.paneFrame(session), frame.width > 50, frame.height > 50,
                   self.ctx.listening?.id == session.id, self.ctx.listening?.frame != frame else { return }
             self.ctx.listening?.frame = frame
             if let i = self.ctx.sessions.firstIndex(where: { $0.id == session.id }) { self.ctx.sessions[i].frame = frame }
@@ -681,14 +681,16 @@ final class Coordinator: AppCoordinating {
     private func updateFaceRate(now: TimeInterval) {
         let full = needsFullRate
         engine.setForceFullRate(full)
-        engine.setOtherAppInFront(focus.userLeftClaude)
-        let slow = FrameRatePlanner.wantsSlowFace(needsFull: full, tourOpen: tourOpen, otherAppInFront: focus.userLeftClaude,
+        // Light mode needs every hand frame and the nose, so another app in front is no reason to slow either.
+        let probeOnly = focus.userLeftClaude && !settings.lightMode
+        engine.setOtherAppInFront(probeOnly)
+        let slow = FrameRatePlanner.wantsSlowFace(needsFull: full, tourOpen: tourOpen, otherAppInFront: probeOnly,
                                                   sessionsOnScreen: !ctx.sessions.isEmpty,
                                                   pausedFor: ctx.handsBusy ? now - pausedSince : nil)
         engine.setSlowFace(slow)
         guard slow != faceSlow else { return }
         faceSlow = slow
-        let why = focus.userLeftClaude ? "another app in front" : ctx.sessions.isEmpty ? "no Claude session on screen" : "paused for the keyboard or mouse"
+        let why = probeOnly ? "another app in front" : ctx.sessions.isEmpty ? "no Claude session on screen" : "paused for the keyboard or mouse"
         EnsembleLog.write(slow ? "face tracking at 10 Hz (\(why))" : "face tracking at full rate")
     }
 
@@ -716,7 +718,7 @@ final class Coordinator: AppCoordinating {
         if health.running, !awayState.isAway { ctx.usage.activeTick() }
         health.checkPermissions()
         microphone.restoreIfNeeded()
-        let claudeUp = ctx.bridge.claudeIsRunning()
+        let claudeUp = ctx.agent.claudeIsRunning()
         dictation.dropIfClaudeGone(running: claudeUp)
         guard claudeUp else {
             health.sessionsScanned = false; ctx.sessions = []; ctx.claudeDictations.forgetAll()
@@ -744,7 +746,7 @@ final class Coordinator: AppCoordinating {
                 if self.refreshAgain, self.refreshTimer != nil { self.refreshAgain = false; self.refreshSessions(notified: true) }
             }
             let epoch = self.ctx.dictationEpoch
-            let scan = await self.ctx.bridge.refreshSessions(watched: useNotifications)
+            let scan = await self.ctx.agent.refreshSessions(watched: useNotifications)
             let found = scan.sessions
             // A read taken before Ensemble started, took over or stopped a dictation would report Ensemble's own.
             if epoch == self.ctx.dictationEpoch, self.ctx.listening == nil {
@@ -764,7 +766,28 @@ final class Coordinator: AppCoordinating {
 
     // MARK: - Intents and cross-cutting steps
 
+    /// Light mode is in force: another app is in front and the look is not on a Claude session. Only a pinch-and-drag
+    /// acts then; every other gesture stays Claude-only and does nothing here.
+    private var lightModeInForce: Bool {
+        settings.lightMode && focus.userLeftClaude && focus.target == nil && ctx.listening == nil
+    }
+
+    /// The front app's window under the look point, when light mode lets a pinch-and-drag scroll it.
+    private func lightTarget() -> ScrollController.LightTarget? {
+        guard let nose = focusNose, let head = ctx.latestHead, CACurrentMediaTime() - head.t <= Self.staleHeadSeconds,
+              let owner = LightScroll.owner(enabled: settings.lightMode, claudeFront: !focus.userLeftClaude,
+                                            onClaudeSession: focus.target != nil, dictating: ctx.listening != nil,
+                                            handsBusy: ctx.handsBusy,
+                                            frontPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+                                            ownerAtLook: ScreenFacts.topWindowOwner(at: nose)) else { return nil }
+        return ScrollController.LightTarget(point: nose, owner: owner)
+    }
+
     private func apply(_ intent: GestureIntent) {
+        if lightModeInForce, !LightScroll.allows(intent) {
+            if intent == .talkBegan { gestures.abortTalk() }   // no dictation started, so the gesture must not wait for its end
+            return
+        }
         switch intent {
         case .scroll, .dragScroll: break
         default: EnsembleLog.write("gesture: \(intent)")
@@ -792,7 +815,7 @@ final class Coordinator: AppCoordinating {
             if ctx.listening != nil || ctx.busy { send.sendAfterStop(in: ctx.listening); EnsembleLog.write("send after stop") } else { requestSend() }
         case .scroll(let dy): scroll.scroll(dy, target: focus.target)
         case .dragScrollEnded: scroll.released()
-        case .dragScroll(let handDy): scroll.drag(handDy: handDy, target: focus.target)
+        case .dragScroll(let handDy): scroll.drag(handDy: handDy, target: focus.target, lightTarget: { self.lightTarget() })
         case .maximizeSession: panes.request(true, target: focus.target)
         case .evenOutSessions: panes.request(false, target: focus.target)
         }
@@ -843,7 +866,7 @@ final class Coordinator: AppCoordinating {
     /// looked-at session, whoever started it, that dictation is stopped through Ensemble's own stop path and sent once
     /// the transcript settles, under every send rule; otherwise the dictated draft is sent under the usual rules.
     private func requestSend() {
-        guard let target = focus.target, settings.mapping.send != nil, ctx.bridge.claudeIsFrontmost(),
+        guard let target = focus.target, settings.mapping.send != nil, ctx.agent.claudeIsFrontmost(),
               ctx.commonRefusal() == nil else { send.request(); return }
         Task { @MainActor in
             let result = await self.dictation.takeOverIfDictating(target, reason: "send") {
@@ -867,7 +890,7 @@ final class Coordinator: AppCoordinating {
     private func handleKey(isReturn: Bool, modified: Bool, isRepeat: Bool) -> Bool {
         let now = CACurrentMediaTime()
         let decision = returnKeys.press(isReturn: isReturn, modified: modified, isRepeat: isRepeat,
-                                        claudeInFront: ctx.bridge.claudeIsFrontmost(),
+                                        claudeInFront: ctx.agent.claudeIsFrontmost(),
                                         dictating: ctx.listening != nil || claudeDictatingHere,
                                         returnSendPending: send.returnSendPending, now: now)
         mirrorOtherKey()
@@ -962,7 +985,7 @@ final class Coordinator: AppCoordinating {
         ctx.overlay.setEdge(dot.overlayEdge(focus: focus))
         ctx.overlay.setHandsOnInput(ctx.handsBusy && !actingThroughPause)
         ctx.overlay.setScrolling(DotGlyph.showsScroll(scrollActive: scroll.isActive, pinchHeld: gestures.pinchHeld))
-        ctx.overlay.update(target: ctx.targetFrame, nose: ctx.nosePoint, listening: state.listening,
+        ctx.overlay.update(target: ctx.targetFrame, nose: ctx.nosePoint, lead: ctx.noseLead, listening: state.listening,
                            showNoseDot: settings.showNoseDot, showHighlight: settings.showHighlight)
         health.update()
         armTickTimer()

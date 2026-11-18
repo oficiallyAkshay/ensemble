@@ -2,6 +2,8 @@
 
 The rule: Claude's microphone is never left recording because of Ensemble. The summary a reader needs is in the [README](../README.md).
 
+Ensemble acts only on Claude and on supported terminal agents: with another app in front, gestures do nothing. The one exception is Settings, General, Light mode, off by default. With it on, a pinch-and-drag scrolls the front app's window under your look, and nothing else reaches that app: no dictation, no send, no typing, no other gesture, no new permission. It holds still while you type or use the mouse, and stops when another app's window covers the scroll point.
+
 ## Safety design
 
 | Check | What it does |
@@ -40,4 +42,4 @@ Ensemble asks for the Microphone permission only for the live sound bars, and on
 - The face tracker is a web page served from inside the app through a custom address scheme, its model ships in the app, and every web address it could load is blocked.
 - The only files written are settings (the usage counts among them while sharing is on), a small log rolled over at 1 MB with one backup, and the two safety records above.
 
-The full table of what the app touches is in [SECURITY.md](../SECURITY.md).
+The full table of what the app touches is in [privacy.md](privacy.md).

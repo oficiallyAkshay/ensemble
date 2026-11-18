@@ -214,6 +214,27 @@ import Testing
         #expect(t >= DraftSettle.cap - 1e-9 && t < DraftSettle.cap + 0.1)
     }
 
+    // The safety page promises 1.2 seconds; plain numbers here so changing the constant fails a test.
+    @Test func theSendWaitCapIsOnePointTwoSecondsAsTheSafetyPageSays() {
+        #expect(DraftSettle.cap == 1.2)
+    }
+
+    @Test func anEmptyDraftIsReadyAtExactlyTheCap() {
+        var s = DraftSettle(start: 0, first: "")
+        let before = s.observe("", at: 1.19)
+        let at = s.observe("", at: 1.2)
+        #expect(!before)
+        #expect(at)
+    }
+
+    @Test func aChangingDraftIsReadyAtExactlyTheCap() {
+        var s = DraftSettle(start: 0, first: "a")
+        let before = s.observe("ab", at: 1.19)
+        let at = s.observe("abc", at: 1.2)
+        #expect(!before)
+        #expect(at)
+    }
+
     @Test func theQuietTimeIsShorterThanTheOldFixedWait() {
         #expect(DraftSettle.quiet < 0.6)
         #expect(DraftSettle.cap > DraftSettle.quiet)

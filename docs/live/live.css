@@ -241,6 +241,9 @@ button { font-family: inherit; }
 .ls-card-mark { width: 26px; height: 26px; color: var(--e-ink); margin-bottom: 16px; }
 .ls-card h1 { margin: 0 0 10px; font: 700 30px/1.08 var(--e-display); letter-spacing: -0.035em; }
 .ls-lede { margin: 0 0 22px; color: #525252; }
+#gate-help { margin: -4px 0 16px; font-size: 14px; line-height: 1.45; }
+#gate-help summary { cursor: pointer; font-weight: 600; padding: 3px 0; }
+#gate-help ol { margin: 2px 0 6px; padding-left: 20px; }
 .ls-message { margin: 0 0 16px; padding: 11px 14px; border-radius: 14px; border: 1px solid #f4c77d; background: #fff8e8; color: #6b4300; font-size: 14px; }
 .ls-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
 .ls-privacy { margin: 0; font-size: 14px; color: var(--e-muted); }

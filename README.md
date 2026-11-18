@@ -46,7 +46,7 @@ Look elsewhere when:
 
 It needs an Apple Silicon Mac with macOS 14.2 or later, a webcam that sees your face and your hands, and Claude desktop with Code sessions.
 
-To install, download the app as a disk image from the [latest release](https://github.com/oficiallyAkshay/ensemble/releases/latest), drag Ensemble to Applications and open it, then, because the app is not notarized yet, press Done on the macOS warning, choose Open Anyway in System Settings under Privacy and Security, and enter your Mac password when asked. A short tour opens on first launch, asks for Camera and Accessibility, calibrates each screen and lets you practise every gesture with nothing reaching Claude; [setup and calibration](docs/setup.md) covers each step. To try the gestures first, the [website](https://oficiallyakshay.github.io/ensemble/) runs a demo in your browser with your camera.
+To install, download the app as a disk image from the [latest release](https://github.com/oficiallyAkshay/ensemble/releases/latest), drag Ensemble to Applications and open it, then, <!-- Temporary: goes away when the app is signed with an Apple Developer ID and notarized. -->if macOS says Apple could not verify Ensemble, press Done, then click Open Anyway in System Settings, Privacy & Security, and enter your Mac password when asked. A short tour opens on first launch, asks for Camera and Accessibility, calibrates each screen and lets you practise every gesture with nothing reaching Claude; [setup and calibration](docs/setup.md) covers each step. To try the gestures first, the [website](https://oficiallyakshay.github.io/ensemble/) runs a demo in your browser with your camera.
 
 ## How it compares
 

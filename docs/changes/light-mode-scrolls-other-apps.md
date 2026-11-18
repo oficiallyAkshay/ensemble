@@ -1,0 +1,1 @@
+A new Light mode switch in Settings, General (off by default) lets pinch-and-drag scroll the window of another app that you look at, with a short note on the island; dictation, send and every other gesture still work only on Claude.

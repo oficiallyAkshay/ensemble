@@ -84,7 +84,7 @@ final class HealthMonitor {
     /// restarts the camera; a camera that stopped for another reason is retried every 5 s.
     func checkPermissions() {
         guard running else { return }
-        let trusted = Permissions.accessibilityTrusted && !ctx.bridge.accessibilityDisabled
+        let trusted = Permissions.accessibilityTrusted && !ctx.agent.accessibilityDisabled
         if trusted != accessibilityTrusted { EnsembleLog.write("accessibility permission is now \(trusted ? "granted" : "missing")") }
         accessibilityTrusted = trusted
         if relaunchOnGrantAllowed(), grantRelaunch.shouldRelaunch(granted: Permissions.accessibilityTrusted) {
@@ -115,7 +115,7 @@ final class HealthMonitor {
     private var claudeRunning: Bool {
         let now = CACurrentMediaTime()
         if let c = claudeRunningCache, now - c.at < 1 { return c.value }
-        let value = ctx.bridge.claudeIsRunning()
+        let value = ctx.agent.claudeIsRunning()
         claudeRunningCache = (value, now)
         return value
     }

@@ -1,17 +1,19 @@
 # Releasing Ensemble
 
-How a release is built, signed, notarized, published, and delivered to installed copies. Nothing in this repo signs, uploads, or publishes by itself except the `auto-release` workflow and, until the first workflow release has succeeded, the launchd job the owner installs on their Mac (see "Release on every merge"): the other scripts run on your command. Developer ID signing, notarization and a tag-triggered release workflow are not in use (the owner cancelled that plan for now); the one-time steps for them are kept below, marked, and the workflow would be rebuilt if it were ever needed.
+How a release is built, signed, notarized, published, and delivered to installed copies. Nothing in this repo signs, uploads, or publishes by itself except the `auto-release` workflow (see "Release on every merge"): the other scripts run on your command. Developer ID signing, notarization and a tag-triggered release workflow are not in use (the owner cancelled that plan for now); the one-time steps for them are kept below, marked, and the workflow would be rebuilt if it were ever needed.
 
 ## The pieces
 
 | Piece | What it does |
 |---|---|
 | `scripts/bundle.sh` | Builds the release binary, assembles `build/Ensemble.app` with Sparkle inside, signs it. Local identity by default; `ENSEMBLE_SIGN_IDENTITY="Developer ID Application: ..."` switches to hardened runtime + secure timestamp + `Sources/Ensemble/Ensemble.entitlements`. |
-| `scripts/release.sh` | Runs `bundle.sh`, optionally notarizes and staples the app, builds `build/Ensemble-<version>.dmg` with `hdiutil` (app plus an Applications shortcut), signs/notarizes/staples the DMG, writes the `.sha256`, prints a summary. `--dry-run` prints the Apple-service commands instead of running them. |
-| `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast`; refuses to write an appcast whose items lack an EdDSA signature. |
+| `scripts/release.sh` | Runs `bundle.sh`, optionally notarizes and staples the app, builds `build/Ensemble-<version>.dmg` with dmgbuild, which lays out the installer window (app plus an Applications shortcut) from `scripts/dmg-settings.py` and is installed with hashes from `scripts/dmgbuild-requirements.txt` in a throwaway uv environment, signs/notarizes/staples the DMG, writes the `.sha256`, prints a summary. `--dry-run` prints the Apple-service commands instead of running them. |
+| `scripts/appcast.sh` | Adds a DMG to the Sparkle appcast with Sparkle's `generate_appcast` (one-day phased-rollout interval; given the previous release's DMG in `ENSEMBLE_PREVIOUS_DMG`, also a `.delta` from it), adds the release's "What's new" summary to that item, and refuses to write an appcast whose items lack an EdDSA signature or when `ENSEMBLE_WHATS_NEW` is missing or invalid. |
+| `scripts/whats-new.sh` | `check` refuses a release summary that is not 3 to 5 lines of `icon \| heading \| subheading`; `inject` puts it in the appcast item. |
+| `scripts/check-release-version.sh` | Refuses a version that is not the next patch, minor or major of the newest one in the published appcast, or a build number not above the newest published build. `ship-release.sh` runs it before building. |
 | `.github/workflows/auto-release.yml` | After `ci` passes on a push to `main`, or by hand: decides whether app logic changed since the newest tag, imports the signing identity from the `release` environment, runs `scripts/ship-release.sh` and checks the release and the feed. See "Release on every merge". |
-| `.github/workflows/ci.yml` | On every pull request and push to `main`: `ci` builds in release mode, runs the tests and the repository's network and size checks; `hygiene` runs zizmor, pinact and a secrets scan over the whole history; `coverage`, `periphery` and `website-tests` check EnsembleCore coverage, unused code and the website logic and replay-timeline tests; `gate` passes only when all of them did. It never signs or publishes. |
-| `Sources/Ensemble/App/UpdateController.swift` | The Sparkle wrapper and Ensemble's own update interface: feed URL constant, the one alert, the idle gate, the relaunch record. |
+| `.github/workflows/ci.yml` | On every pull request and push to `main`: `ci` builds in release mode, runs the tests and the repository's network and size checks; `hygiene` runs zizmor, pinact and a secrets scan over the whole history; `coverage`, `periphery` and `website-tests` check EnsembleCore coverage, unused code and the website logic and replay-timeline tests; `script-tests` runs the usage triage script's tests with no network and no secrets; `gate` passes only when all of them did. It never signs or publishes. |
+| `Sources/Ensemble/App/UpdateController.swift` | The Sparkle wrapper and Ensemble's own update interface: feed URL constant, the one update window, the idle gate, the relaunch record. |
 
 Log of the last `release.sh` run: `build/release.log`.
 
@@ -61,11 +63,11 @@ Until a Developer ID exists, releases are built on the owner's Mac right after a
 scripts/ship-release.sh 0.2.0
 ```
 
-It builds and signs the DMG with the local identity, adds it to the appcast with the update key in this Mac's login keychain (a refusal here stops the run before anything is public), then tags `main`, publishes the GitHub Release, and pushes `appcast.xml` to `gh-pages`, which GitHub Pages serves at the feed address in `UpdateController.swift`. Installed copies then see the version on their next check, or at once with Check for Updates. The release page and the appcast item carry the same notes, the titles of the pull requests merged into `main` since the previous tag, whether by merge commit or by squash, so the update window shows what changed. The update key and feed are set; the private key is also kept outside the keychain by the owner. Copies signed with the local identity update only on this Mac.
+It builds and signs the DMG with the local identity, adds it to the appcast with the update key in this Mac's login keychain (a refusal here stops the run before anything is public), then tags `main`, publishes the GitHub Release, and pushes `appcast.xml` to `gh-pages`, which GitHub Pages serves at the feed address in `UpdateController.swift`. Installed copies then see the version on their next check, or at once with Check for Updates. The release page and the appcast item carry the same notes, the titles of the pull requests merged into `main` since the previous tag, whether by merge commit or by squash, so the update window shows what changed. The update key and feed are set; the private key is also kept outside the keychain by the owner. Copies signed with the local identity update only on this Mac. On a Mac whose login keychain does not hold the update key, the run stops at the appcast step and nothing is published. The owner restores the key from the password-manager copy of the file `generate_keys -x` wrote, in their own terminal and never from an agent session: `.build/artifacts/sparkle/Sparkle/bin/generate_keys -f <key file>`; then the run is repeated.
 
 ## Release on every merge
 
-Every pull request that changes app logic is released as soon as it merges to `main`. Bug fixes are app logic, so they ship the same way and at once. The GitHub workflow `.github/workflows/auto-release.yml` cuts the release once `ci` has passed on the merge commit (see "The workflow" below). Until the first workflow release has succeeded, a plain launchd job on the owner's Mac does the same within about 5 minutes of the checks passing, and stays installed; after that it is removed (`scripts/install-auto-release.sh --uninstall`) so two releasers never race. The job: `scripts/install-auto-release.sh` installs the agent `dev.ensemble.releaser`, which runs `scripts/auto-release.sh` every 5 minutes. No Claude session or routine is involved, so nobody has to remember to release. An agent or a person may still run `scripts/ship-release.sh` by hand; the job then sees the new tag and has nothing to do.
+Every pull request that changes app logic is released as soon as it merges to `main`. Bug fixes are app logic, so they ship the same way and at once. The GitHub workflow `.github/workflows/auto-release.yml` cuts the release once `ci` has passed on the merge commit (see "The workflow" below); it is the only automatic release path. No Claude session or routine is involved, and the owner's Mac does not have to be awake, so nobody has to remember to release. An agent or a person may still run `scripts/ship-release.sh` by hand; the workflow then sees the new tag and has nothing to do.
 
 **The workflow.** `auto-release.yml` has two jobs. `decide` (no secrets, no environment) runs when `ci` completes green for a push to `main`, or on `workflow_dispatch`: it stops quietly unless the commit is still the tip of `main` and a file under `Sources/`, `Package.swift` or `Package.resolved` changed since the newest `v*` tag, picks the next patch version and refuses one that exists as a tag or a release. `release` runs on a macOS runner in the GitHub environment `release` (limited to `main`): it checks out exactly the decided commit, imports the signing identity into a temporary keychain, refuses unless that identity's SHA-1 is `40B0779A528926B904971BBDB913DC4860CD1D49`, then, unless `main` has moved on since `decide` (a merge while the job queued: the step ends with a notice and the run for the newer commit decides, instead of failing in `ship-release.sh`), runs `scripts/ship-release.sh` (build, sign as "Ensemble Local Signing", DMG, signed appcast item, tag, GitHub Release with `Ensemble-<version>.dmg`, its `.sha256` and `Ensemble.dmg`, appcast to `gh-pages`, all through the API with the run's token) and finally checks that the release and `https://oficiallyakshay.github.io/ensemble/appcast.xml` show the version, retrying for 3 minutes. Before anything is public `ship-release.sh` mounts the DMG and refuses unless the app's designated requirement is `identifier "dev.ensemble.app" and certificate leaf = H"40b0779a528926b904971bbdb913dc4860cd1d49"`, the one releases 0.2.24 and later carry: another certificate would reset every user's Camera and Accessibility grants. The temporary keychain is deleted at the end of every run.
 
@@ -81,21 +83,13 @@ A real run by hand, with the due check: `gh workflow run auto-release.yml -f dry
 
 **What counts as app logic.** A change to any file under `Sources/` (the app, `EnsembleCore` and the bundled resources) or to `Package.swift` or `Package.resolved`. A change that touches only docs, tests, scripts, CI or the website does not release by itself; it ships with the next release.
 
-**What the launchd job does.** Each run fetches `origin`, finds the newest `v*` tag and compares it with `origin/main`. If nothing under `Sources/`, `Package.swift` or `Package.resolved` changed, it stops without a word. Otherwise it waits for the `ci` run on the newest commit of `main` to finish green (pending: it tries again in 5 minutes; failed: it logs that once and does not release), works out the next patch version, refuses a version that exists as a tag or a GitHub release, makes a throwaway worktree of that exact commit, runs `scripts/ship-release.sh <version>` there and removes the worktree on every exit path. Where `scripts/whats-new.sh` exists it first writes an untracked `docs/whats-new/<version>.txt` from the commit subjects and checks it. Afterwards it confirms that the GitHub release exists and the appcast lists the version (retrying for 3 minutes). A macOS notification appears on a release or a refusal, never when nothing is due. One run at a time (a lock directory, taken over after 30 minutes).
-
-- Log, one UTC line per decision: `~/Library/Logs/Ensemble/releaser.log`; the build output of each release: `~/Library/Logs/Ensemble/releaser-ship.log`; the agent's own output: `~/Library/Logs/Ensemble/releaser.out`.
-- See what it would do now, building and publishing nothing: `scripts/auto-release.sh --dry-run`.
-- Remove it once the first workflow release has succeeded (proved by a dry run, then a real release); it stays until then. Off switch: `launchctl bootout "gui/$(id -u)/dev.ensemble.releaser"`, or `scripts/install-auto-release.sh --uninstall` (also removes the agent file). Releases are then cut by hand as below.
-- The agent runs the copy of `scripts/auto-release.sh` on `origin/main`, so an old checkout still releases with the current script. A checkout under Desktop, Documents or Downloads is hidden from background agents, so the installer gives the agent its own clone in `~/Library/Application Support/Ensemble/releaser-checkout`.
-- The job needs `gh` signed in, `jq`, and the signing identity in the login keychain (the first run may ask to let `codesign` use the key: choose Always Allow, as for `scripts/dev-install.sh`).
-
 **By hand.** From a clean checkout of `main` whose latest commit has passing checks (`gate`):
 
 ```
 scripts/ship-release.sh <next version>
 ```
 
-The next version is the latest tag with one added to the patch number (`0.2.24` becomes `0.2.25`). There is no major or minor policy; the owner changes the leading numbers by naming a version. A version is never reused or lowered, and a tag is never moved. The release notes are the `docs/CHANGELOG.md` "Unreleased" entries. `ship-release.sh` signs with the owner's login keychain, so this runs on the owner's Mac (the launchd job above runs it for you). It stops before anything is public if the build, the signature or the appcast refuses; fix the cause and run it again, do not work around it.
+The next version is the latest tag with one added to the patch number (`0.2.24` becomes `0.2.25`). There is no major or minor policy; the owner changes the leading numbers by naming a version. A version is never reused or lowered, and a tag is never moved. The release notes are the note files added under `docs/changes/` since the previous tag plus the subject of any change without one (`scripts/release-notes.sh`). `ship-release.sh` signs with the owner's login keychain, so this runs on the owner's Mac (the workflow above runs it for you). It stops before anything is public if the build, the signature or the appcast refuses; fix the cause and run it again, do not work around it.
 
 **Taking it back.** A bad release is fixed by the next release; the version that shipped stays published because installed copies compare build numbers. Stop the releases by removing this section and the exception in `AGENTS.md`.
 
@@ -106,6 +100,48 @@ Releases are cut by `auto-release.yml` after a merge, or by hand with `scripts/s
 After a release, on a Mac that has run Ensemble before, check for updates and confirm the new version installs; the GitHub Release holds `Ensemble-<version>.dmg`, its `.sha256` and `Ensemble.dmg`, and `appcast.xml` on `gh-pages` lists the version. A DMG signed with the local identity is not notarized, so Gatekeeper warns on a Mac that has never run Ensemble.
 
 If a release fails after the GitHub Release is created (for example the appcast push), fix the cause and run the release again for the same version only if the tag was not created; do not move a tag.
+
+### Version and build checks
+
+Before building, `ship-release.sh` refuses a version that skips one (after 1.2.3 only 1.2.4, 1.3.0 or 2.0.0 ship; the numbers are an example) and a build number at or below the newest published build, since installed copies would never take it. Both are judged against the highest item in the published `appcast.xml`, wherever it sits in the file, so an old gap in the feed does not matter. The build number is `ENSEMBLE_BUILD`, else the commit count, the same one `release.sh` stamps; it legitimately jumps, so only "above" is checked. To skip a version on purpose, name it: `ENSEMBLE_SKIP_VERSION=1.2.4 scripts/ship-release.sh 1.2.5`; the skip is written to `build/ship.log`. If a release failed after its tag was created but before the appcast was pushed, the next automatic release is refused for the same reason: name the unpublished version in `ENSEMBLE_SKIP_VERSION`. Try the check on any feed file: `bash scripts/check-release-version.sh <appcast.xml> <version> <build>`.
+
+## Critical updates and very old installs
+
+Both are marks on one `<item>` of `appcast.xml` on the `gh-pages` branch. `ship-release.sh` does not add them: after it publishes the release, edit that item on GitHub (branch `gh-pages`, `appcast.xml`) and commit. The next release starts from the published appcast, and `generate_appcast` leaves existing items as they are, so the mark stays until the item drops out of the feed. Every value is a build number (`sparkle:version`, such as 303), never a version like 1.2.3. Installed copies use Sparkle 2, which both marks need. The numbers below are examples.
+
+- **Critical**: add `<sparkle:criticalUpdate></sparkle:criticalUpdate>` inside the item. Sparkle shows a critical update sooner and offers no way to skip it. To make it critical only for copies older than a given build, name that build: `<sparkle:criticalUpdate sparkle:version="303"></sparkle:criticalUpdate>` is critical for copies below build 303.
+- **Minimum version for very old installs**: add `<sparkle:minimumAutoupdateVersion>303</sparkle:minimumAutoupdateVersion>` inside the item. A copy below build 303 never installs it silently, even with "Update automatically" on: Sparkle hands it to the user instead.
+
+Source: https://sparkle-project.org/documentation/publishing/ (Critical updates, Major upgrades). That page does not list `generate_appcast` options, and the bundled `generate_appcast --help` was not run when this was written, so `scripts/appcast.sh` passes no option for the marks (its one extra option is the phased-rollout interval, read from the generator's source) and the marks are edited by hand.
+
+## Deltas and phased rollout
+
+Each release downloads the previous release's DMG and generates a delta from it, so copies one release behind download a small `.delta` instead of the whole DMG. The delta and the previous DMG are attached to the new release, because `generate_appcast` points the previous version's item at the new release too. If the previous DMG cannot be fetched (or the previous tag is a pre-release), the release ships with full downloads only. On the live feed, the newest item holds a `<sparkle:deltas>` block whose enclosure is far smaller than the full DMG.
+
+Each new item also carries `<sparkle:phasedRolloutInterval>86400</sparkle:phasedRolloutInterval>`: Sparkle offers it to installed copies in seven daily groups, so a bad release reaches everyone only after about a week and can be pulled first. Check for Updates skips the wait.
+
+## The "What's new" summary (every release)
+
+Every release carries a summary of three to five items, shown in the update window. Write it before cutting the release, from the release's changes in `docs/CHANGELOG.md`, in the same outcome-first plain words (no jargon), and merge it to `main`: `docs/whats-new/<version>.txt`, one item per line:
+
+```
+icon.name | Heading in a few words | One plain sentence saying what changes for the person.
+```
+
+`icon.name` is an SF Symbol name (letters, digits and dots; pick one from the SF Symbols app, because a name macOS does not know shows no icon). Text only: the window leaves room for an image on a major release, but none is built. `scripts/ship-release.sh` and `scripts/appcast.sh` both run `scripts/whats-new.sh check` and stop, before anything is tagged or published, if the file is missing, has fewer than 3 or more than 5 items, or has a malformed line. The summary travels in the existing appcast as a `<whatsNew>` element on that release's item, so the window works offline once Sparkle has the item, and the app makes no new connection. An installed copy that finds the element missing or malformed shows the plain "Install now?" prompt instead. `scripts/whats-new.sh` and `Sources/EnsembleCore/WhatsNew.swift` apply the same rules.
+
+The `auto-release` workflow writes this file itself from the commit subjects since the last release (untracked, so the build still matches what was merged) before it runs `scripts/ship-release.sh`; a release cut by hand needs the file on disk first.
+
+## Release tracks per operating system
+
+Each system has its own release, so one does not wait for another.
+
+| System | What is released | How it is cut | Tag |
+|---|---|---|---|
+| macOS | The app (signed, notarized DMG, update feed) | Automatically after a merge that changes app logic, see "Release on every merge" | The app's own version tags |
+| Linux and Windows | The logic library (`EnsembleCore`) only, because there is no app for these systems | Manual workflow `core-release`: enter a version and turn `dry_run` off. It runs `swift test` on macOS, Linux and Windows and publishes only if all three pass | `core-v<version>` |
+
+Run `core-release` with `dry_run` on first: it tests and publishes nothing. The release notes say what is and is not included, and that tests needing Apple-only frameworks (Vision, CryptoKit) do not run on Linux or Windows. The first library release is `core-v0.1.0`. A bad library release is fixed by the next one; a tag is never moved.
 
 ## What CI builds
 
@@ -128,13 +164,13 @@ GitHub Pages serves the `gh-pages` branch: `appcast.xml` (written by `scripts/sh
   | The user | Before (Sparkle's windows) | Now |
   |---|---|---|
   | Update automatically on | button showed the version; install on idle | installs by itself after 30 s idle, no question; the island says "Installing Ensemble x.y.z", then "Updated to x.y.z" after the reopen |
-  | Presses Check for Updates and a version exists | Check, "Update", "Install Update", restart, open by hand: six clicks | one alert, "Ensemble x.y.z is available. Install now?" with Install, Later and a "What's new" link; Install downloads, installs and reopens: two clicks |
-  | Button already says "Update to x.y.z" | press, then Sparkle's windows | one press does everything |
+  | Presses Check for Updates and a version exists | Check, "Update", "Install Update", restart, open by hand: six clicks | one window, "What's new in Ensemble x.y.z", with the release's three to five items, Install, Later and a "Full release notes" link (a feed item with no valid summary gets the plain prompt, "Ensemble x.y.z is available. Install now?"); Install downloads, installs and reopens: two clicks |
+  | Button already says "Update to x.y.z" | press, then Sparkle's windows | the same window; Install does everything |
   | Presses while dictating, sending, calibrating or in the tour | could restart Ensemble at once if the update was already downloaded | the button says "Installs x.y.z when you finish"; the install starts at the first idle moment |
   | A background check finds a version with automatic install off (only if Sparkle's checks are on without downloads) | Sparkle's window | the alert once per version; Later stops it until the next launch or a press |
   | The download or install fails | Sparkle's error window | one alert, "Ensemble could not update", with Retry |
 
-  The button reads "Checking..." during a check and "Installing x.y.z..." while it downloads and installs. "What's new" opens the release page in the browser; its address comes from the signed feed (the release notes link, or the GitHub release the download comes from), and Ensemble itself fetches nothing for it.
+  The button spins for as long as work runs and reads "Checking..." during a check, "Downloading x.y.z (42%)" while it downloads (no percentage until the size is known), "Installing x.y.z..." while it installs, "Installs x.y.z when you finish" with no spinner while it waits, and "Update failed. Retry" after a failure. The menu bar panel, the Option-Command-K panel and Settings share one decision, so they always agree. "Full release notes" (or "What's new in x.y.z" on the plain prompt) opens the release page in the browser; its address comes from the signed feed (the release notes link, or the GitHub release the download comes from), and Ensemble itself fetches nothing for it.
 - Relaunch. Sparkle's installer quits Ensemble, installs and opens the new copy. Three things back it up: (1) before quitting, Ensemble starts a detached shell in its own session (so launchd does not kill it with the login agent's job) that looks for a running Ensemble 30 and 60 seconds after the old copy exits and opens it if none is there; (2) with open at login on, the copy Sparkle opened is outside launchd's job, so it quits at once and asks launchd to start the job (`launchctl kickstart`), once only, which keeps crash restarts working; (3) the clean quit for the install exits with status 0, so the login agent's `KeepAlive` (restart on failure only) never starts a second copy, and a second copy would exit at launch anyway. The new copy logs "update: relaunched after update to x.y.z" with who started it, or "did not install" if the version did not change.
 - The new flow ships in a release, so it takes effect from the update after the one that carries it: installing that release still goes through the old windows.
 - To check for updates by default (Sparkle's standard behavior is a prompt on the second launch), remove the `updaterShouldPromptForPermissionToCheck` override and let Sparkle ask, or set `SUEnableAutomaticChecks` to true in `Info.plist` (no consent step).
@@ -149,7 +185,7 @@ Camera and Accessibility grants are tied to the app's signature. Developer ID si
 
 Releases from this Mac are signed with a self-signed local certificate ("Clutch Local Signing" on the production Mac, the app's earlier working name; "Ensemble Local Signing" elsewhere), without a secure timestamp. Once it expires, releases signed with it break the update path, and signing with a new certificate resets every user's Camera and Accessibility grants.
 
-Expiry date of the production Mac's signing certificate: **TO FILL IN** (read it with `openssl x509 -noout -enddate -in <certificate file>`, from an exported copy of the certificate, never the key).
+Expiry date of the production Mac's signing certificate: **2036-10-11** (re-check it with `openssl x509 -noout -enddate -in <certificate file>`, from an exported copy of the certificate, never the key).
 
 `scripts/ship-release.sh` reads the expiry date from the certificate in the keychain before anything else, unless the identity is a Developer ID one:
 
@@ -176,10 +212,10 @@ These need a notarized build on a real Mac and could not be run from the develop
 
 The first release that carries the flow is installed through the old windows; these checks need the release after it.
 
-1. Update automatically off, open at login on: Check for Updates shows one alert; Install; Ensemble quits and reopens with no other window, and the island says "Updated to x.y.z". `~/Library/Logs/Ensemble` has "relaunched as ... handing over to launchd", then "relaunched after update to x.y.z (started by the login agent)".
+1. Update automatically off, open at login on: Check for Updates shows the "What's new" window; Install; Ensemble quits and reopens with no other window, and the island says "Updated to x.y.z". `~/Library/Logs/Ensemble` has "relaunched as ... handing over to launchd", then "relaunched after update to x.y.z (started by the login agent)".
 2. Same with open at login off: the log says "(opened by Sparkle)".
-3. Press Later, then "Update to x.y.z": one press installs and reopens.
-4. Start a dictation, then press "Update to x.y.z": the button says "Installs x.y.z when you finish" and nothing installs until the dictation ends.
+3. Press Later, then "Update to x.y.z": the "What's new" window opens again; Install installs and reopens.
+4. Start a dictation, then press Install in the window: the button says "Installs x.y.z when you finish" and nothing installs until the dictation ends.
 5. Update automatically on: the update installs about 30 seconds after you stop using Ensemble, with no alert.
 
 ## Homebrew

@@ -203,13 +203,13 @@ final class SendController {
         guard let spoken = lastSpoken else { finish(nil); return }
         let session = spoken.session
         showSending(session)
-        let bridge = ctx.bridge
+        let agent = ctx.agent
         Task { @MainActor in
             // CoreAudio can stall while devices change; never read it on the main thread.
-            if let other = await Task.detached(operation: { bridge.otherProcessCapturingInput() }).value {
+            if let other = await Task.detached(operation: { agent.otherProcessCapturingInput() }).value {
                 self.finish("\(other) is using a microphone"); return
             }
-            let text = settle ? await self.settledDraft(session) : await bridge.draftText(session)
+            let text = settle ? await self.settledDraft(session) : await agent.draftText(session)
             // nil: the pane it was dictated into is not where it was (a layout change, a closed window); no other
             // pane's draft is read in its place.
             guard let text else { self.finish("Could not read the dictated session's message box"); return }
@@ -233,10 +233,10 @@ final class SendController {
     /// Reads the draft until it has stopped changing (`DraftSettle`): a final transcript goes out after the quiet
     /// time instead of a fixed wait, and one Claude is still writing is waited for.
     private func settledDraft(_ session: ClaudeSession) async -> String? {
-        var settle = DraftSettle(start: CACurrentMediaTime(), first: await ctx.bridge.draftText(session))
+        var settle = DraftSettle(start: CACurrentMediaTime(), first: await ctx.agent.draftText(session))
         while true {
             try? await Task.sleep(nanoseconds: 50_000_000)
-            if settle.observe(await ctx.bridge.draftText(session), at: CACurrentMediaTime()) { break }
+            if settle.observe(await ctx.agent.draftText(session), at: CACurrentMediaTime()) { break }
         }
         EnsembleLog.write("transcript settled after \(Int((CACurrentMediaTime() - settle.start) * 1000)) ms (last change at \(Int(settle.lastChangeAfter * 1000)) ms)")
         return settle.text
@@ -244,7 +244,7 @@ final class SendController {
 
     /// Refuses with the "Not sent" notice unless Claude is the app in front. The bridge checks again right before the press.
     private func claudeInFront() -> Bool {
-        guard let why = SendRules.frontRefusal(claudeInFront: ctx.bridge.claudeIsFrontmost()) else { return true }
+        guard let why = SendRules.frontRefusal(claudeInFront: ctx.agent.claudeIsFrontmost()) else { return true }
         showSending(nil)
         ctx.refuse("Not sent: \(why)")
         return false
@@ -266,7 +266,7 @@ final class SendController {
         guard claudeInFront() else { finish(nil); return }
         ctx.busy = true
         Task { @MainActor in
-            let result = await self.ctx.bridge.sendDraft(session, shown: shown, stoppedAt: stoppedAt, inputAge: inputAge)
+            let result = await self.ctx.agent.sendDraft(session, shown: shown, stoppedAt: stoppedAt, inputAge: inputAge)
             self.ctx.busy = false
             switch result {
             case .done:

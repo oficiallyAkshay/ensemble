@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 /// One column's position and width inside the glyph, left to right.
 public struct SessionColumn: Equatable, Sendable {

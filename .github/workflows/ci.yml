@@ -40,6 +40,9 @@ jobs:
       - name: Test trap check
         run: scripts/check-test-traps.sh 2>&1 | tee /tmp/ensemble-ci-test-traps.log
 
+      - name: Update signature check test
+        run: bash scripts/test-check-update-signature.sh 2>&1 | tee /tmp/ensemble-ci-update-signature.log
+
       - name: Test
         run: swift test 2>&1 | tee /tmp/ensemble-ci-test.log
 
@@ -54,6 +57,37 @@ jobs:
 
       - name: Size check
         run: scripts/check-size.sh 2>&1 | tee /tmp/ensemble-ci-size.log
+
+      # The release path (hash-pinned uv, the disk image built from the hash-checked list) is tried here, so a release never
+      # finds it broken. It runs only when a file it depends on changed; the checkout is one commit deep, so the parent is fetched first.
+      - name: Release dry run and hash check
+        env:
+          ENSEMBLE_SIGN_IDENTITY: "-"
+          UV_VERSION: 0.13.7
+          UV_SHA256: f91a229093163eefca89ea1b220a221d64c3beade05d03519a6584d1797a5a5f
+        run: |
+          git fetch --depth=2 origin "$GITHUB_SHA"
+          if git diff --quiet HEAD^1 HEAD -- scripts/release.sh scripts/bundle.sh scripts/dmg-settings.py scripts/dmgbuild-requirements.txt .github/workflows/ci.yml .github/workflows/auto-release.yml; then
+            echo "::notice::no file the release depends on changed; the release dry run is not needed"
+          else
+            printf 'uv==%s --hash=sha256:%s\n' "$UV_VERSION" "$UV_SHA256" > "$RUNNER_TEMP/uv-requirements.txt"
+            python3 -m pip install --require-hashes --no-deps --only-binary :all: --target "$RUNNER_TEMP/uv" -r "$RUNNER_TEMP/uv-requirements.txt"
+            test -x "$RUNNER_TEMP/uv/bin/uv" && test -x "$RUNNER_TEMP/uv/bin/uvx"
+            export PATH="$RUNNER_TEMP/uv/bin:$PATH"
+            scripts/release.sh --dry-run 2>&1 | tee /tmp/ensemble-ci-release-dry-run.log
+            ls build/Ensemble-*.dmg
+            # A good list installs; the same list with every digest zeroed is refused for its digests, not for a missing interpreter.
+            uv venv "$RUNNER_TEMP/hash-good"
+            uv pip install --no-cache --python "$RUNNER_TEMP/hash-good/bin/python" --require-hashes -r scripts/dmgbuild-requirements.txt
+            uv venv "$RUNNER_TEMP/hash-bad"
+            ZEROS="$(printf '%064d' 0)"
+            sed -E "s/sha256:[0-9a-f]{64}/sha256:$ZEROS/" scripts/dmgbuild-requirements.txt > "$RUNNER_TEMP/zeros-requirements.txt"
+            OUT="$RUNNER_TEMP/zeros-install.log"
+            if uv pip install --no-cache --python "$RUNNER_TEMP/hash-bad/bin/python" --require-hashes -r "$RUNNER_TEMP/zeros-requirements.txt" > "$OUT" 2>&1; then exit 1; fi
+            cat "$OUT"
+            grep -qi 'hash' "$OUT"
+            grep -qi 'hash mismatch' "$OUT"
+          fi
 
       - name: Keep the logs
         if: ${{ always() }}
@@ -80,7 +114,7 @@ jobs:
 
       # The three checks below each run even when an earlier one failed, so one run reports every finding.
       - name: Audit workflows and dependabot.yml
-        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           advanced-security: false
 
@@ -88,7 +122,7 @@ jobs:
       # fix "false" only checks; it never rewrites a workflow file or pushes.
       - name: Verify actions are pinned
         if: ${{ !cancelled() }}
-        uses: suzuki-shunsuke/pinact-action@896d595f299e71d65b9d28349d6956abe144390a # v3.0.0
+        uses: suzuki-shunsuke/pinact-action@b1a1f46bb10f2908950d95f626ca8cc109e2cf7d # v3.1.0
         with:
           fix: "false"
           verify: "true"
@@ -102,7 +136,7 @@ jobs:
 
   website-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -203,13 +237,27 @@ jobs:
         run: |
           "$RUNNER_TEMP/periphery/periphery" scan --strict --retain-public --exclude-targets Ensemble --report-include "Sources/EnsembleCore/**"
 
+  # The usage triage script's own tests (checksum, rules, draft format). Plain Python, no packages to install.
+  script-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Usage triage tests
+        run: python3 -I -m unittest discover -s scripts -p test_usage_triage.py
+
   # The one required check. It runs even when a job it needs failed, was skipped or was cancelled, and fails unless
   # every one of them succeeded.
   gate:
     if: ${{ always() }}
-    needs: [ci, hygiene, website-tests, coverage, periphery]
+    needs: [ci, hygiene, website-tests, coverage, periphery, script-tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions: {}
     steps:
       - name: Every job succeeded

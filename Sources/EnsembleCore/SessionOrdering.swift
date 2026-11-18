@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 
 /// Orders open Claude sessions the way they sit on screen, for the island's "focus is moving" glyph.
 public enum SessionOrdering {

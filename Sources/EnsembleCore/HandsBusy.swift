@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// When to step back: while your hands are on the keyboard, mouse or trackpad, Ensemble moves no focus and holds the

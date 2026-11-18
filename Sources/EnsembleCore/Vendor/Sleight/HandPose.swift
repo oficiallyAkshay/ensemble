@@ -1,3 +1,4 @@
+#if canImport(Vision) && canImport(CoreMedia)
 import Vision
 import CoreMedia
 
@@ -56,3 +57,4 @@ public final class HandPoseDetector {
         return Hand(chirality: obs.chirality, points: pts, confidence: obs.confidence)
     }
 }
+#endif

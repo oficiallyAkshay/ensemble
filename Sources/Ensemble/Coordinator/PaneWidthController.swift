@@ -38,10 +38,10 @@ final class PaneWidthController {
     private var pressedAny = false
     /// A divider was asked to take the keyboard during this resize, and the row's dividers that were.
     private var askedDivider = false
-    private var askedDividers: [AXUIElement] = []
+    private var askedDividers: [AnyObject] = []
     /// A resize ended with Claude not in front: when Claude next comes to the front, the keyboard goes back to this
     /// session's message box if one of these dividers still holds it.
-    private var pendingRefocus: (target: ClaudeSession, dividers: [AXUIElement])?
+    private var pendingRefocus: (target: ClaudeSession, dividers: [AnyObject])?
     private let keyHold = ResizeKeyHold()
     private var activationObserver: NSObjectProtocol?
 
@@ -79,10 +79,10 @@ final class PaneWidthController {
         guard let pending = pendingRefocus, !isRunning else { return }
         pendingRefocus = nil
         Task { @MainActor in
-            let onDivider = await self.ctx.bridge.keyboardOnDivider(pending.dividers)
-            guard ResizeKeys.refocus(askedDivider: true, claudeInFront: self.ctx.bridge.claudeIsFrontmost(),
+            let onDivider = await self.ctx.agent.keyboardOnDivider(pending.dividers)
+            guard ResizeKeys.refocus(askedDivider: true, claudeInFront: self.ctx.agent.claudeIsFrontmost(),
                                      keyboardOnDivider: onDivider) == .now else { return }
-            EnsembleLog.write("pane widths: Claude is in front again; \(await self.ctx.bridge.focusComposerIfNeeded(pending.target))")
+            EnsembleLog.write("pane widths: Claude is in front again; \(await self.ctx.agent.focusComposerIfNeeded(pending.target))")
         }
     }
 
@@ -130,7 +130,7 @@ final class PaneWidthController {
     /// another session while it runs, it stops there and the caller fits that one instead.
     func autoFit(_ target: ClaudeSession, calibratedAt: TimeInterval) -> FitSkip? {
         guard !isRunning else { return FitSkip(why: "another resize is running", retry: true) }
-        if let why = ctx.commonRefusal() ?? blocker() { return FitSkip(why: why, retry: ctx.bridge.claudeIsFrontmost() && ctx.settings.enabled) }
+        if let why = ctx.commonRefusal() ?? blocker() { return FitSkip(why: why, retry: ctx.agent.claudeIsFrontmost() && ctx.settings.enabled) }
         if let why = hold.refusal(now: CACurrentMediaTime(), calibratedAt: calibratedAt) { return FitSkip(why: why, retry: true) }
         let idle = ClaudeBridge.secondsSincePhysicalInput()
         if idle < CoordinatorContext.inputQuiet {
@@ -163,7 +163,7 @@ final class PaneWidthController {
     /// while the others can give it (the rest fit); the peace sign was asked for by hand and ignores them.
     private func fitToColumn(_ target: ClaudeSession, row: [ClaudeSession], keepFits: Bool)
         async -> (outcome: Outcome, fit: (ids: [String], from: [Double], to: [Double], k: Int)?, column: Double) {
-        let readings = await ctx.bridge.chatColumns(in: row)
+        let readings = await ctx.agent.chatColumns(in: row)
         column.note(row.map { readings[$0.id]?.column }, panes: row.map { Double($0.frame.width) })
         let width = column.width
         // The pane's padding beside its transcript, read with the transcript from the same frames: a pane frame
@@ -214,9 +214,9 @@ final class PaneWidthController {
     private func end(_ target: ClaudeSession) async {
         if askedDivider {
             let dividers = askedDividers
-            let onDivider = await ctx.bridge.keyboardOnDivider(dividers)
-            switch ResizeKeys.refocus(askedDivider: true, claudeInFront: ctx.bridge.claudeIsFrontmost(), keyboardOnDivider: onDivider) {
-            case .now: EnsembleLog.write("pane widths: \(await ctx.bridge.focusComposerIfNeeded(target))")
+            let onDivider = await ctx.agent.keyboardOnDivider(dividers)
+            switch ResizeKeys.refocus(askedDivider: true, claudeInFront: ctx.agent.claudeIsFrontmost(), keyboardOnDivider: onDivider) {
+            case .now: EnsembleLog.write("pane widths: \(await ctx.agent.focusComposerIfNeeded(target))")
             case .whenClaudeReturns:
                 pendingRefocus = (target, dividers)
                 EnsembleLog.write("pane widths: Claude is not in front; the message box gets the keyboard when it is")
@@ -224,8 +224,8 @@ final class PaneWidthController {
             }
             let held = keyHold.finish()
             if !held.isEmpty {
-                let after = await ctx.bridge.keyboardOnDivider(dividers)
-                if ResizeKeys.replayHeld(claudeInFront: ctx.bridge.claudeIsFrontmost(), keyboardOnDivider: after) {
+                let after = await ctx.agent.keyboardOnDivider(dividers)
+                if ResizeKeys.replayHeld(claudeInFront: ctx.agent.claudeIsFrontmost(), keyboardOnDivider: after) {
                     ResizeKeyHold.repost(held)
                     EnsembleLog.write("pane widths: \(held.count) held key events passed on")
                 } else {
@@ -259,13 +259,13 @@ final class PaneWidthController {
         var before: [Double]?
         var goalWidths: [Double]?
         for pass in 0..<Self.passes {
-            let sessions = await ctx.bridge.refreshSessions().sessions
+            let sessions = await ctx.agent.refreshSessions(watched: false).sessions
             if !sessions.isEmpty { ctx.sessions = sessions; framesChanged() }
             let row = PaneWidths.row(of: sessions.first { $0.id == target.id } ?? target, in: sessions)
             guard row.count >= 2, let k = row.firstIndex(where: { $0.id == target.id }) else {
                 return pass == 0 ? .refused("Only one session in this window") : .stopped("the sessions changed")
             }
-            let found = await ctx.bridge.paneDividers(in: target)
+            let found = await ctx.agent.paneDividers(in: target)
             let xs = PaneWidths.dividers(between: row.map(\.frame), splitters: found.map(\.frame))
             let dividers = (xs ?? []).compactMap { x in found.first { abs(Double($0.frame.midX) - x) < 0.5 } }
             guard let xs, dividers.count == xs.count else {
@@ -316,7 +316,7 @@ final class PaneWidthController {
 
     /// The planned keys, each divider's in one burst `pace` seconds apart. nil when they all went, else why it
     /// stopped.
-    private func press(_ presses: [PaneKeys.Press], on dividers: [AXUIElement], in target: ClaudeSession,
+    private func press(_ presses: [PaneKeys.Press], on dividers: [AnyObject], in target: ClaudeSession,
                        pace seconds: Double) async -> String? {
         let pace = UInt64(seconds * 1_000_000_000)
         let since = startedAt
@@ -343,19 +343,19 @@ final class PaneWidthController {
                 askedDivider = true
                 for d in dividers where !askedDividers.contains(where: { CFEqual($0, d) }) { askedDividers.append(d) }
                 keyHold.begin()
-                if !(await ctx.bridge.focusDivider(divider, in: target)) {
+                if !(await ctx.agent.focusDivider(divider, in: target)) {
                     // Claude can take a second or more to move the keyboard after a burst of keys on another divider.
                     let until = CACurrentMediaTime() + Self.focusWait
                     var holds = false
                     while !holds, CACurrentMediaTime() < until {
                         try? await Task.sleep(nanoseconds: 30_000_000)
                         if let why = safe() { return why }
-                        holds = await ctx.bridge.dividerHoldsKeyboard(divider)
+                        holds = await ctx.agent.dividerHoldsKeyboard(divider)
                     }
                     if !holds { return "the divider did not take the keyboard" }
                 }
                 focused = p.divider
-            } else if !(await ctx.bridge.dividerHoldsKeyboard(divider)) {
+            } else if !(await ctx.agent.dividerHoldsKeyboard(divider)) {
                 return "the divider lost the keyboard"
             }
             // The checks above waited on Claude: look again right before the key.
@@ -370,7 +370,7 @@ final class PaneWidthController {
 
     /// Reads the session frames again and hands them to the highlight.
     private func readFrames() async {
-        let sessions = await ctx.bridge.refreshSessions().sessions
+        let sessions = await ctx.agent.refreshSessions(watched: false).sessions
         guard !sessions.isEmpty, ctx.listening == nil else { return }
         ctx.sessions = sessions
     }
@@ -385,7 +385,7 @@ final class PaneWidthController {
     /// Why no key may be pressed right now, or nil.
     private func blocker() -> String? {
         if !ctx.settings.enabled { return "Ensemble is off" }
-        if !ctx.bridge.claudeIsFrontmost() { return "Claude is not in front" }
+        if !ctx.agent.claudeIsFrontmost() { return "Claude is not in front" }
         if ctx.handsBusy { return "Paused while you type or use the mouse" }
         if ctx.listening != nil || ctx.busy { return "Dictation is starting or stopping" }
         if sendBusy() { return "A send is in progress" }

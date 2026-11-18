@@ -1,0 +1,22 @@
+# Privacy: what the app touches, and what leaves the Mac
+
+Video, text and names never leave the Mac. The app has no crash upload. It sends one anonymous usage report a day (counts only, listed field by field in [docs/telemetry.md](telemetry.md)), which Settings, General, Privacy turns off.
+
+| What | How it is used | Where it goes |
+|---|---|---|
+| Camera frames | Head pose (MediaPipe in a web view served from inside the app) and hand pose (Apple Vision), analysed in memory | Discarded after analysis; never written to disk, never sent anywhere |
+| Claude desktop's accessibility tree | Finds session panes and presses Claude's dictation, Send and scroll controls, and finds the dividers between panes that the peace sign and scissors drag | Stays in the process |
+| Which apps use the microphone, and the default output device state | Safety checks while Claude is listening, and pausing other audio | Stays in the process |
+| The lid state, the list of audio inputs and the default input | With the lid closed, the default input moves to a working microphone before a dictation starts and is put back when the lid opens (a Settings switch turns it off); device names go to the log | Stays in the process |
+| Keyboard and mouse activity | Only whether a key was pressed or a button clicked since a draft was dictated, to refuse a send | Not stored |
+| Settings (calibration, gesture options) | The app's preferences, domain `dev.ensemble.app` | Stay in the user's Library |
+| Usage report | Counts of gestures, refusals and safety stops, the app and macOS versions and the camera format, kept per day under a random install id in the app's preferences | Sent once a day to PostHog Cloud (US) over HTTPS while "Share anonymous usage" is on; off deletes the counts and the id |
+| Log | Events and numbers, no images and no text of drafts, rolled over at 1 MB, in `~/Library/Logs/Ensemble` | Stay on disk; optional per-frame trace (numbers and states only) only when the user turns it on |
+| Safety records | "Dictation started" and "input muted" records so a crash can be undone on the next launch, in `~/Library/Application Support/Ensemble` | Stay on disk |
+
+The app makes two kinds of network connection. The usage report above is one. The other is Sparkle's request for the update feed (an appcast file on GitHub Pages),
+and only after the user turns on automatic update checks or presses Check for Updates; until the feed and signing key
+are configured it never starts. Updates are verified against an EdDSA key pinned in the app and Apple's code signature
+before they are installed. The face tracker's page, WebAssembly and model are bundled and served through a custom URL
+scheme, so nothing is fetched at run time. CI fails if a network call appears in the app sources
+(`scripts/check-network.sh`).

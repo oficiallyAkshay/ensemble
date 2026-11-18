@@ -1,0 +1,1 @@
+The adapter interface gains an interrupt call and a terminal typing path, both refused for Claude desktop and for terminal Claude Code, and the rule that gestures do nothing with another app in front now names supported terminal agents beside Claude.

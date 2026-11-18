@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// Reads the side-by-side session panes of one Claude window: which panes share a row, where the divider between

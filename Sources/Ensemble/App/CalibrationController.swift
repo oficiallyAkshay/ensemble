@@ -81,13 +81,12 @@ final class CalibrationController {
     /// Visits every screen in `screens` (every connected screen by default); pass a subset to calibrate
     /// only those (a newly connected display, say) while the others keep their own calibration.
     /// `clickedAt` (`CACurrentMediaTime`) lets the log say how long the window and the first face reading took.
-    /// `verifyAim: false` is for the demo stub, whose fake head never moves.
     /// `note` is a line for the intro naming the position this run is for.
     /// `firstDotFrom` is a screen already calibrated and its centre sample: a screen with no earlier screen in this run
     /// needs a turn away from it for its first dot, not only stillness.
     func run(screens: [NSScreen] = NSScreen.screens, note: String? = nil, firstDotFrom: (frame: CGRect, centre: CalibrationSample)? = nil,
              feed: CalibrationFeed, clickedAt: TimeInterval = CACurrentMediaTime(),
-             verifyAim: Bool = true, completion: @escaping ([ScreenCalibrationResult]) -> Void) {
+             completion: @escaping ([ScreenCalibrationResult]) -> Void) {
         guard task == nil, !screens.isEmpty else { completion([]); return }
         self.completion = completion
         failure = nil
@@ -114,7 +113,7 @@ final class CalibrationController {
                           + ": \(visits), first dot \(firstDotFrom == nil ? "on stillness" : "needs a turn from a calibrated screen")")
         task = Task { [weak self] in
             guard let self else { return }
-            let results = await self.collect(screens: screens, firstDotFrom: firstDotFrom, feed: feed, clickedAt: clickedAt, verifyAim: verifyAim)
+            let results = await self.collect(screens: screens, firstDotFrom: firstDotFrom, feed: feed, clickedAt: clickedAt)
             self.finish(results)
         }
     }
@@ -165,7 +164,7 @@ final class CalibrationController {
     }
 
     private func collect(screens: [NSScreen], firstDotFrom: (frame: CGRect, centre: CalibrationSample)?, feed: CalibrationFeed,
-                         clickedAt: TimeInterval, verifyAim: Bool) async -> [ScreenCalibrationResult] {
+                         clickedAt: TimeInterval) async -> [ScreenCalibrationResult] {
         // The intro shows at once and the camera path catches up behind it; the first dot waits for a face reading.
         let introStart = CACurrentMediaTime()
         var sawFace = false
@@ -212,8 +211,7 @@ final class CalibrationController {
                 model.offerChoice = false
                 let rule = AimRule()
                 let requirement: AimRequirement
-                if !verifyAim { requirement = .stillness }
-                else if spotIndex == 0 { requirement = rule.requirement(forFirstDotOn: frame, previousScreen: previousScreen) }
+                if spotIndex == 0 { requirement = rule.requirement(forFirstDotOn: frame, previousScreen: previousScreen) }
                 else { requirement = rule.requirement(forTarget: spot, on: frame, accepted: samples) }
 
                 switch await capture(rule: rule, requirement: requirement, feed: feed, spot: spot, number: spotIndex + 1, of: spots.count) {

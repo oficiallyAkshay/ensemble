@@ -14,7 +14,7 @@ Questions a review agent asks of the website (`docs/index.html`, `docs/live/`, `
 
 - Viewports: 1440x900, 1280x720, 2560x1440, 1000x800, 820x900, 390x844 (touch, mobile user agent). On the touch sizes the demo shows only its "available on desktop" message.
 - Pages and states: the letter page top to bottom, scrolled so every 3D scene loads. The demo: desktop, Claude open, panel open, Ensemble on (mouse mode, and camera mode with a fake camera), each step, the Headphones tab, the install step, the finish card, the error card.
-- Run `node --test docs/live/test/logic.test.mjs`. On a Mac also run `node docs/live/test/e2e.mjs all`. On Linux or a cloud session, set `CHROME_PATH` to a Chrome or Chromium binary before running the end-to-end test.
+- Run `node --test docs/live/test/logic.test.mjs`. On a Mac also run `npm ci` once in `docs/live/test` (it installs playwright-core, which drives the installed Chrome), then `node docs/live/test/e2e.mjs all` (the suite is part of the required checks; scenarios and checks it skips are listed with their reasons in `SKIPPED` at the top of the file). On Linux or a cloud session, set `CHROME_PATH` to a Chrome or Chromium binary before running the end-to-end test. After a change to the page's buttons or the demo's entry, also run `node docs/live/test/first-run.mjs` against the live website (`docs/first-run.md`).
 - Measure in the page: distinct computed font sizes and weights per section, overlaps between sibling blocks, `scrollWidth - innerWidth`, console errors, every network request.
 
 ## Questions
@@ -57,7 +57,7 @@ Every website pull request first checks whether the product UI changed since the
 - E2. Do the island and notch match the app's modes and wording?
 - E3. Is `docs/live/logic.js` in step with `EnsembleCore`, changed in the same pull request as the Swift change (gotcha 19)?
 - E4. Does the demo show any removed feature or gesture? Compare against `docs/gestures.md`.
-- E5. Are `docs/assets/3d/scene3d.js` and `capture-default.js` byte-identical to the copies under `Sources/Ensemble/Resources/web/tour/`?
+- E5. Is `docs/assets/3d/capture-default.js` byte-identical to `Sources/Ensemble/Resources/web/tour/capture-default.js`? The other 3D and tracker files exist once, in the app; the publish step copies them (`docs/live/test/app-copies.mjs` maps each).
 - E6. Do the Claude window mock, icon and wording still match the real Claude desktop app, and is it framed as a mock?
 - E7. Do the headphone claims match `docs/gestures.md` (Bluetooth only, one press toggles, two send)?
 - E8. Does the version string match the latest release and changelog?

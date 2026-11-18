@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// One head reading taken while a calibration dot is showing. Angles are radians, as the face tracker reports them.

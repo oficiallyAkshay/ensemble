@@ -5,3 +5,7 @@ build/
 xcuserdata/
 .claude/
 *.local.md
+
+node_modules/
+__pycache__/
+*.pyc

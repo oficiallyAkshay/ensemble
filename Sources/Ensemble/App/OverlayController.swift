@@ -82,13 +82,14 @@ final class OverlayController {
         }
     }
 
-    func update(target: CGRect?, nose: CGPoint?, listening: Bool, showNoseDot: Bool, showHighlight: Bool) {
+    func update(target: CGRect?, nose: CGPoint?, lead: DotLead?, listening: Bool, showNoseDot: Bool, showHighlight: Bool) {
         if model.glide != nil, let settled = glideSettled, target != settled {
             model.glide = nil
             glideSettled = nil
         }
         setIfChanged(&model.target, target)
         latestNose = nose
+        latestLead = lead
         model.hasNose = nose != nil
         setIfChanged(&model.listening, listening)
         setIfChanged(&model.nose, listening ? nose : nil)
@@ -99,6 +100,7 @@ final class OverlayController {
     }
 
     private var latestNose: CGPoint?
+    private var latestLead: DotLead?
     /// The frame the highlight had when the last resize ended; nil while one runs or none has.
     private var glideSettled: CGRect??
 
@@ -126,7 +128,7 @@ final class OverlayController {
         let dot = (glassDotStore as? GlassDot) ?? GlassDot()
         glassDotStore = dot
         let visible = !model.listening && (model.showNoseDot || model.gesture != nil)
-        dot.show(at: visible ? latestNose : nil, dimmed: model.handsOnInput && model.gesture == nil)
+        dot.show(at: visible ? latestNose : nil, lead: model.gesture == nil ? latestLead : nil, dimmed: model.handsOnInput && model.gesture == nil)
         dot.setScrolling(scrolling)
     }
 

@@ -76,6 +76,9 @@ private struct GeneralSettings: View {
                 }
                 Text("While you type, click, scroll or move the pointer, focus and the highlight hold; gestures still work.")
                     .font(.caption).foregroundStyle(.secondary)
+                Toggle("Light mode: scroll other apps", isOn: $settings.lightMode)
+                Text("Off by default. With another app in front, pinch and move scrolls the window you look at. Nothing else works there: no dictation, no send, no typing.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section {
                 LabeledContent("Show the panel from anywhere", value: "⌥⌘K")

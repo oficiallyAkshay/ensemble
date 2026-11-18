@@ -56,9 +56,67 @@ import Testing
         #expect(s.position == CGPoint(x: 10, y: 10))
         #expect(s.velocity == .zero)
     }
+
+    @Test func isFastOnlyAboveTheFastSpeed() {
+        var s = DotSpring()
+        s.reset(to: .zero)
+        #expect(!s.isFast)
+        s.step(toward: CGPoint(x: 300, y: 0), dt: 1.0 / 60)
+        #expect(s.isFast)
+        for _ in 0..<60 { s.step(toward: CGPoint(x: 300, y: 0), dt: 1.0 / 60) }
+        #expect(!s.isFast)
+    }
 }
 
-/// The pointer as the eye sees it: NosePointer's filter, the dot's rest rule and the spring at 60 Hz, fed 30 head
+@Suite struct DotLeadTests {
+    /// Moving right and down at 1000 pt/s, read at t = 10 s, the next reading expected 33 ms later.
+    private func lead(velocity: DotVelocity = DotVelocity(dx: 1000, dy: 500), aim: CGPoint = CGPoint(x: 500, y: 300),
+                      interval: TimeInterval = 1.0 / 30) -> DotLead {
+        DotLead(point: CGPoint(x: 100, y: 100), t: 10, velocity: velocity, aim: aim, interval: interval)
+    }
+
+    @Test func neverLeadsMoreThanFortyMilliseconds() {
+        let l = lead()
+        for ms in stride(from: -50.0, through: 200, by: 1) {
+            let now = 10 + ms / 1000
+            #expect(l.lead(at: now) <= 0.04 + 1e-12)
+            let g = l.goal(at: now)
+            #expect(g.x - 100 <= 1000 * 0.04 + 1e-9 && g.y - 100 <= 500 * 0.04 + 1e-9)
+        }
+        #expect(abs(l.lead(at: 10) - 0.04) < 1e-12)
+        #expect(l.goal(at: 10) == CGPoint(x: 140, y: 120))
+    }
+
+    @Test func fadesToTheReadingByTheNextReading() {
+        let l = lead()
+        var last = l.lead(at: 10)
+        for ms in 1...33 {
+            let now = 10 + Double(ms) / 1000
+            #expect(l.lead(at: now) <= last)
+            last = l.lead(at: now)
+        }
+        #expect(l.lead(at: 10 + 1.0 / 30) < 1e-12)
+        #expect(hypot(l.goal(at: 10 + 1.0 / 30).x - 100, l.goal(at: 10 + 1.0 / 30).y - 100) < 1e-9)
+        #expect(l.goal(at: 12) == CGPoint(x: 100, y: 100))
+    }
+
+    @Test func isOffWhileTheNoseIsStill() {
+        let l = lead(velocity: DotVelocity(dx: 30, dy: -20))
+        #expect(l.lead(at: 10) == 0)
+        #expect(l.goal(at: 10) == CGPoint(x: 100, y: 100))
+        #expect(lead(interval: 0).goal(at: 10) == CGPoint(x: 100, y: 100))
+    }
+
+    @Test func neverRunsPastTheUnfilteredReading() {
+        // The unfiltered reading is 10 pt ahead across and already behind down: the goal stops at it across and keeps the reading down.
+        let l = lead(aim: CGPoint(x: 110, y: 95))
+        #expect(l.goal(at: 10) == CGPoint(x: 110, y: 100))
+        let left = lead(velocity: DotVelocity(dx: -1000, dy: -500), aim: CGPoint(x: 90, y: 0))
+        #expect(left.goal(at: 10) == CGPoint(x: 90, y: 80))
+    }
+}
+
+/// The pointer as the eye sees it: NosePointer's filter, the dot's rest rule and the spring at 60 or 120 Hz, fed 30 head
 /// readings a second with seeded noise. The same pipeline `perfbench pointer` measures.
 @Suite struct PointerFeelTests {
     private struct Noise {
@@ -87,27 +145,82 @@ import Testing
         return p
     }
 
-    /// Drawn dot positions at 60 Hz for `seconds`, with the true yaw from `aim`.
-    private func run(seconds: Double, noise: Double, seed: UInt64, aim: (Double) -> Double) -> [(t: Double, dot: CGPoint)] {
+    /// Drawn dot positions for `seconds`, with the true yaw from `aim`, the first reading `phase` of a reading late.
+    /// `lead` aims the spring as the app does (`DotLead` while the rest rule lets the dot move); on a 120 Hz `display`
+    /// a slow dot is redrawn on every second refresh only, as GlassDot asks.
+    private func run(seconds: Double, noise: Double, seed: UInt64, phase: Double = 0, display: Double = 60, lead: Bool = false,
+                     aim: (Double) -> Double) -> [(t: Double, dot: CGPoint)] {
         var rng = Noise(state: seed)
         let ptr = pointer()
         var rest = NoseDot()
         var spring = DotSpring()
         var goal: CGPoint?
-        var next = 0.0
+        var ahead: DotLead?
+        var next = phase / 30
+        var lastTick: Double?
         var out: [(Double, CGPoint)] = []
-        for f in 0..<Int(seconds * 60) {
-            let t = Double(f) / 60
+        for f in 0..<Int(seconds * display) {
+            let t = Double(f) / display
             while next <= t {
                 let h = HeadObservation(t: next, yaw: aim(next) + noise * rng.gaussian(), pitch: noise * rng.gaussian(), faceCount: 1)
-                if let p = ptr.point(for: h) { goal = rest.follow(nose: p, at: next) }
+                if let p = ptr.point(for: h) {
+                    goal = rest.follow(nose: p, at: next)
+                    ahead = lead && rest.moving ? DotLead(point: p, t: next, velocity: ptr.velocity, aim: ptr.aim ?? p, interval: 1.0 / 30) : nil
+                }
                 next += 1.0 / 30
             }
             guard let g = goal else { continue }
+            if display > 60, !spring.isFast, f % 2 == 1 { continue }
             if spring.position == nil { spring.reset(to: g) }
-            out.append((t, spring.step(toward: g, dt: 1.0 / 60)))
+            out.append((t, spring.step(toward: ahead?.goal(at: t) ?? g, dt: t - (lastTick ?? t - 1 / display))))
+            lastTick = t
         }
         return out
+    }
+
+    /// The mean time (s) over 16 seeds and reading phases to cover 90% of a 300 pt step.
+    private func stepLag(display: Double, lead: Bool) -> Double {
+        let seeds = 16
+        return (0..<seeds).map { s in
+            let dots = run(seconds: 4, noise: 0.004, seed: UInt64(s + 1), phase: Double(s) / Double(seeds), display: display, lead: lead) {
+                $0 < 2 ? 0 : 300.0 / 2400
+            }
+            return (dots.first { $0.t >= 2 && Double($0.dot.x) >= 960 + 0.9 * 300 }?.t ?? 4) - 2
+        }.reduce(0, +) / Double(seeds)
+    }
+
+    /// The mean RMS (pt per frame) of the dot's frame-to-frame step about its mean while panning at 600 pt/s, as `perfbench pointer` counts judder.
+    private func panJudder(display: Double, lead: Bool) -> Double {
+        let seeds = 16
+        return (0..<seeds).map { s in
+            let dots = run(seconds: 3, noise: 0.004, seed: UInt64(s + 1), phase: Double(s) / Double(seeds), display: display, lead: lead) {
+                $0 < 1.5 ? 0 : ($0 - 1.5) * 600 / 2400
+            }.filter { $0.t >= 1.8 && $0.t <= 2.8 }
+            let steps = zip(dots.dropFirst(), dots).map { Double($0.dot.x - $1.dot.x) }
+            let mean = steps.reduce(0, +) / Double(steps.count)
+            return (steps.map { ($0 - mean) * ($0 - mean) }.reduce(0, +) / Double(steps.count)).squareRoot()
+        }.reduce(0, +) / Double(seeds)
+    }
+
+    @Test(arguments: [60.0, 120.0])
+    func theLeadCoversAStepAtLeastThirtyMillisecondsSooner(display: Double) {
+        let alone = stepLag(display: display, lead: false), led = stepLag(display: display, lead: true)
+        #expect(alone - led >= 0.03, "\(Int(display)) Hz: \(Int(alone * 1000)) ms alone, \(Int(led * 1000)) ms with the lead")
+    }
+
+    @Test(arguments: [60.0, 120.0])
+    func theLeadsPanJudderCostStaysUnderTwiceTheSpringsAlone(display: Double) {
+        // The lead speeds the dot up as the nose does, which the judder figure counts; this pins the accepted cost.
+        let alone = panJudder(display: display, lead: false), led = panJudder(display: display, lead: true)
+        #expect(led <= 2 * alone, "\(Int(display)) Hz: \(alone) pt/frame alone, \(led) with the lead")
+    }
+
+    @Test func theLeadLeavesAStillHeadsDotExactlyWhereItWas() {
+        for seed in UInt64(1)...8 {
+            let alone = run(seconds: 6, noise: 0.004, seed: seed) { _ in 0 }.map(\.dot)
+            let led = run(seconds: 6, noise: 0.004, seed: seed, lead: true) { _ in 0 }.map(\.dot)
+            #expect(alone == led, "seed \(seed)")
+        }
     }
 
     @Test func aStillHeadKeepsTheDotWithinTwoPoints() {

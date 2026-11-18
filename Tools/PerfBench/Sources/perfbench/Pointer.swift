@@ -3,13 +3,17 @@ import EnsembleCore
 import Foundation
 
 /// Replays synthetic head paths through the app's pointer filter (NosePointer), the dot.s rest rule (NoseDot) and the
-/// on-screen motion, at a chosen head-reading rate and a 60 Hz display, and reports what the eye sees:
+/// on-screen motion, at a chosen head-reading rate and display rate, and reports what the eye sees:
 /// jitter while still, lag after a step, judder while panning, and how far the dot rests from the aim.
 /// Deterministic: the noise comes from a seeded generator.
 struct PointerPipeline {
     var name: String
     var readingsPerSecond: Double
     var smoothing: PointerSmoothing
+    /// The screen's refresh rate (Hz). At 120 the dot is redrawn on every refresh only while it moves fast, as GlassDot asks.
+    var display = 60.0
+    /// The spring aims ahead of the reading while the dot moves (`DotLead`).
+    var lead = false
     /// The old hard leash (pt), used when `wakeRadius` is nil.
     var leash: CGFloat = 24
     /// The new rest rule's wake radius (pt); nil replays the old leash.
@@ -47,7 +51,6 @@ struct PointerResult {
 enum PointerBench {
     // Ground truth like the unit tests: x = 2400 yaw + 960, y = 2000 pitch + 540 (points per radian).
     static let ptPerYaw = 2400.0, ptPerPitch = 2000.0
-    static let display = 60.0
 
     static func pointer(_ p: PointerPipeline) -> NosePointer {
         let n = NosePointer()
@@ -75,8 +78,12 @@ enum PointerBench {
         rest.wakeReadings = p.wakeReadings
         var spring = DotSpring(omega: p.springOmega)
         var drawn: CGPoint?
+        var ahead: DotLead?
+        var lastReading: Double?
+        var lastTick: Double?
         var nextReading = phase / p.readingsPerSecond
         var out: [(Double, CGPoint, CGPoint)] = []
+        let display = p.display
         let frames = Int(seconds * display)
         for f in 0..<frames {
             let t = Double(f) / display
@@ -86,6 +93,11 @@ enum PointerBench {
                 if let q = pointer.point(for: HeadObservation(t: nextReading, yaw: yaw, pitch: pitch, faceCount: 1)) {
                     if p.wakeRadius != nil {
                         leashed = rest.follow(nose: q, at: nextReading)
+                        ahead = p.lead && rest.moving
+                            ? DotLead(point: q, t: nextReading, velocity: pointer.velocity, aim: pointer.aim ?? q,
+                                      interval: nextReading - (lastReading ?? nextReading - 1 / p.readingsPerSecond))
+                            : nil
+                        lastReading = nextReading
                     } else if let d = leashed {
                         // The old NoseDot: a hard leash; the dot stays put inside it and trails by it outside.
                         let dist = hypot(q.x - d.x, q.y - d.y)
@@ -105,8 +117,11 @@ enum PointerBench {
                 if hypot(goal.x - next.x, goal.y - next.y) < 0.25 { next = goal }
                 drawn = next
             } else {
+                // Above 60 Hz a slow dot is redrawn on every second refresh only; the screen shows the last one meanwhile.
+                if display > 60, !spring.isFast, f % 2 == 1 { continue }
                 if spring.position == nil { spring.reset(to: goal) }
-                drawn = spring.step(toward: goal, dt: 1 / display)
+                drawn = spring.step(toward: ahead?.goal(at: t) ?? goal, dt: t - (lastTick ?? t - 1 / display))
+                lastTick = t
             }
             out.append((t, drawn!, CGPoint(x: ptPerYaw * aim(t) + 960, y: 540)))
         }
@@ -170,7 +185,7 @@ func runPointer(_ args: [String]) {
         if a == "sweep" { sweep = true }
     }
     let old = PointerSmoothing(minCutoff: 1.0 - 0.9 * 0.7, beta: 4.0 - 3.4 * 0.7, dCutoff: 1)
-    print(String(format: "pointer replay: head noise %.4f rad (%.1f pt), display %.0f Hz, 40 seeds", noise, noise * PointerBench.ptPerYaw, PointerBench.display))
+    print(String(format: "pointer replay: head noise %.4f rad (%.1f pt), 60 Hz display unless a row says 120, 40 seeds", noise, noise * PointerBench.ptPerYaw))
     let new = PointerSmoothing.level(PointerSmoothing.defaultLevel)
     let rows: [PointerPipeline] = [
         PointerPipeline(name: "before, 21 fps camera (10.5 Hz face)", readingsPerSecond: 10.5, smoothing: old, leash: 24, glide: 0.05),
@@ -178,6 +193,9 @@ func runPointer(_ args: [String]) {
         PointerPipeline(name: "after, 21 fps camera (every frame)", readingsPerSecond: 21, smoothing: new, wakeRadius: NoseDot().wakeRadius, glide: nil),
         PointerPipeline(name: "after, 30 fps camera (every frame)", readingsPerSecond: 30, smoothing: new, wakeRadius: NoseDot().wakeRadius, glide: nil),
         PointerPipeline(name: "after, 30 fps, slider at 0.7", readingsPerSecond: 30, smoothing: .level(0.7), wakeRadius: NoseDot().wakeRadius, glide: nil),
+        PointerPipeline(name: "lead, 30 fps camera", readingsPerSecond: 30, smoothing: new, lead: true, wakeRadius: NoseDot().wakeRadius, glide: nil),
+        PointerPipeline(name: "after, 30 fps, 120 Hz", readingsPerSecond: 30, smoothing: new, display: 120, wakeRadius: NoseDot().wakeRadius, glide: nil),
+        PointerPipeline(name: "lead, 30 fps, 120 Hz", readingsPerSecond: 30, smoothing: new, display: 120, lead: true, wakeRadius: NoseDot().wakeRadius, glide: nil),
     ]
     rows.forEach { PointerBench.report($0, noise: noise) }
     guard sweep else { return }

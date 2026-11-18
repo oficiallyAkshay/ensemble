@@ -1,4 +1,8 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
 /// How often Claude's session panes are looked for, and what a scan that finds nothing is worth. A full walk of

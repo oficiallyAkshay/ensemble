@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template for the usage monitor agent. scripts/install-usage-monitor.sh replaces __ROOT__ and __LOG_DIR__ and writes
+     the result to ~/Library/LaunchAgents. It holds no key: the run reads them from 1Password (scripts/usage-monitor.sh). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.ensemble.usage-monitor</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__ROOT__/scripts/usage-monitor.sh</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>7200</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>__LOG_DIR__/usage-monitor.out</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG_DIR__/usage-monitor.out</string>
+</dict>
+</plist>

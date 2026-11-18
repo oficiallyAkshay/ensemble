@@ -1,33 +1,36 @@
+#if canImport(CoreGraphics)
 import CoreGraphics
+#else
+import Foundation
+#endif
 import Foundation
 
-/// The 21 hand joints Vision reports, as bare coordinates: what the tour's inset draws. No image ever comes
+/// The 21 hand joints the hand-pose reader reports, as bare coordinates: what the tour's inset draws. No image ever comes
 /// through here, only normalized points, so the engine hands the tour a skeleton and nothing else of the frame.
 public struct HandSkeletonFrame: Sendable, Equatable {
     /// One slot per joint in `HandSkeleton.joints` order. Normalized image coordinates, origin bottom-left, 0...1.
-    /// nil when Vision did not report that joint with enough confidence.
+    /// nil when the hand-pose reader did not report that joint with enough confidence.
     public var points: [CGPoint?]
 
     public init(points: [CGPoint?]) {
         precondition(points.count == HandSkeleton.joints.count, "a hand skeleton has \(HandSkeleton.joints.count) joints")
         self.points = points
     }
+}
 
-    public init(hand: Hand) {
-        self.init(points: HandSkeleton.joints.map { hand[$0] })
-    }
+/// The 21 hand joints, named locally so the skeleton compiles where the hand-pose reader does not exist.
+public enum HandJoint: CaseIterable, Sendable {
+    case wrist
+    case thumbCMC, thumbMP, thumbIP, thumbTip
+    case indexMCP, indexPIP, indexDIP, indexTip
+    case middleMCP, middlePIP, middleDIP, middleTip
+    case ringMCP, ringPIP, ringDIP, ringTip
+    case littleMCP, littlePIP, littleDIP, littleTip
 }
 
 public enum HandSkeleton {
-    /// Wrist, then each finger from its base to its tip (thumb, index, middle, ring, little).
-    public static let joints: [Joint] = [
-        .wrist,
-        .thumbCMC, .thumbMP, .thumbIP, .thumbTip,
-        .indexMCP, .indexPIP, .indexDIP, .indexTip,
-        .middleMCP, .middlePIP, .middleDIP, .middleTip,
-        .ringMCP, .ringPIP, .ringDIP, .ringTip,
-        .littleMCP, .littlePIP, .littleDIP, .littleTip,
-    ]
+    /// Wrist, then each finger from its base to its tip (thumb, index, middle, ring, little): the case order of `HandJoint`.
+    public static let joints = HandJoint.allCases
 
     /// Indexes into `joints`, 21 bones: each finger's joints chain to its tip, the wrist joins the thumb, index and
     /// little finger, and the index, middle, ring and little bases join across the palm (so the middle and ring
@@ -58,7 +61,7 @@ public enum HandSkeleton {
 }
 
 /// Eases drawn joints toward the newest readings so a 30 Hz hand looks continuous at display rate. Positions are
-/// in the selfie unit square (see `HandSkeleton.selfie`). A joint Vision drops for a moment keeps its last place
+/// in the selfie unit square (see `HandSkeleton.selfie`). A joint the reader drops for a moment keeps its last place
 /// for `holdAfterLoss` seconds, so a flickering fingertip does not blink; a hand that leaves fades from the
 /// drawing once all its joints have expired. Not thread-safe.
 public struct HandSkeletonSmoother {

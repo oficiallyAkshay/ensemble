@@ -1,4 +1,6 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 import Foundation
 
 /// The anonymous daily usage report: what is counted, the fixed list of property names it may carry, the checksum and
@@ -105,6 +107,7 @@ public enum UsageAllowlist {
     }
 }
 
+#if canImport(CryptoKit)
 public enum UsageChecksum {
     /// Public on purpose. The checksum only stops a casual copy-paste of an event into the project; anyone who reads
     /// this file can forge it (docs/telemetry.md).
@@ -169,3 +172,4 @@ public enum UsageSummary {
     /// Noon UTC on the day's date, so the event lands on that calendar date in any time zone.
     static func timestamp(ofDay day: String) -> String { day + "T12:00:00Z" }
 }
+#endif

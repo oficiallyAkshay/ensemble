@@ -1,4 +1,4 @@
-# dmgbuild settings for the installer window (https://github.com/dmgbuild/dmgbuild, MIT, pinned in scripts/release.sh).
+# dmgbuild settings for the installer window (https://github.com/dmgbuild/dmgbuild, MIT; versions and hashes are pinned in scripts/dmgbuild-requirements.txt).
 # Called as: dmgbuild -s scripts/dmg-settings.py -D app=<path to Ensemble.app> "<volume name>" <dmg path>
 # The background is drawn by scripts/make-dmg-background.swift; the icon positions below match its trail.
 import os.path

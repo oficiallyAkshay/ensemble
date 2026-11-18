@@ -16,6 +16,9 @@ public struct OneEuroFilter {
         self.minCutoff = minCutoff; self.beta = beta; self.dCutoff = dCutoff
     }
 
+    /// The smoothed speed of the input (units per second) at the last reading; the drawn dot leads by it (`DotLead`).
+    public var speed: Double { lastDerivative }
+
     public mutating func reset() { lastT = nil }
 
     public mutating func filter(_ x: Double, at t: Double) -> Double {

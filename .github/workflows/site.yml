@@ -11,6 +11,7 @@ on:
       - "docs/logo.png"
       - "docs/live/**"
       - "docs/assets/**"
+      - "Sources/Ensemble/Resources/web/**"
 
 permissions: {}
 
@@ -48,6 +49,16 @@ jobs:
           rm -rf pages/live/test
           rm -rf pages/assets
           cp -R src/docs/assets pages/assets
+          W=src/Sources/Ensemble/Resources/web
+          mkdir -p pages/assets/3d pages/live/capture3d/vendor pages/live/vendor/wasm
+          for f in three.min.js GLTFLoader.js CCDIKSolver.js; do
+            cp "$W/tour/$f" "pages/assets/3d/$f"
+            cp "$W/tour/$f" "pages/live/capture3d/vendor/$f"
+          done
+          cp "$W/tour/hand.glb" "$W/tour/scene3d.js" pages/assets/3d/
+          cp "$W/vision_bundle.mjs" pages/live/vendor/vision_bundle.js
+          cp "$W/wasm/vision_wasm_internal.js" pages/live/vendor/wasm/
+          gzip -9 -c "$W/wasm/vision_wasm_internal.wasm" > pages/live/vendor/wasm/vision_wasm_internal.wasm.gz
 
       - name: Push
         env:

@@ -1,4 +1,5 @@
 import Foundation
+#if canImport(Vision)
 import Vision
 
 public enum Gesture: String, CaseIterable {
@@ -186,3 +187,4 @@ public struct GestureClassifier {
         hypot(a.x - b.x, a.y - b.y)
     }
 }
+#endif
