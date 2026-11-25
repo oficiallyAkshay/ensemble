@@ -128,6 +128,11 @@ jobs:
           verify: "true"
           skip_push: "true"
 
+      # The owner's private notes never live in this public repository.
+      - name: No private notes text
+        if: ${{ !cancelled() }}
+        run: python3 .github/private-notes-check.py
+
       - name: Secrets scan
         if: ${{ !cancelled() }}
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
