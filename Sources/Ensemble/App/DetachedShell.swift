@@ -5,8 +5,14 @@ import Foundation
 /// job exits, which would take the script that is meant to open Ensemble again down with it.
 enum DetachedShell {
     /// Opens Ensemble again: launchd's job when open at login is on (so crash restarts keep working), the bundle otherwise.
+    /// Inside a shell function $1... are the function's own arguments, so the script's values are kept first and every
+    /// caller can run a bare `reopen`.
     static let reopen = """
-    reopen() { if [ "$3" = 1 ]; then /bin/launchctl kickstart "gui/$4/$5" 2>/dev/null && return; fi; /usr/bin/open "$2"; }
+    reopenBundle=$2 reopenAtLogin=$3 reopenUid=$4 reopenJob=$5
+    reopen() {
+      if [ "$reopenAtLogin" = 1 ]; then /bin/launchctl kickstart "gui/$reopenUid/$reopenJob" 2>/dev/null && return; fi
+      /usr/bin/open "$reopenBundle"
+    }
     """
 
     /// The arguments every script here reads: $1 this process, $2 the bundle, $3 open at login on, $4 uid, $5 job label.
