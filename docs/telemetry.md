@@ -24,7 +24,7 @@ Every property is a number, a flag or a short word (letters, digits, dot, dash, 
 | `focus_moves` | Times focus moved to the session you looked at |
 | `gesture_<g>_attempted`, `gesture_<g>_succeeded` | For `<g>` in `pinch` (Talk), `thumbs_up` (Send), `scroll`, `peace`, `scissors`. Attempted is the gesture being recognised; succeeded is the action happening. A headphone press or Return is not counted as the gesture |
 | `sends_refused_<r>` | Sends refused, by `<r>`: `not_in_front`, `nothing_dictated`, `typed_or_clicked`, `empty_draft`, `claude_not_ready`, `other_microphone`, `busy`, `no_face`, `camera_covered`, `screen_locked`, `stop_unconfirmed`, `turned_off`, `other`. One send can show more than one notice, so these count notices |
-| `safety_stops_<s>` | Dictations the app ended itself, by `<s>`: `dead_man`, `standing_check`, `multiple_faces`, `no_face`, `camera_covered`, `other_microphone`, `typing_or_click`, `input_device_changed`, `sleep_or_lock`, `claude_quit` (the checks are described in [safety.md](safety.md)) |
+| `safety_stops_<s>` | Dictations the app ended itself, by `<s>`: `dead_man`, `standing_check`, `multiple_faces` (stays at zero while the face tracker finds one face), `no_face`, `camera_covered`, `other_microphone`, `typing_or_click`, `input_device_changed`, `sleep_or_lock`, `claude_quit` (the checks are described in [safety.md](safety.md)) |
 | `chk` | A checksum, below |
 | `$process_person_profile` (false), `$geoip_disable` (true) | Tell PostHog not to build a person profile and not to look up a location |
 
